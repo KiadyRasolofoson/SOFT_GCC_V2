@@ -1,0 +1,28 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  h1, h3 {
+    color: #333;
+  }
+  
+  .task-item {
+    background-color: #f4f4f4;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+  }
+  
+  .task-item h3 {
+    margin: 0 0 5px 0;
+  }
+  
+  th {
+    font-weight: 800;
+    font-size: 16px;
+    text-transform: uppercase;
+}

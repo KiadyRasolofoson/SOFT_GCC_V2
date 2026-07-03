@@ -1,0 +1,157 @@
+/* .step1-container {
+  --primary-color: #3f51b5;
+  --secondary-color: #f50057;
+  --background-color: #f5f5f5;
+  --text-color: #333;
+  --border-color: #ddd;
+  --hover-color: #e3f2fd;
+  --success-color: #4caf50;
+  --error-color: #f44336;
+  --warning-color: #ff9800;
+  --info-color: #2196f3;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --transition-speed: 0.3s;
+  --border-radius: 4px;
+  --spacing-unit: 8px;
+  --font-family: 'Roboto', sans-serif;
+  --font-size-small: 0.875rem;
+  --font-size-medium: 1rem;
+  --font-size-large: 1.25rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --z-index-modal: 1000;
+  --z-index-dropdown: 100;
+  --z-index-tooltip: 200;
+}
+
+.step1-container {
+  padding: calc(var(--spacing-unit) * 2);
+  background-color: var(--background-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.step1-container .question-card {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: calc(var(--spacing-unit) * 2);
+  margin-bottom: calc(var(--spacing-unit) * 2);
+  transition: box-shadow var(--transition-speed) ease;
+}
+
+.step1-container .question-card:hover {
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.step1-container .question-text {
+  font-size: var(--font-size-medium);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-color);
+  margin-bottom: calc(var(--spacing-unit) * 2);
+}
+
+.step1-container .rating-container {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 2);
+  margin-top: var(--spacing-unit);
+}
+
+.step1-container .rating-button {
+  padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background-color: white;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all var(--transition-speed) ease;
+}
+
+.step1-container .rating-button:hover {
+  background-color: var(--hover-color);
+  border-color: var(--primary-color);
+}
+
+.step1-container .rating-button.selected {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.step1-container .rating-button.selected:hover {
+  background-color: var(--primary-color);
+  opacity: 0.9;
+}
+
+.step1-container .error-message {
+  color: var(--error-color);
+  font-size: var(--font-size-small);
+  margin-top: var(--spacing-unit);
+}
+
+.step1-container .success-message {
+  color: var(--success-color);
+  font-size: var(--font-size-small);
+  margin-top: var(--spacing-unit);
+}
+
+.step1-container .navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: calc(var(--spacing-unit) * 3);
+}
+
+.step1-container .nav-button {
+  padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 3);
+  border-radius: var(--border-radius);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-speed) ease;
+}
+
+.step1-container .nav-button.primary {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.step1-container .nav-button.primary:hover {
+  background-color: var(--primary-color);
+  opacity: 0.9;
+}
+
+.step1-container .nav-button.secondary {
+  background-color: white;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.step1-container .nav-button.secondary:hover {
+  background-color: var(--hover-color);
+  border-color: var(--primary-color);
+}
+
+.step1-container .progress-indicator {
+  margin-bottom: calc(var(--spacing-unit) * 3);
+}
+
+.step1-container .progress-bar {
+  height: 4px;
+  background-color: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.step1-container .progress-fill {
+  height: 100%;
+  background-color: var(--primary-color);
+  transition: width var(--transition-speed) ease;
+}
+
+.step1-container .progress-text {
+  font-size: var(--font-size-small);
+  color: var(--text-color);
+  margin-top: var(--spacing-unit);
+  text-align: right;
+}  */

@@ -1,0 +1,600 @@
+/* Variables pour les couleurs et les espacements */
+.step1-container {
+  /* Variables CSS */
+  --primary-color: #3f51b5;
+  --primary-light: #e8eaf6;
+  --primary-hover: #303f9f;
+  --secondary-color: #4caf50;
+  --danger-color: #f44336;
+  --warning-color: #ff9800;
+  --text-dark: #37474f;
+  --text-medium: #546e7a;
+  --text-light: #78909c;
+  --text-input: #333333;
+  --background-light: #f5f7fa;
+  --background-white: #ffffff;
+  --border-color: #e1e4e8;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --transition-fast: 0.2s;
+
+  /* Styles de base */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text-dark);
+  padding: var(--spacing-lg);
+  max-width: 900px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.step1-container h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+  color: var(--primary-color);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--primary-light);
+}
+
+.step1-container h3 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-dark);
+}
+
+/* Container pour les questions */
+.questions-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+/* Style pour chaque question */
+.question-item {
+  background-color: var(--background-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  transition: box-shadow var(--transition-fast);
+}
+
+.question-item:hover {
+  box-shadow: 0 8px 15px rgba(0,0,0,0.05), 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* En-tête de la question */
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--primary-light);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.question-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.question-title h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.competence-tag {
+  background-color: var(--primary-color);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.question-rating {
+  display: flex;
+  align-items: baseline;
+  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.question-rating.rating-low {
+  background-color: var(--danger-color);
+}
+
+.question-rating.rating-medium {
+  background-color: var(--warning-color);
+}
+
+.question-rating .rating-value {
+  font-size: 1.5rem;
+  margin-right: var(--spacing-xs);
+}
+
+.question-rating .rating-label {
+  font-size: 0.9rem;
+}
+
+/* Contenu de la question */
+.question-response-section {
+  padding: var(--spacing-lg);
+}
+
+.question-content {
+  background-color: var(--background-light);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  border-left: 4px solid var(--primary-color);
+}
+
+.question-content p {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-dark);
+}
+
+/* Réponse de l'employé */
+.employee-response {
+  margin-bottom: var(--spacing-lg);
+}
+
+.employee-response h5 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.response-content {
+  background-color: var(--background-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Styles pour les réponses QCM */
+.qcm-response {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Conteneur pour l'option sélectionnée et l'indicateur */
+.qcm-response-line {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.option-text {
+  font-weight: 500;
+}
+
+.correct-answer {
+  color: var(--secondary-color);
+}
+
+.incorrect-answer {
+  color: var(--danger-color);
+}
+
+.correct-indicator, .incorrect-indicator {
+  font-size: 0.8rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-weight: 500;
+  margin-left: var(--spacing-sm);
+}
+
+.correct-indicator {
+  background-color: rgba(76, 175, 80, 0.15);
+  color: var(--secondary-color);
+}
+
+.incorrect-indicator {
+  background-color: rgba(244, 67, 54, 0.15);
+  color: var(--danger-color);
+}
+
+/* Styles pour la section de réponse correcte */
+.correct-option-info {
+  display: flex;
+  align-items: center;
+  background-color: rgba(76, 175, 80, 0.08);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  margin-top: var(--spacing-sm);
+  border-left: 3px solid var(--secondary-color);
+}
+
+.correct-option-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-right: var(--spacing-sm);
+  color: var(--text-medium);
+}
+
+.correct-option-text {
+  color: var(--secondary-color);
+  font-weight: 500;
+}
+
+.no-correct-option {
+  color: var(--warning-color);
+  font-style: italic;
+}
+
+/* Section de notation */
+.rating-section {
+  background-color: var(--background-light);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.rating-section h5 {
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.criteria-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.criteria-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.criteria-label {
+  font-size: 0.95rem;
+  color: var(--text-dark);
+}
+
+.star-rating {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.star {
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #dee2e6;
+  transition: color var(--transition-fast);
+}
+
+.star:hover, .star.active {
+  color: #ffc107;
+}
+
+/* Section de commentaire */
+.comment-section {
+  margin-top: var(--spacing-lg);
+}
+
+.comment-section label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-medium);
+}
+
+.comment-section textarea {
+  width: 100%;
+  height: 100px;
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: 0.95rem;
+  color: var(--text-input);
+  background-color: #ffffff;
+  resize: vertical;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.comment-section textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.15);
+}
+
+/* Section de référence */
+.reference-section {
+  margin-top: var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  border: 1px solid #d1e3ff;
+}
+
+.reference-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #e6f0ff;
+  padding: var(--spacing-md) var(--spacing-lg);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.reference-header:hover {
+  background-color: #d1e3ff;
+}
+
+.reference-header h5 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2962ff;
+}
+
+.expand-icon {
+  font-size: 0.8rem;
+  color: #2962ff;
+  transition: transform var(--transition-fast);
+}
+
+.reference-content {
+  padding: var(--spacing-lg);
+  background-color: #f8fbff;
+  line-height: 1.6;
+}
+
+.key-points {
+  margin-top: var(--spacing-md);
+  background-color: rgba(76, 175, 80, 0.05);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  border-left: 3px solid var(--secondary-color);
+}
+
+.key-points h6 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--secondary-color);
+}
+
+.key-points ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.key-points li {
+  margin-bottom: var(--spacing-xs);
+  color: var(--text-dark);
+}
+
+/* États divers */
+.loading, .error-message, .no-questions-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  text-align: center;
+  padding: var(--spacing-xl);
+  border-radius: var(--border-radius-md);
+  font-size: 1rem;
+}
+
+.loading {
+  background-color: var(--background-light);
+  color: var(--text-medium);
+}
+
+.error-message {
+  background-color: rgba(244, 67, 54, 0.05);
+  color: var(--danger-color);
+  border: 1px solid rgba(244, 67, 54, 0.2);
+}
+
+.no-questions-message {
+  background-color: var(--background-light);
+  color: var(--text-medium);
+  border: 1px dashed var(--border-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .step1-container {
+    padding: var(--spacing-md);
+  }
+  
+  .question-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+  
+  .question-rating {
+    align-self: flex-end;
+  }
+  
+  .criteria-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .star-rating {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* Ajout des styles pour les réponses QCM en pleine largeur */
+.qcm-response-line.full-width {
+  width: 100%;
+  justify-content: flex-start;
+  display: block;
+}
+
+.qcm-response-line.full-width .option-text {
+  max-width: 100%;
+  flex-grow: 1;
+  display: inline-block;
+  width: 100%;
+  font-weight: normal;
+}
+
+/* Style spécifique pour les réponses QCM d'évaluation annuelle */
+.annual-qcm-response {
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+  color: var(--text-dark);
+  width: 100%;
+  display: block;
+}
+
+/* Style spécifique pour les cartes QCM d'évaluation annuelle */
+.annual-qcm-question {
+  max-width: 100%;
+  width: 100%;
+}
+
+.annual-qcm-question .question-response-section {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Nouvelle section pour la réponse de référence avec panneau latéral */
+.reference-section-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none; /* Pour que le conteneur n'interfère pas avec les clics */
+}
+
+.reference-toggle-btn {
+  position: absolute;
+  top: 70px; /* Aligné avec le titre de la question */
+  right: 0;
+  z-index: 11;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50% 0 0 50%;
+  background-color: #2962ff;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+  pointer-events: auto; /* Le bouton reste cliquable */
+}
+
+.reference-toggle-btn:hover {
+  background-color: #1e50cf;
+  transform: translateX(-3px);
+}
+
+.reference-toggle-btn.active {
+  background-color: #f44336;
+  right: 270px;
+}
+
+.reference-icon {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.reference-side-panel {
+  position: absolute;
+  top: 0;
+  right: -270px; /* Un peu plus à droite pour être sûr qu'il est hors écran */
+  width: 260px;
+  height: 100%;
+  background-color: #f8fbff;
+  border-left: 1px solid #d1e3ff;
+  transition: transform 0.3s ease;
+  overflow: hidden;
+  z-index: 5;
+  box-shadow: -3px 0 8px rgba(0,0,0,0.1);
+  pointer-events: none; /* Le panneau n'est pas cliquable quand caché */
+  visibility: hidden; /* Complètement caché par défaut */
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.2s ease, visibility 0s 0.3s;
+}
+
+.reference-side-panel.expanded {
+  transform: translateX(-270px);
+  pointer-events: auto; /* Le panneau devient cliquable quand visible */
+  visibility: visible;
+  opacity: 1;
+  transition: transform 0.3s ease, opacity 0.2s ease, visibility 0s;
+}
+
+.reference-panel-header {
+  background-color: #e6f0ff;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid #d1e3ff;
+}
+
+.reference-panel-header h5 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2962ff;
+}
+
+.reference-panel-content {
+  padding: var(--spacing-md);
+  overflow-y: auto;
+  max-height: calc(100% - 50px);
+}
+
+.reference-text {
+  color: var(--text-dark);
+  line-height: 1.6;
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Ajuster le conteneur des questions pour accommoder le panneau latéral */
+.question-item {
+  position: relative;
+  overflow: visible;
+  transition: padding 0.3s ease;
+}
+
+/* Ajouter du padding quand le panneau est déplié */
+.question-item .reference-side-panel.expanded ~ .question-response-section {
+  padding-right: 270px;
+}

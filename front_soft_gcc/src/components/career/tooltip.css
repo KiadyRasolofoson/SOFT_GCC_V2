@@ -1,0 +1,26 @@
+.custom-tooltip {
+    background-color: #d8c604 !important; /* Vert professionnel */
+    color: white !important; /* Texte blanc */
+    font-size: 14px !important; /* Texte lisible */
+    border-radius: 10px !important; /* Bords arrondis */
+    padding: 10px 15px !important; /* Espacement interne */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important; /* Ombre légère */
+    font-family: 'Arial', sans-serif !important; /* Police élégante */
+    border: 1px solid #ddd !important; /* Ligne subtile */
+  }
+  
+.fade-in-tooltip {
+    animation: fadeIn 0.3s ease-in-out !important;
+}
+  
+@keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  

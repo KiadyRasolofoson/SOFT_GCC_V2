@@ -1,0 +1,237 @@
+/* EvaluationDetailsModal.css */
+
+/* Styles spécifiques au modal EvaluationDetailsModal */
+.evaluation-details-modal .modal-content {
+    background-color: #ffffff;
+    color: #333333;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border: none;
+  }
+  
+  .evaluation-details-modal .modal-header {
+    background-color: #ffffff;
+    color: #333333;
+    border-bottom: 1px solid #eaeaea;
+    border-radius: 4px 4px 0 0;
+    padding: 15px 20px;
+    font-size: 16px;
+  }
+  
+  .evaluation-details-modal .modal-title {
+    font-weight: 600;
+  }
+  
+  .evaluation-details-modal .modal-body {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background-color: #ffffff;
+  }
+  
+  .evaluation-details-modal .modal-footer {
+    background-color: #ffffff;
+    border-top: 1px solid #eaeaea;
+    border-radius: 0 0 4px 4px;
+    padding: 15px 20px;
+  }
+  
+  /* Styles pour les onglets */
+  .evaluation-details-modal .nav-tabs {
+    border-bottom: 1px solid #eaeaea;
+  }
+  
+  .evaluation-details-modal .nav-link {
+    color: #555555;
+    border: none;
+    border-radius: 0;
+    padding: 10px 15px;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  
+  .evaluation-details-modal .nav-link.active {
+    color: #3498db;
+    background-color: transparent;
+    font-weight: 500;
+    border: none;
+  }
+  
+  .evaluation-details-modal .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #3498db;
+  }
+  
+  .evaluation-details-modal .nav-link:hover {
+    background-color: rgba(52, 152, 219, 0.05);
+  }
+  
+  /* Styles pour les boutons */
+  .evaluation-details-modal .btn {
+    padding: 8px 15px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+  
+  .evaluation-details-modal .btn-primary {
+    background-color: #3498db;
+    border-color: #3498db;
+  }
+  
+  .evaluation-details-modal .btn-primary:hover {
+    background-color: #2980b9;
+    border-color: #2980b9;
+  }
+  
+  .evaluation-details-modal .btn-secondary {
+    background-color: #eaeaea;
+    border-color: #eaeaea;
+    color: #555555;
+  }
+  
+  .evaluation-details-modal .btn-secondary:hover {
+    background-color: #d9d9d9;
+    border-color: #d9d9d9;
+  }
+  
+  /* Styles pour le graphique */
+  .evaluation-details-modal .chart-container {
+    margin-top: 20px;
+    padding: 15px 0;
+    background-color: white;
+  }
+  
+  /* Styles pour les étapes */
+  .evaluation-details-modal .step-content h5 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: #333333;
+  }
+  
+  .evaluation-details-modal .step-content p {
+    font-size: 14px;
+    color: #333333;
+    line-height: 1.6;
+  }
+  
+  .evaluation-details-modal .step-content ul {
+    padding-left: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .evaluation-details-modal .step-content ul li {
+    font-size: 14px;
+    color: #333333;
+  }
+
+/* Style pour le bouton de fermeture (X) */
+.evaluation-details-modal .btn-close {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.evaluation-details-modal .btn-close:hover {
+    opacity: 1;
+}
+
+.evaluation-details-modal .btn-close:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Style pour les cartes */
+.evaluation-details-modal .card {
+    border: 1px solid #eaeaea;
+    border-radius: 4px;
+    box-shadow: none;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.evaluation-details-modal .card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #eaeaea;
+    padding: 12px 15px;
+    font-weight: 500;
+    color: #444444;
+}
+
+.evaluation-details-modal .card-body {
+    padding: 15px;
+    background-color: #ffffff;
+}
+
+/* Style pour le cercle de score */
+.evaluation-details-modal .score-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.evaluation-details-modal .score-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: #f8f8f8;
+    border: 2px solid #3498db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+}
+
+.evaluation-details-modal .score-circle span {
+    font-size: 32px;
+    font-weight: 600;
+    color: #333333;
+}
+
+.evaluation-details-modal .score-label {
+    font-size: 16px;
+    color: #555555;
+    font-weight: 500;
+}
+
+/* Style pour la liste des participants */
+.evaluation-details-modal .list-group-item {
+    background-color: #ffffff;
+    border-left: none;
+    border-right: none;
+    border-color: #eaeaea;
+    padding: 12px 0;
+}
+
+.evaluation-details-modal .list-group-item:first-child {
+    border-top: none;
+}
+
+.evaluation-details-modal .list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .evaluation-details-modal .modal-body {
+        padding: 15px;
+    }
+    
+    .evaluation-details-modal .score-circle {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .evaluation-details-modal .score-circle span {
+        font-size: 24px;
+    }
+}

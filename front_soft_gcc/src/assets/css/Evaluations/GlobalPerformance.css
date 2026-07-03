@@ -1,0 +1,571 @@
+.global-performance-graph-container {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+  }
+  
+  .graph-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .graph-header h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .chart-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  
+  .chart-type-selector {
+    display: flex;
+    gap: 5px;
+  }
+  
+  .chart-type-selector button {
+    background-color: #f8f9fc;
+    color: #333;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  
+  .chart-type-selector button.active {
+    background-color: #D4AC0D;
+    color: #fff;
+  }
+  
+  .chart-wrapper {
+    height: 400px;
+    position: relative;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  
+  /* Styles pour les filtres */
+  .filters-panel {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    animation: slideDown 0.3s ease forwards;
+  }
+  
+  .filters-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+  }
+  
+  .filter-group {
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #555;
+  }
+  
+  .select-input,
+  .date-picker {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 0.9rem;
+  }
+  
+  .filter-actions {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .btn-refresh,
+  .btn-reset {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-refresh {
+    background-color: #D4AC0D;
+    color: white;
+  }
+  
+  .btn-reset {
+    background-color: #f1f1f1;
+    color: #666;
+  }
+  
+  .btn-refresh:hover {
+    background-color: #B7950B;
+  }
+  
+  .btn-reset:hover {
+    background-color: #e5e5e5;
+  }
+  
+  /* Animation pour l'affichage des filtres */
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Styles pour les états de chargement et erreurs */
+  .chart-loading, 
+  .chart-error, 
+  .no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    text-align: center;
+    color: #666;
+    font-size: 1rem;
+  }
+  
+  .chart-error {
+    color: #dc3545;
+  }
+  
+  /* Statistiques détaillées */
+  .detailed-stats {
+    margin-top: 30px;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+  }
+  
+  .stats-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #333;
+  }
+  
+  .chart-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .summary-card {
+    flex: 1;
+    min-width: 200px;
+    background-color: #f8f8f8;
+    border-radius: 6px;
+    padding: 15px;
+    border-left: 3px solid #D4AC0D;
+    transition: all 0.3s ease;
+  }
+  
+  .summary-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .summary-card h4 {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 10px;
+  }
+  
+  .summary-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  /* Réactivité pour les mobiles */
+  @media (max-width: 992px) {
+    .filters-form {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .filter-group {
+      width: 100%;
+    }
+    
+    .graph-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+    
+    .chart-controls {
+      width: 100%;
+      justify-content: space-between;
+    }
+    
+    .chart-wrapper {
+      height: 350px;
+    }
+    
+    .summary-card {
+      min-width: 100%;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .chart-wrapper {
+      height: 300px;
+    }
+  }
+
+/* Styles pour le composant GlobalPerformanceGraph */
+
+.global-performance-graph {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 30px;
+  transition: all 0.3s ease;
+}
+
+.global-performance-graph:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Styles pour l'en-tête du graphique */
+.graph-header h5 {
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+/* Styles pour les filtres */
+.filters-panel {
+  background-color: #f8f9fc;
+  border: 1px solid #e3e6f0;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+/* Style du sélecteur de date */
+.form-control, .form-select {
+  border: 1px solid #d1d3e2;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #D4AC0D;
+  box-shadow: 0 0 0 0.2rem rgba(212, 172, 13, 0.25);
+}
+
+/* Styles pour les boutons */
+.btn-primary {
+  background-color: #D4AC0D;
+  border-color: #D4AC0D;
+}
+
+.btn-primary:hover {
+  background-color: #b8940b;
+  border-color: #b8940b;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #e9ecef;
+}
+
+/* Styles pour la section KPI */
+.kpi-section {
+  margin-bottom: 25px;
+}
+
+.kpi-header h6, .stats-header h6 {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+}
+
+.kpi-cards .row, .stats-cards .row {
+  margin: 0 -10px;
+}
+
+.kpi-cards .col-md-4, .stats-cards .col-md-3 {
+  padding: 0 10px;
+}
+
+.kpi-card {
+  border-radius: 8px;
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.kpi-card.participation {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.kpi-card.participation::before {
+  background-color: #4e73df;
+}
+
+.kpi-card.approval {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.kpi-card.approval::before {
+  background-color: #1cc88a;
+}
+
+.kpi-card.average {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.kpi-card.average::before {
+  background-color: #D4AC0D;
+}
+
+.kpi-icon {
+  background-color: rgba(212, 172, 13, 0.1);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20px;
+}
+
+.kpi-card.participation .kpi-icon {
+  background-color: rgba(78, 115, 223, 0.1);
+  color: #4e73df;
+}
+
+.kpi-card.approval .kpi-icon {
+  background-color: rgba(28, 200, 138, 0.1);
+  color: #1cc88a;
+}
+
+.kpi-card.average .kpi-icon {
+  background-color: rgba(212, 172, 13, 0.1);
+  color: #D4AC0D;
+}
+
+.kpi-content {
+  flex: 1;
+}
+
+.kpi-content h3 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.kpi-content p {
+  margin-bottom: 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Styles pour les cartes de statistiques */
+.performance-stats {
+  margin-top: 30px;
+}
+
+.stat-card {
+  position: relative;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  border-radius: 8px 8px 0 0;
+}
+
+.stat-card.average-score::after {
+  background: #D4AC0D;
+  background: linear-gradient(90deg, #D4AC0D 0%, #F1C40F 100%);
+}
+
+.stat-card.total-evals::after {
+  background: #4e73df;
+  background: linear-gradient(90deg, #4e73df 0%, #7597ec 100%);
+}
+
+.stat-card.best-year::after {
+  background: #1cc88a;
+  background: linear-gradient(90deg, #1cc88a 0%, #36d8a8 100%);
+}
+
+.stat-card.trend-up::after {
+  background: #24a865;
+  background: linear-gradient(90deg, #24a865 0%, #36d8a8 100%);
+}
+
+.stat-card.trend-down::after {
+  background: #e74a3b;
+  background: linear-gradient(90deg, #e74a3b 0%, #f29e97 100%);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 5px;
+  line-height: 1;
+}
+
+.stat-value span {
+  font-size: 1rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.trend-up .stat-value {
+  color: #24a865;
+}
+
+.trend-down .stat-value {
+  color: #e74a3b;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6c757d;
+  margin-top: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Styles pour le conteneur du graphique */
+.chart-container {
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+}
+
+/* Styles pour les tooltips personnalisés */
+.custom-tooltip {
+  background-color: white;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.tooltip-label {
+  font-weight: 600;
+  margin-bottom: 3px;
+  color: #333;
+}
+
+.tooltip-score {
+  font-weight: 700;
+  color: #D4AC0D;
+  margin-left: 5px;
+}
+
+.tooltip-count {
+  margin-top: 5px;
+  font-size: 0.9rem;
+}
+
+/* Animation du spinner de chargement */
+.spinner-border.text-warning {
+  color: #D4AC0D !important;
+}
+
+/* Media queries pour la responsivité */
+@media (max-width: 768px) {
+  .filters-panel .row {
+    flex-direction: column;
+  }
+  .col-md-2, .col-md-3, .col-md-4 {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .kpi-cards .row, .stats-cards .row {
+    flex-direction: column;
+  }
+  .kpi-card, .stat-card {
+    margin-bottom: 15px;
+  }
+}

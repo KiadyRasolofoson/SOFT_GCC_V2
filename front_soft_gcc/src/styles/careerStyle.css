@@ -1,0 +1,64 @@
+.description-cell {
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+/* Amélioration des styles de la section */
+.section-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #4a4a4a;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 5px;
+}
+
+/* Card personnalisée */
+.custom-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    border: none;
+}
+
+/* Style des informations */
+.info-item {
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.info-label {
+    font-weight: bold;
+    color: #333;
+    margin-right: 5px;
+}
+
+.info-value {
+    font-weight: normal;
+    color: #555;
+    font-style: italic;
+}
+
+/* Marges et alignement */
+.description {
+    margin-top: 20px;
+    row-gap: 20px;
+}
+
+/* Responsivité */
+@media (max-width: 768px) {
+    .custom-card {
+        margin-bottom: 20px;
+    }
+}
+
+th {
+    background-color: lightgrey;
+} 
+
+.subtitle {
+    color: #B8860B !important;
+    border-bottom: 2px solid #B8860B; 
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}

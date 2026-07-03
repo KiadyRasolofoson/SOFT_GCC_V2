@@ -1,0 +1,262 @@
+/* Variables pour faciliter la cohérence des couleurs */
+:root {
+  --primary-color: #F9B208;
+  /* Jaune moutarde plus doux */
+  --secondary-color: #325288;
+  /* Bleu professionnel */
+  --neutral-dark: #2D3748;
+  --neutral-medium: #718096;
+  --neutral-light: #EDF2F7;
+  --white: #FFFFFF;
+  --error-color: #F56565;
+  --success-color: #48BB78;
+  --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--neutral-light);
+  background-image: url('https://source.unsplash.com/random/1920x1080/?pattern,abstract,white');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.login-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(249, 178, 8, 0.9), rgba(50, 82, 136, 0.8));
+  opacity: 0.2;
+}
+
+.login-layout {
+  display: flex;
+  width: 100%;
+  max-width: 1000px;
+  min-height: 600px;
+  position: relative;
+  z-index: 1;
+}
+
+.login-card-container {
+  flex: 1;
+  padding: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
+  width: 100%;
+  max-width: 450px;
+  overflow: hidden;
+  position: relative;
+}
+
+.login-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+}
+
+.login-card-content {
+  padding: 40px 40px 50px 40px;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.logo-container {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), #FFD700);
+  box-shadow: 0 4px 20px rgba(249, 178, 8, 0.4);
+}
+
+.logo-icon {
+  font-size: 40px;
+  color: var(--white);
+}
+
+.app-title {
+  color: var(--neutral-dark);
+  font-size: 2.2rem;
+  margin: 15px 0 10px;
+  font-weight: 700;
+}
+
+.highlight {
+  color: var(--primary-color);
+}
+
+.app-subtitle {
+  color: var(--neutral-medium);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 2px solid var(--neutral-light);
+  border-radius: 10px;
+  background-color: #F7FAFC;
+  transition: all 0.3s ease;
+}
+
+.input-with-icon:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(249, 178, 8, 0.2);
+}
+
+/* Style du champ input */
+.input-with-icon input {
+  width: 100%;
+  padding: 14px;
+  border: none; /* Pas de bordure car le conteneur parent en a déjà une */
+  font-size: 1rem;
+  background-color: transparent;
+  color: var(--neutral-dark);
+}
+
+/* Style de l'icône dans un conteneur distinct */
+.input-icon {
+  position: static;
+  /* Ne plus utiliser positioning absolu */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  color: var(--neutral-medium);
+  min-width: 40px;
+  /* Largeur fixe pour l'icône */
+  border-right: 1px solid #E2E8F0;
+  /* Séparateur visuel */
+}
+
+/* Ajouter un style pour les placeholders */
+.input-with-icon input::placeholder {
+  color: #A0AEC0;
+  /* Couleur plus claire pour les placeholders */
+}
+
+/* Positionner l'icône de visibilité du mot de passe à droite */
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  cursor: pointer;
+  color: var(--neutral-medium);
+  padding: 0 5px;
+}
+
+.input-with-icon input:focus {
+  outline: none;
+  /* La mise en évidence se fait au niveau du conteneur parent */
+}
+
+.login-button {
+  width: 100%;
+  padding: 16px;
+  background: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-button:hover {
+  background: #FFC800;
+}
+
+.login-button:disabled {
+  background: #E5E7EB;
+  cursor: not-allowed;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 30px 0;
+}
+
+.remember-me {
+  color: var(--neutral-medium);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.forgot-password {
+  color: var(--neutral-dark);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}
+
+.signup-link {
+  text-align: center;
+  color: var(--neutral-medium);
+  margin-top: 30px;
+}
+
+.signup-link a {
+  color: var(--neutral-dark);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.signup-link a:hover {
+  text-decoration: underline;
+}
+
+.error-message {
+  color: var(--error-color);
+  background: rgba(245, 101, 101, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+}
