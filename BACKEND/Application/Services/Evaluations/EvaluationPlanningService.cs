@@ -1,8 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Core.Interface.EvaluationInterface;
+﻿using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Interface;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
@@ -12,24 +10,25 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
     public class EvaluationPlanningService
     {
-        //private readonly IEvaluationQuestionRepository _questionRepository;
-        //private readonly IGenericRepository<EvaluationType> _evaluationTypeRepository;
-        //private readonly IGenericRepository<EvaluationQuestion> _evaluationQuestion;
-        //private readonly IGenericRepository<TrainingSuggestion> _trainingSuggestionsRepository;
-        //private readonly IGenericRepository<EvaluationQuestionnaire> _evaluationQuestionnaireRepository;
-        //private readonly IGenericRepository<Evaluation> _evaluationRepository;
-
-        private readonly ApplicationDbContext _context;
+        private readonly IEvaluationDataService _dataService;
         private readonly IGenericRepository<Position> _posteRepository;
         private readonly IGenericRepository<Department> _departementRepository;
+        private readonly IGenericRepository<Employee> _employeeRepository;
+        private readonly IGenericRepository<EvaluationType> _evaluationTypeRepository;
 
 
-        public EvaluationPlanningService(ApplicationDbContext context, 
-            IGenericRepository<Department> department, IGenericRepository<Position> poste)
+        public EvaluationPlanningService(
+            IEvaluationDataService dataService,
+            IGenericRepository<Department> department,
+            IGenericRepository<Position> poste,
+            IGenericRepository<Employee> employeeRepository,
+            IGenericRepository<EvaluationType> evaluationTypeRepository)
         {
-            _context = context;
+            _dataService = dataService;
             _posteRepository = poste;
             _departementRepository = department;
+            _employeeRepository = employeeRepository;
+            _evaluationTypeRepository = evaluationTypeRepository;
         }
 
         public async Task<IEnumerable<VEmployeeWithoutEvaluation>> GetEmployeesWithoutEvaluationsAsync(
@@ -37,21 +36,21 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 int? department = null, 
                 string? search = null)
         {
-                    var query = _context.vEmployeeWithoutEvaluations.AsQueryable();
+            var query = _dataService.GetEmployeesWithoutEvaluationsQuery();
 
-                    if (position.HasValue)
-                        query = query.Where(e => e.positionId == position);
+            if (position.HasValue)
+                query = query.Where(e => e.positionId == position);
 
-                    if (department.HasValue)
-                        query = query.Where(e => e.DepartmentId == department);
+            if (department.HasValue)
+                query = query.Where(e => e.DepartmentId == department);
 
-                    if (!string.IsNullOrEmpty(search))
-                        query = query.Where(e =>
-                            (e.FirstName + " " + e.LastName).Contains(search) ||
-                            e.FirstName.Contains(search) ||
-                            e.LastName.Contains(search));
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(e =>
+                    (e.FirstName + " " + e.LastName).Contains(search) ||
+                    e.FirstName.Contains(search) ||
+                    e.LastName.Contains(search));
 
-                    return await query.ToListAsync();
+            return query.ToList();
         }
         public async Task<Position> GetPosteByIdAsync(int posteId)
         {
@@ -83,7 +82,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
     string? sortBy = null,
     string? sortDirection = null)
         {
-            var query = _context.vEmployeeWithoutEvaluations.AsQueryable();
+            var query = _dataService.GetEmployeesWithoutEvaluationsQuery();
 
             // Appliquer les filtres
             if (position.HasValue)
@@ -99,17 +98,17 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     e.LastName.Contains(search));
                     
             // Éliminer les doublons en récupérant les IDs uniques
-            var uniqueEmployeeIds = await query
+            var uniqueEmployeeIds = query
                 .Select(e => e.EmployeeId)
                 .Distinct()
-                .ToListAsync();
+                .ToList();
                 
             // Pour chaque ID unique, récupérer le premier enregistrement correspondant
             var uniqueEmployees = new List<VEmployeeWithoutEvaluation>();
             foreach (var employeeId in uniqueEmployeeIds)
             {
-                var employee = await query
-                    .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+                var employee = query
+                    .FirstOrDefault(e => e.EmployeeId == employeeId);
                 if (employee != null)
                 {
                     uniqueEmployees.Add(employee);
@@ -174,31 +173,37 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             string? sortBy = null,
             string? sortDirection = null)
         {
-            // Requête pour obtenir toutes les évaluations planifiées (état 10)
-            var query = from e in _context.Evaluations
-                        join emp in _context.Employee on e.EmployeeId equals emp.EmployeeId
-                        join et in _context.EvaluationTypes on e.EvaluationTypeId equals et.EvaluationTypeId
-                        join pos in _context.Position on emp.Department_id equals pos.PositionId into positions
-                        from p in positions.DefaultIfEmpty()
-                        join dept in _context.Department on emp.Department_id equals dept.DepartmentId into departments
-                        from d in departments.DefaultIfEmpty()
-                        where e.state == 10 // État planifié
-                        select new PlannedEvaluationDto
-                        {
-                            EvaluationId = e.EvaluationId,
-                            EmployeeId = emp.EmployeeId,
-                            EmployeeFirstName = emp.FirstName,
-                            EmployeeLastName = emp.Name,
-                            PositionId = p.PositionId,
-                            PositionName = p.PositionName ?? "Non défini",
-                            DepartmentId = emp.Department_id ?? 0,
-                            DepartmentName = d.Name ?? "Non défini",
-                            EvaluationTypeId = e.EvaluationTypeId,
-                            EvaluationTypeName = et.Designation,
-                            StartDate = e.StartDate,
-                            EndDate = e.EndDate,
-                            State = e.state
-                        };
+            // Récupérer toutes les données nécessaires
+            var evaluations = _dataService.GetEvaluationsQuery().Where(e => e.state == 10).ToList();
+            var employees = (await _employeeRepository.GetAllAsync()).ToDictionary(e => e.EmployeeId);
+            var evaluationTypes = (await _evaluationTypeRepository.GetAllAsync()).ToDictionary(et => et.EvaluationTypeId);
+            var positions = (await _posteRepository.GetAllAsync()).ToDictionary(p => p.PositionId);
+            var departments = (await _departementRepository.GetAllAsync()).ToDictionary(d => d.DepartmentId);
+
+            // Construire le DTO en mémoire
+            var query = evaluations
+                .Where(e => employees.ContainsKey(e.EmployeeId))
+                .Select(e =>
+                {
+                    var emp = employees.GetValueOrDefault(e.EmployeeId);
+                    var et = evaluationTypes.GetValueOrDefault(e.EvaluationTypeId);
+                    return new PlannedEvaluationDto
+                    {
+                        EvaluationId = e.EvaluationId,
+                        EmployeeId = emp?.EmployeeId ?? 0,
+                        EmployeeFirstName = emp?.FirstName ?? "",
+                        EmployeeLastName = emp?.Name ?? "",
+                        PositionId = emp != null && emp.Department_id.HasValue ? positions.GetValueOrDefault(emp.Department_id.Value)?.PositionId ?? 0 : 0,
+                        PositionName = emp != null && emp.Department_id.HasValue ? positions.GetValueOrDefault(emp.Department_id.Value)?.PositionName ?? "Non défini" : "Non défini",
+                        DepartmentId = emp?.Department_id ?? 0,
+                        DepartmentName = emp != null && emp.Department_id.HasValue ? departments.GetValueOrDefault(emp.Department_id.Value)?.Name ?? "Non défini" : "Non défini",
+                        EvaluationTypeId = e.EvaluationTypeId,
+                        EvaluationTypeName = et?.Designation ?? "",
+                        StartDate = e.StartDate,
+                        EndDate = e.EndDate,
+                        State = e.state
+                    };
+                }).AsQueryable();
 
             // Appliquer les filtres
             if (position.HasValue && position.Value > 0)
@@ -271,16 +276,16 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
 
             // Calculer le nombre total de pages
-            var totalItems = await query.CountAsync();
+            var totalItems = query.Count();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
             // Récupérer la page demandée
-            var evaluations = await query
+            var result = query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToList();
 
-            return (evaluations, totalPages);
+            return (result, totalPages);
         }
     }
 }

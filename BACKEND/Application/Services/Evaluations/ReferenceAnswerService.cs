@@ -1,21 +1,16 @@
-using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using soft_carriere_competence.Core.Interface;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class ReferenceAnswerService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IGenericRepository<EvaluationReferenceAnswer> _repository;
 
-        public ReferenceAnswerService(ApplicationDbContext context)
+        public ReferenceAnswerService(IGenericRepository<EvaluationReferenceAnswer> repository)
         {
-            _context = context;
+            _repository = repository;
         }
 
         /// <summary>
@@ -25,9 +20,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         /// <returns>DTO de la réponse de référence ou null si inexistante</returns>
         public async Task<ReferenceAnswerDto> GetReferenceAnswerForQuestionAsync(int questionId)
         {
-            var referenceAnswer = await _context.evaluationReferenceAnswers
-                .Where(ra => ra.QuestionId == questionId && ra.State == 1)
-                .FirstOrDefaultAsync();
+            var referenceAnswer = await _repository
+                .GetFirstOrDefaultAsync(ra => ra.QuestionId == questionId && ra.State == 1);
 
             if (referenceAnswer == null)
                 return null;
@@ -42,9 +36,11 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         /// <returns>Dictionnaire de réponses de référence, indexé par ID de question</returns>
         public async Task<Dictionary<int, ReferenceAnswerDto>> GetReferenceAnswersForQuestionsAsync(IEnumerable<int> questionIds)
         {
-            var referenceAnswers = await _context.evaluationReferenceAnswers
-                .Where(ra => questionIds.Contains(ra.QuestionId) && ra.State == 1)
-                .ToListAsync();
+            var idList = questionIds.ToList();
+            var allAnswers = await _repository.GetAllAsync();
+            var referenceAnswers = allAnswers
+                .Where(ra => idList.Contains(ra.QuestionId) && ra.State == 1)
+                .ToList();
 
             return referenceAnswers.ToDictionary(
                 ra => ra.QuestionId,
@@ -60,8 +56,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         /// <returns>ID de la réponse de référence</returns>
         public async Task<int> SaveReferenceAnswerAsync(ReferenceAnswerDto dto, int userId)
         {
-            var existingReference = await _context.evaluationReferenceAnswers
-                .FirstOrDefaultAsync(ra => ra.QuestionId == dto.QuestionId);
+            var existingReference = await _repository
+                .GetFirstOrDefaultAsync(ra => ra.QuestionId == dto.QuestionId);
 
             if (existingReference != null)
             {
@@ -77,7 +73,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 existingReference.UpdatedAt = DateTime.UtcNow;
                 existingReference.UpdatedById = userId;
 
-                await _context.SaveChangesAsync();
+                await _repository.UpdateAsync(existingReference);
                 return existingReference.ReferenceAnswerId;
             }
             else
@@ -99,8 +95,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     State = 1
                 };
 
-                _context.evaluationReferenceAnswers.Add(newReference);
-                await _context.SaveChangesAsync();
+                await _repository.CreateAsync(newReference);
                 return newReference.ReferenceAnswerId;
             }
         }
@@ -112,15 +107,14 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         /// <returns>Vrai si la suppression a réussi</returns>
         public async Task<bool> DeleteReferenceAnswerAsync(int referenceAnswerId)
         {
-            var referenceAnswer = await _context.evaluationReferenceAnswers
-                .FindAsync(referenceAnswerId);
+            var referenceAnswer = await _repository.GetByIdAsync(referenceAnswerId);
 
             if (referenceAnswer == null)
                 return false;
 
             // Suppression logique
             referenceAnswer.State = 0;
-            await _context.SaveChangesAsync();
+            await _repository.UpdateAsync(referenceAnswer);
             return true;
         }
 

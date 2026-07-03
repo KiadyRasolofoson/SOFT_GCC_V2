@@ -1,19 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
-using soft_carriere_competence.Core.Entities.salary_skills;
+﻿using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
 	public class EmployeeOtherFormationService
 	{
 		private readonly ICrudRepository<EmployeeOtherFormation> _repository;
-		private readonly ApplicationDbContext _context;
+		private readonly ISalarySkillDataService _dataService;
 
-		public EmployeeOtherFormationService(ICrudRepository<EmployeeOtherFormation> repository, ApplicationDbContext context)
+		public EmployeeOtherFormationService(ICrudRepository<EmployeeOtherFormation> repository, ISalarySkillDataService dataService)
 		{
 			_repository = repository;
-			_context = context;
+			_dataService = dataService;
 		}
 
 		public async Task<IEnumerable<EmployeeOtherFormation>> GetAll()
@@ -41,21 +40,14 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 			await _repository.Delete(id);
 		}
 
-		// Recuperer les autres competences d'un employee
 		public async Task<List<VEmployeeOtherSkill>> GetEmployeeOtherSkills(int idEmployee)
 		{
-			return await _context.VEmployeeOtherSkill
-					 .FromSqlRaw("SELECT * FROM v_employee_other_formation WHERE Employee_id = {0}", idEmployee)
-					 .ToListAsync();
+			return await _dataService.GetEmployeeOtherSkills(idEmployee);
 		}
 
-        // Recuperer une autre formation par son id
         public async Task<VEmployeeOtherSkill?> GetEmployeeOtherFormationById(int id)
         {
-            return await _context.VEmployeeOtherSkill
-                .FromSqlRaw("SELECT * FROM v_employee_other_formation WHERE Employee_other_formation_id = {0}", id)
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
+            return await _dataService.GetEmployeeOtherFormationById(id);
         }
     }
 }

@@ -1,28 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
-using soft_carriere_competence.Core.Entities.history;
-using soft_carriere_competence.Core.Entities.salary_skills;
+﻿using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Core.Interface;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.history
 {
 	public class HistoryService
 	{
 		private readonly ICrudRepository<ActivityLog> _repository;
-		private readonly ApplicationDbContext _context;
+		private readonly IHistoryDataService _dataService;
 
-		public HistoryService(ICrudRepository<ActivityLog> repository, ApplicationDbContext context)
+		public HistoryService(ICrudRepository<ActivityLog> repository, IHistoryDataService dataService)
 		{
 			_repository = repository;
-			_context = context;
+			_dataService = dataService;
 		}
 
-		// Avoir les historiques
 		public async Task<object> GetAllHistory()
 		{
-			return await _context.ActivityLog
-						 .FromSqlRaw("SELECT * FROM activity_logs ORDER BY Creation_date DESC")
-						 .ToListAsync();
+			return await _dataService.GetAllHistory();
 		}
 
 		public async Task Add(ActivityLog activityLog)

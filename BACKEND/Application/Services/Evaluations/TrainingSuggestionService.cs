@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,11 +12,11 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class TrainingSuggestionService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IEvaluationDataService _dataService;
 
-        public TrainingSuggestionService(ApplicationDbContext context)
+        public TrainingSuggestionService(IEvaluationDataService dataService)
         {
-            _context = context;
+            _dataService = dataService;
         }
 
         public class ImportResult
@@ -87,14 +86,14 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         }
 
                         // Vérifier si l'EvaluationType existe
-                        if (!await _context.EvaluationTypes.AnyAsync(et => et.EvaluationTypeId == evaluationTypeId))
+                        if (!await _dataService.EvaluationTypeExistsAsync(evaluationTypeId))
                         {
                             result.Errors.Add($"Ligne {lineNumber}: EvaluationType avec ID {evaluationTypeId} introuvable");
                             continue;
                         }
 
                         // Vérifier si la Question existe
-                        if (!await _context.evaluationQuestions.AnyAsync(q => q.questionId == questionId))
+                        if (!await _dataService.EvaluationQuestionExistsAsync(questionId))
                         {
                             result.Errors.Add($"Ligne {lineNumber}: Question avec ID {questionId} introuvable");
                             continue;
@@ -102,14 +101,16 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
                         // Récupérer CompetenceLineId de la question si possible
                         int? competenceLineId = null;
-                        var question = await _context.evaluationQuestions
-                            .Where(q => q.questionId == questionId)
-                            .Select(q => new { q.CompetenceLineId })
-                            .FirstOrDefaultAsync();
+                        var questionData = await _dataService.ExecuteReaderAsync(
+                            "SELECT CompetenceLineId FROM evaluationQuestions WHERE questionId = @p0", questionId);
                             
-                        if (question != null)
+                        if (questionData.Count > 0 && questionData[0].ContainsKey("CompetenceLineId"))
                         {
-                            competenceLineId = question.CompetenceLineId;
+                            var val = questionData[0]["CompetenceLineId"];
+                            if (val != null && val != DBNull.Value)
+                            {
+                                competenceLineId = Convert.ToInt32(val);
+                            }
                         }
 
                         // Créer et ajouter la suggestion
@@ -125,7 +126,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                             state = 1 // Actif par défaut
                         };
 
-                        await _context.TrainingSuggestions.AddAsync(trainingSuggestion);
+                        await _dataService.AddRangeAsync(new[] { trainingSuggestion });
                         importedCount++;
                     }
                     catch (Exception ex)
@@ -137,7 +138,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 // Sauvegarder toutes les suggestions importées
                 if (importedCount > 0)
                 {
-                    await _context.SaveChangesAsync();
+                    await _dataService.SaveChangesAsync();
                 }
 
                 result.ImportedCount = importedCount;

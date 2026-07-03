@@ -1,9 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Entities.wish_evolution;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,11 +12,11 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class EvaluationCompetenceService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IEvaluationDataService _dataService;
 
-        public EvaluationCompetenceService(ApplicationDbContext context)
+        public EvaluationCompetenceService(IEvaluationDataService dataService)
         {
-            _context = context;
+            _dataService = dataService;
         }
 
         /// Calcule et enregistre les résultats par compétence pour une évaluation
@@ -28,9 +27,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 Console.WriteLine($"Début du calcul des résultats par compétence pour l'évaluation {evaluationId}");
 
                 // 1. Récupérer l'évaluation avec l'employé associé
-                var evaluation = await _context.Evaluations
-                    .Include(e => e.Employee)
-                    .FirstOrDefaultAsync(e => e.EvaluationId == evaluationId);
+                var evaluation = await _dataService.GetEvaluationWithUserAsync(evaluationId);
 
                 if (evaluation == null)
                 {
@@ -43,9 +40,17 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 Console.WriteLine($"Score global de l'évaluation: {overallScore}");
 
                 // 2. Récupérer les questions sélectionnées pour cette évaluation et leurs compétences associées
-                var selectedQuestions = await _context.evaluationSelectedQuestions
-                    .Where(esq => esq.EvaluationId == evaluationId)
-                    .ToListAsync();
+                var selectedQuestionsData = await _dataService.ExecuteReaderAsync(
+                    "SELECT * FROM evaluationSelectedQuestions WHERE EvaluationId = @p0", evaluationId);
+
+                var selectedQuestions = selectedQuestionsData.Select(row => new EvaluationSelectedQuestions
+                {
+                    SelectedQuestionId = Convert.ToInt32(row["SelectedQuestionId"]),
+                    EvaluationId = Convert.ToInt32(row["EvaluationId"]),
+                    QuestionId = Convert.ToInt32(row["QuestionId"]),
+                    CompetenceLineId = row.ContainsKey("CompetenceLineId") && row["CompetenceLineId"] != DBNull.Value
+                        ? Convert.ToInt32(row["CompetenceLineId"]) : 0
+                }).ToList();
 
                 if (selectedQuestions == null || !selectedQuestions.Any())
                 {
@@ -62,12 +67,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 Console.WriteLine($"Nombre de compétences distinctes: {distinctCompetences.Count}");
 
                 // 4. Créer une entrée de résultat pour chaque compétence distincte avec le score global
+                var competenceResultsList = new List<EvaluationCompetenceResult>();
                 foreach (var competenceId in distinctCompetences)
                 {
                     Console.WriteLine($"Création du résultat pour la compétence ID: {competenceId}");
                     
                     // Créer une nouvelle entrée de résultat avec le score global
-                    var competenceResult = new EvaluationCompetenceResult
+                    competenceResultsList.Add(new EvaluationCompetenceResult
                     {
                         EvaluationId = evaluationId,
                         EmployeeId = employeeId,
@@ -75,12 +81,10 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         Score = overallScore,
                         CreatedAt = DateTime.UtcNow,
                         State = 1 // Actif
-                    };
-
-                    await _context.EvaluationCompetenceResults.AddAsync(competenceResult);
+                    });
                 }
 
-                await _context.SaveChangesAsync();
+                await _dataService.AddRangeAsync(competenceResultsList);
                 Console.WriteLine("Calcul et sauvegarde des résultats par compétence terminés avec succès");
 
                 // 5. Mise à jour des compétences des employés
@@ -159,23 +163,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                using (var cmd = _context.Database.GetDbConnection().CreateCommand())
+                var result = await _dataService.ExecuteScalarAsync(
+                    "SELECT employeeId FROM Evaluations WHERE evaluations_id = @p0", evaluationId);
+                
+                if (result > 0)
                 {
-                    cmd.CommandText = "SELECT employeeId FROM Evaluations WHERE evaluations_id = @id";
-                    var param = cmd.CreateParameter();
-                    param.ParameterName = "@id";
-                    param.Value = evaluationId;
-                    cmd.Parameters.Add(param);
-                    
-                    await EnsureConnectionOpen(cmd);
-                    var result = await cmd.ExecuteScalarAsync();
-                    
-                    if (result != null && result != DBNull.Value)
-                    {
-                        var employeeId = Convert.ToInt32(result);
-                        Console.WriteLine($"EmployeeId trouvé: {employeeId}");
-                        return employeeId;
-                    }
+                    Console.WriteLine($"EmployeeId trouvé: {result}");
+                    return result;
                 }
                 
                 Console.WriteLine($"Évaluation {evaluationId} non trouvée ou sans employé associé");
@@ -193,34 +187,21 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             var results = new List<EvaluationCompetenceResult>();
             try
             {
-                using (var cmd = _context.Database.GetDbConnection().CreateCommand())
+                var rows = await _dataService.ExecuteReaderAsync(@"
+                    SELECT ResultId, EvaluationId, EmployeeId, CompetenceLineId, Score
+                    FROM Evaluation_Competence_Results 
+                    WHERE EvaluationId = @p0", evaluationId);
+                
+                foreach (var row in rows)
                 {
-                    cmd.CommandText = @"
-                        SELECT ResultId, EvaluationId, EmployeeId, CompetenceLineId, Score
-                        FROM Evaluation_Competence_Results 
-                        WHERE EvaluationId = @evaluationId";
-                        
-                    var param = cmd.CreateParameter();
-                    param.ParameterName = "@evaluationId";
-                    param.Value = evaluationId;
-                    cmd.Parameters.Add(param);
-                    
-                    await EnsureConnectionOpen(cmd);
-                    
-                    using (var reader = await cmd.ExecuteReaderAsync())
+                    results.Add(new EvaluationCompetenceResult
                     {
-                        while (await reader.ReadAsync())
-                        {
-                            results.Add(new EvaluationCompetenceResult
-                            {
-                                ResultId = reader.GetInt32(0),
-                                EvaluationId = reader.GetInt32(1),
-                                EmployeeId = reader.GetInt32(2),
-                                CompetenceLineId = reader.GetInt32(3),
-                                Score = reader.GetDecimal(4)
-                            });
-                        }
-                    }
+                        ResultId = Convert.ToInt32(row["ResultId"]),
+                        EvaluationId = Convert.ToInt32(row["EvaluationId"]),
+                        EmployeeId = Convert.ToInt32(row["EmployeeId"]),
+                        CompetenceLineId = Convert.ToInt32(row["CompetenceLineId"]),
+                        Score = Convert.ToDecimal(row["Score"])
+                    });
                 }
                 
                 Console.WriteLine($"{results.Count} résultats de compétence trouvés");
@@ -237,19 +218,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                using (var cmd = _context.Database.GetDbConnection().CreateCommand())
+                var domainId = await _dataService.ExecuteScalarAsync(
+                    "SELECT TOP 1 Domain_skill_id FROM Domain_skill WHERE Domain_skill_id > 0");
+                
+                if (domainId > 0)
                 {
-                    cmd.CommandText = "SELECT TOP 1 Domain_skill_id FROM Domain_skill WHERE Domain_skill_id > 0";
-                    
-                    await EnsureConnectionOpen(cmd);
-                    
-                    var result = await cmd.ExecuteScalarAsync();
-                    if (result != null && result != DBNull.Value)
-                    {
-                        var domainId = Convert.ToInt32(result);
-                        Console.WriteLine($"Domaine par défaut: {domainId}");
-                        return domainId;
-                    }
+                    Console.WriteLine($"Domaine par défaut: {domainId}");
+                    return domainId;
                 }
                 
                 Console.WriteLine("Aucun domaine trouvé");
@@ -267,48 +242,23 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             try
             {
                 // 1. Récupérer le SkillPositionId
-                int skillPositionId = 0;
-                
-                using (var cmd = _context.Database.GetDbConnection().CreateCommand())
+                int skillPositionId = await _dataService.ExecuteScalarAsync(
+                    "SELECT SkillPositionId FROM Competence_Lines WHERE CompetenceLineId = @p0", competenceLineId);
+
+                if (skillPositionId <= 0)
                 {
-                    cmd.CommandText = "SELECT SkillPositionId FROM Competence_Lines WHERE CompetenceLineId = @id";
-                    var param = cmd.CreateParameter();
-                    param.ParameterName = "@id";
-                    param.Value = competenceLineId;
-                    cmd.Parameters.Add(param);
-                    
-                    await EnsureConnectionOpen(cmd);
-                    var result = await cmd.ExecuteScalarAsync();
-                    
-                    if (result != null && result != DBNull.Value)
-                    {
-                        skillPositionId = Convert.ToInt32(result);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"SkillPositionId non trouvé pour CompetenceLine {competenceLineId}");
-                        return 0;
-                    }
+                    Console.WriteLine($"SkillPositionId non trouvé pour CompetenceLine {competenceLineId}");
+                    return 0;
                 }
                 
                 // 2. Récupérer le SkillId
-                using (var cmd = _context.Database.GetDbConnection().CreateCommand())
+                int skillId = await _dataService.ExecuteScalarAsync(
+                    "SELECT Skill_id FROM Skill_position WHERE Skill_position_id = @p0", skillPositionId);
+                
+                if (skillId > 0)
                 {
-                    cmd.CommandText = "SELECT Skill_id FROM Skill_position WHERE Skill_position_id = @id";
-                    var param = cmd.CreateParameter();
-                    param.ParameterName = "@id";
-                    param.Value = skillPositionId;
-                    cmd.Parameters.Add(param);
-                    
-                    await EnsureConnectionOpen(cmd);
-                    var result = await cmd.ExecuteScalarAsync();
-                    
-                    if (result != null && result != DBNull.Value)
-                    {
-                        var skillId = Convert.ToInt32(result);
-                        Console.WriteLine($"SkillId trouvé: {skillId}");
-                        return skillId;
-                    }
+                    Console.WriteLine($"SkillId trouvé: {skillId}");
+                    return skillId;
                 }
                 
                 Console.WriteLine($"SkillId non trouvé pour SkillPosition {skillPositionId}");
@@ -325,33 +275,10 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                using (var cmd = _context.Database.GetDbConnection().CreateCommand())
-                {
-                    cmd.CommandText = @"
-                        SELECT Employee_skill_id 
-                        FROM Employee_skill 
-                        WHERE Employee_id = @employeeId AND Skill_id = @skillId";
-                    
-                    var p1 = cmd.CreateParameter();
-                    p1.ParameterName = "@employeeId";
-                    p1.Value = employeeId;
-                    cmd.Parameters.Add(p1);
-                    
-                    var p2 = cmd.CreateParameter();
-                    p2.ParameterName = "@skillId";
-                    p2.Value = skillId;
-                    cmd.Parameters.Add(p2);
-                    
-                    await EnsureConnectionOpen(cmd);
-                    var result = await cmd.ExecuteScalarAsync();
-                    
-                    if (result != null && result != DBNull.Value)
-                    {
-                        return Convert.ToInt32(result);
-                    }
-                    
-                    return 0;
-                }
+                return await _dataService.ExecuteScalarAsync(@"
+                    SELECT Employee_skill_id 
+                    FROM Employee_skill 
+                    WHERE Employee_id = @p0 AND Skill_id = @p1", employeeId, skillId);
             }
             catch (Exception ex)
             {
@@ -364,34 +291,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                using (var cmd = _context.Database.GetDbConnection().CreateCommand())
-                {
-                    cmd.CommandText = @"
-                        UPDATE Employee_skill 
-                        SET Level = @level, 
-                            Updated_date = @date, 
-                            State = 10 
-                        WHERE Employee_skill_id = @id";
-                    
-                    var p1 = cmd.CreateParameter();
-                    p1.ParameterName = "@level";
-                    p1.Value = score;
-                    cmd.Parameters.Add(p1);
-                    
-                    var p2 = cmd.CreateParameter();
-                    p2.ParameterName = "@date";
-                    p2.Value = DateTime.Now;
-                    cmd.Parameters.Add(p2);
-                    
-                    var p3 = cmd.CreateParameter();
-                    p3.ParameterName = "@id";
-                    p3.Value = skillId;
-                    cmd.Parameters.Add(p3);
-                    
-                    await EnsureConnectionOpen(cmd);
-                    var rowsAffected = await cmd.ExecuteNonQueryAsync();
-                    Console.WriteLine($"Compétence {skillId} mise à jour: {rowsAffected} lignes");
-                }
+                var rowsAffected = await _dataService.ExecuteNonQueryAsync(@"
+                    UPDATE Employee_skill 
+                    SET Level = @p0, 
+                        Updated_date = @p1, 
+                        State = 10 
+                    WHERE Employee_skill_id = @p2", score, DateTime.Now, skillId);
+                Console.WriteLine($"Compétence {skillId} mise à jour: {rowsAffected} lignes");
             }
             catch (Exception ex)
             {
@@ -403,54 +309,16 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                using (var cmd = _context.Database.GetDbConnection().CreateCommand())
-                {
-                    cmd.CommandText = @"
-                        INSERT INTO Employee_skill 
-                        (Domain_skill_id, Skill_id, Level, State, Creation_date, Updated_date, Employee_id) 
-                        VALUES (@domainId, @skillId, @level, 10, @date, @date, @employeeId)";
-                    
-                    var p1 = cmd.CreateParameter();
-                    p1.ParameterName = "@domainId";
-                    p1.Value = domainId;
-                    cmd.Parameters.Add(p1);
-                    
-                    var p2 = cmd.CreateParameter();
-                    p2.ParameterName = "@skillId";
-                    p2.Value = skillId;
-                    cmd.Parameters.Add(p2);
-                    
-                    var p3 = cmd.CreateParameter();
-                    p3.ParameterName = "@level";
-                    p3.Value = score;
-                    cmd.Parameters.Add(p3);
-                    
-                    var p4 = cmd.CreateParameter();
-                    p4.ParameterName = "@date";
-                    p4.Value = DateTime.Now;
-                    cmd.Parameters.Add(p4);
-                    
-                    var p5 = cmd.CreateParameter();
-                    p5.ParameterName = "@employeeId";
-                    p5.Value = employeeId;
-                    cmd.Parameters.Add(p5);
-                    
-                    await EnsureConnectionOpen(cmd);
-                    var rowsAffected = await cmd.ExecuteNonQueryAsync();
-                    Console.WriteLine($"Nouvelle compétence créée: {rowsAffected} lignes");
-                }
+                var rowsAffected = await _dataService.ExecuteNonQueryAsync(@"
+                    INSERT INTO Employee_skill 
+                    (Domain_skill_id, Skill_id, Level, State, Creation_date, Updated_date, Employee_id) 
+                    VALUES (@p0, @p1, @p2, 10, @p3, @p3, @p4)",
+                    domainId, skillId, score, DateTime.Now, employeeId);
+                Console.WriteLine($"Nouvelle compétence créée: {rowsAffected} lignes");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erreur lors de la création de compétence: {ex.Message}");
-            }
-        }
-        
-        private async Task EnsureConnectionOpen(System.Data.Common.DbCommand command)
-        {
-            if (command.Connection.State != System.Data.ConnectionState.Open)
-            {
-                await command.Connection.OpenAsync();
             }
         }
 
@@ -459,40 +327,60 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             try
             {
                 // Récupérer les résultats de compétences les plus récents pour chaque compétence de l'employé
-                var latestResults = await _context.EvaluationCompetenceResults
-                    .Where(ecr => ecr.EmployeeId == employeeId)
-                    .GroupBy(ecr => ecr.CompetenceLineId)
-                    .Select(group => group.OrderByDescending(ecr => ecr.CreatedAt).First())
-                    .ToListAsync();
+                var latestResultsData = await _dataService.ExecuteReaderAsync(@"
+                    SELECT ecr.* FROM Evaluation_Competence_Results ecr
+                    INNER JOIN (
+                        SELECT CompetenceLineId, MAX(CreatedAt) AS MaxCreatedAt
+                        FROM Evaluation_Competence_Results
+                        WHERE EmployeeId = @p0
+                        GROUP BY CompetenceLineId
+                    ) latest ON ecr.CompetenceLineId = latest.CompetenceLineId AND ecr.CreatedAt = latest.MaxCreatedAt
+                    WHERE ecr.EmployeeId = @p0", employeeId);
+
+                var latestResults = latestResultsData.Select(row => new EvaluationCompetenceResult
+                {
+                    ResultId = Convert.ToInt32(row["ResultId"]),
+                    EvaluationId = Convert.ToInt32(row["EvaluationId"]),
+                    EmployeeId = Convert.ToInt32(row["EmployeeId"]),
+                    CompetenceLineId = Convert.ToInt32(row["CompetenceLineId"]),
+                    Score = Convert.ToDecimal(row["Score"]),
+                    CreatedAt = Convert.ToDateTime(row["CreatedAt"])
+                }).ToList();
 
                 // Récupérer les informations de compétence correspondantes
                 var competenceIds = latestResults.Select(lr => lr.CompetenceLineId).ToList();
-                var competenceLines = await _context.competenceLines
-                    .Include(cl => cl.SkillPosition)
-                        .ThenInclude(sp => sp.Skill)
-                    .Where(cl => competenceIds.Contains(cl.CompetenceLineId))
-                    .ToListAsync();
+                var competenceLinesData = await _dataService.ExecuteReaderAsync(@"
+                    SELECT cl.CompetenceLineId, cl.Description, cl.SkillPositionId, 
+                           sp.Skill_id, s.Name AS SkillName
+                    FROM Competence_Lines cl
+                    LEFT JOIN Skill_position sp ON cl.SkillPositionId = sp.Skill_position_id
+                    LEFT JOIN Skill s ON sp.Skill_id = s.Skill_id
+                    WHERE cl.CompetenceLineId IN (" + string.Join(",", competenceIds.Select((_, i) => $"@p{i + 1}")) + ")",
+                    competenceIds.Cast<object>().ToArray());
 
                 // Récupérer les informations d'évaluation correspondantes
                 var evaluationIds = latestResults.Select(lr => lr.EvaluationId).Distinct().ToList();
-                var evaluations = await _context.Evaluations
-                    .Where(e => evaluationIds.Contains(e.EvaluationId))
-                    .ToListAsync();
+                var evaluationsData = await _dataService.ExecuteReaderAsync(@"
+                    SELECT EvaluationId, EndDate FROM Evaluations 
+                    WHERE EvaluationId IN (" + string.Join(",", evaluationIds.Select((_, i) => $"@p{i}")) + ")",
+                    evaluationIds.Cast<object>().ToArray());
 
                 // Construire les DTOs
                 var resultDtos = latestResults.Select(result =>
                 {
-                    var competenceLine = competenceLines.FirstOrDefault(cl => cl.CompetenceLineId == result.CompetenceLineId);
-                    var evaluation = evaluations.FirstOrDefault(e => e.EvaluationId == result.EvaluationId);
+                    var compRow = competenceLinesData.FirstOrDefault(r => Convert.ToInt32(r["CompetenceLineId"]) == result.CompetenceLineId);
+                    var evalRow = evaluationsData.FirstOrDefault(r => Convert.ToInt32(r["EvaluationId"]) == result.EvaluationId);
+                    var skillName = compRow?.GetValueOrDefault("SkillName")?.ToString() ?? "Inconnu";
 
                     return new CompetenceResultDto
                     {
                         CompetenceId = result.CompetenceLineId,
-                        CompetenceName = competenceLine?.SkillPosition?.Skill?.Name ?? "Inconnu",
-                        Description = competenceLine?.Description ?? "",
+                        CompetenceName = skillName,
+                        Description = compRow?.GetValueOrDefault("Description")?.ToString() ?? "",
                         Score = result.Score,
                         EvaluationId = result.EvaluationId,
-                        EvaluationDate = evaluation?.EndDate ?? DateTime.MinValue
+                        EvaluationDate = evalRow != null && evalRow["EndDate"] != DBNull.Value
+                            ? Convert.ToDateTime(evalRow["EndDate"]) : DateTime.MinValue
                     };
                 }).ToList();
 
@@ -512,9 +400,17 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                var results = await _context.EvaluationCompetenceResults
-                    .Where(ecr => ecr.EvaluationId == evaluationId)
-                    .ToListAsync();
+                var resultsData = await _dataService.ExecuteReaderAsync(
+                    "SELECT * FROM Evaluation_Competence_Results WHERE EvaluationId = @p0", evaluationId);
+
+                var results = resultsData.Select(row => new EvaluationCompetenceResult
+                {
+                    ResultId = Convert.ToInt32(row["ResultId"]),
+                    EvaluationId = Convert.ToInt32(row["EvaluationId"]),
+                    EmployeeId = Convert.ToInt32(row["EmployeeId"]),
+                    CompetenceLineId = Convert.ToInt32(row["CompetenceLineId"]),
+                    Score = Convert.ToDecimal(row["Score"])
+                }).ToList();
 
                 // Si aucun résultat n'existe, calculer les résultats automatiquement
                 if (results == null || !results.Any())
@@ -523,9 +419,16 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     await CalculateAndSaveCompetenceResultsAsync(evaluationId);
                     
                     // Récupérer les résultats fraîchement calculés
-                    results = await _context.EvaluationCompetenceResults
-                        .Where(ecr => ecr.EvaluationId == evaluationId)
-                        .ToListAsync();
+                    resultsData = await _dataService.ExecuteReaderAsync(
+                        "SELECT * FROM Evaluation_Competence_Results WHERE EvaluationId = @p0", evaluationId);
+                    results = resultsData.Select(row => new EvaluationCompetenceResult
+                    {
+                        ResultId = Convert.ToInt32(row["ResultId"]),
+                        EvaluationId = Convert.ToInt32(row["EvaluationId"]),
+                        EmployeeId = Convert.ToInt32(row["EmployeeId"]),
+                        CompetenceLineId = Convert.ToInt32(row["CompetenceLineId"]),
+                        Score = Convert.ToDecimal(row["Score"])
+                    }).ToList();
                 }
 
                 if (results == null || !results.Any())
@@ -534,28 +437,32 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 }
 
                 var competenceIds = results.Select(r => r.CompetenceLineId).ToList();
-                var competenceLines = await _context.competenceLines
-                    .Include(cl => cl.SkillPosition)
-                        .ThenInclude(sp => sp.Skill)
-                    .Where(cl => competenceIds.Contains(cl.CompetenceLineId))
-                    .ToListAsync();
+                var competenceLinesData = await _dataService.ExecuteReaderAsync(@"
+                    SELECT cl.CompetenceLineId, cl.Description, cl.SkillPositionId,
+                           sp.Skill_id, s.Name AS SkillName
+                    FROM Competence_Lines cl
+                    LEFT JOIN Skill_position sp ON cl.SkillPositionId = sp.Skill_position_id
+                    LEFT JOIN Skill s ON sp.Skill_id = s.Skill_id
+                    WHERE cl.CompetenceLineId IN (" + string.Join(",", competenceIds.Select((_, i) => $"@p{i}")) + ")",
+                    competenceIds.Cast<object>().ToArray());
 
-                var evaluation = await _context.Evaluations
-                    .FirstOrDefaultAsync(e => e.EvaluationId == evaluationId);
+                var evaluationData = await _dataService.ExecuteReaderAsync(
+                    "SELECT EndDate FROM Evaluations WHERE EvaluationId = @p0", evaluationId);
+                var evaluationEndDate = evaluationData.Count > 0 && evaluationData[0]["EndDate"] != DBNull.Value
+                    ? Convert.ToDateTime(evaluationData[0]["EndDate"]) : DateTime.MinValue;
 
                 var resultDtos = results.Select(r =>
                 {
-                    var competenceLine = competenceLines.FirstOrDefault(cl => cl.CompetenceLineId == r.CompetenceLineId);
+                    var compRow = competenceLinesData.FirstOrDefault(c => Convert.ToInt32(c["CompetenceLineId"]) == r.CompetenceLineId);
+                    var skillName = compRow?.GetValueOrDefault("SkillName")?.ToString() ?? "Inconnu";
                     return new CompetenceResultDto
                     {
                         CompetenceId = r.CompetenceLineId,
-                        // Utiliser le nom de compétence à partir de SkillPosition -> Skill
-                        CompetenceName = competenceLine?.SkillPosition?.Skill?.Name ?? "Inconnu",
-                        // Pas de description directe, utiliser le nom de compétence ou une chaîne vide
-                        Description = competenceLine?.SkillPosition?.Skill?.Name ?? "",
+                        CompetenceName = skillName,
+                        Description = skillName,
                         Score = r.Score,
                         EvaluationId = evaluationId,
-                        EvaluationDate = evaluation?.EndDate ?? DateTime.MinValue
+                        EvaluationDate = evaluationEndDate
                     };
                 }).ToList();
 
@@ -575,10 +482,20 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                var results = await _context.EvaluationCompetenceResults
-                    .Where(ecr => ecr.EmployeeId == employeeId && ecr.CompetenceLineId == competenceId)
-                    .OrderByDescending(ecr => ecr.CreatedAt)
-                    .ToListAsync();
+                var resultsData = await _dataService.ExecuteReaderAsync(@"
+                    SELECT * FROM Evaluation_Competence_Results 
+                    WHERE EmployeeId = @p0 AND CompetenceLineId = @p1
+                    ORDER BY CreatedAt DESC", employeeId, competenceId);
+
+                var results = resultsData.Select(row => new EvaluationCompetenceResult
+                {
+                    ResultId = Convert.ToInt32(row["ResultId"]),
+                    EvaluationId = Convert.ToInt32(row["EvaluationId"]),
+                    EmployeeId = Convert.ToInt32(row["EmployeeId"]),
+                    CompetenceLineId = Convert.ToInt32(row["CompetenceLineId"]),
+                    Score = Convert.ToDecimal(row["Score"]),
+                    CreatedAt = row["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(row["CreatedAt"]) : DateTime.MinValue
+                }).ToList();
 
                 if (results == null || !results.Any())
                 {
@@ -586,28 +503,37 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 }
 
                 var evaluationIds = results.Select(r => r.EvaluationId).ToList();
-                var evaluations = await _context.Evaluations
-                    .Include(e => e.EvaluationType)
-                    .Where(e => evaluationIds.Contains(e.EvaluationId))
-                    .ToListAsync();
+                var evaluationsData = await _dataService.ExecuteReaderAsync(@"
+                    SELECT e.EvaluationId, e.EndDate, et.Designation AS EvaluationTypeName
+                    FROM Evaluations e
+                    LEFT JOIN EvaluationTypes et ON e.EvaluationTypeId = et.EvaluationTypeId
+                    WHERE e.EvaluationId IN (" + string.Join(",", evaluationIds.Select((_, i) => $"@p{i}")) + ")",
+                    evaluationIds.Cast<object>().ToArray());
 
-                var competenceLine = await _context.competenceLines
-                    .Include(cl => cl.SkillPosition)
-                        .ThenInclude(sp => sp.Skill)
-                    .FirstOrDefaultAsync(cl => cl.CompetenceLineId == competenceId);
+                var compLinesData = await _dataService.ExecuteReaderAsync(@"
+                    SELECT cl.CompetenceLineId, s.Name AS SkillName
+                    FROM Competence_Lines cl
+                    LEFT JOIN Skill_position sp ON cl.SkillPositionId = sp.Skill_position_id
+                    LEFT JOIN Skill s ON sp.Skill_id = s.Skill_id
+                    WHERE cl.CompetenceLineId = @p0", competenceId);
+
+                var skillName = compLinesData.Count > 0
+                    ? compLinesData[0].GetValueOrDefault("SkillName")?.ToString() ?? "Inconnu"
+                    : "Inconnu";
 
                 var historyDtos = results.Select(r =>
                 {
-                    var evaluation = evaluations.FirstOrDefault(e => e.EvaluationId == r.EvaluationId);
+                    var evalRow = evaluationsData.FirstOrDefault(e => Convert.ToInt32(e["EvaluationId"]) == r.EvaluationId);
                     return new CompetenceResultHistoryDto
                     {
                         ResultId = r.ResultId,
                         CompetenceId = competenceId,
-                        CompetenceName = competenceLine?.SkillPosition?.Skill?.Name ?? "Inconnu",
+                        CompetenceName = skillName,
                         Score = r.Score,
                         EvaluationId = r.EvaluationId,
-                        EvaluationDate = evaluation?.EndDate ?? DateTime.MinValue,
-                        EvaluationType = evaluation?.EvaluationType?.Designation ?? "Inconnu"
+                        EvaluationDate = evalRow != null && evalRow["EndDate"] != DBNull.Value
+                            ? Convert.ToDateTime(evalRow["EndDate"]) : DateTime.MinValue,
+                        EvaluationType = evalRow?.GetValueOrDefault("EvaluationTypeName")?.ToString() ?? "Inconnu"
                     };
                 }).ToList();
 

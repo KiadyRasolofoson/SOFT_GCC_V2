@@ -1,59 +1,54 @@
-using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class RoleService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IGenericRepository<Role> _repository;
 
-        public RoleService(ApplicationDbContext context)
+        public RoleService(IGenericRepository<Role> repository)
         {
-            _context = context;
+            _repository = repository;
         }
 
         public async Task<IEnumerable<Role>> GetAllAsync()
         {
-            return await _context.Roles
-                .Where(r => r.state == null || r.state == 1)
-                .ToListAsync();
+            return await _repository.FindAsync(r => r.state == null || r.state == 1);
         }
 
         public async Task<Role> GetByIdAsync(int id)
         {
-            return await _context.Roles
-                .FirstOrDefaultAsync(r => r.Roleid == id && (r.state == null || r.state == 1));
+            return await _repository.GetFirstOrDefaultAsync(r => r.Roleid == id && (r.state == null || r.state == 1));
         }
 
         public async Task<Role> CreateAsync(Role role)
         {
             role.state = 1;
-            _context.Roles.Add(role);
-            await _context.SaveChangesAsync();
+            await _repository.CreateAsync(role);
             return role;
         }
 
         public async Task<Role> UpdateAsync(Role role)
         {
-            var existingRole = await _context.Roles.FindAsync(role.Roleid);
+            var existingRole = await _repository.GetByIdAsync(role.Roleid);
             if (existingRole == null)
                 throw new Exception("Rôle non trouvé");
 
             existingRole.Title = role.Title;
             existingRole.state = role.state;
-            await _context.SaveChangesAsync();
+            await _repository.UpdateAsync(existingRole);
             return existingRole;
         }
 
         public async Task DeleteAsync(int id)
         {
-            var role = await _context.Roles.FindAsync(id);
+            var role = await _repository.GetByIdAsync(id);
             if (role == null)
                 throw new Exception("Rôle non trouvé");
 
             role.state = 0;
-            await _context.SaveChangesAsync();
+            await _repository.UpdateAsync(role);
         }
     }
 } 
