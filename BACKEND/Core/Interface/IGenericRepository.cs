@@ -35,5 +35,9 @@ namespace soft_carriere_competence.Core.Interface
         int GetTotalPages(int pageSize);
 
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
+
+        Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
+
+        Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null);
     }
 }

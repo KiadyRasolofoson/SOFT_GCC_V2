@@ -7,7 +7,7 @@ using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.AuthInterface;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -17,17 +17,17 @@ namespace soft_carriere_competence.Application.Services.Evaluations
     public class UserService : IUserService
     {
         private readonly IGenericRepository<User> _userRepository;
-        private readonly ApplicationDbContext _context;
+        private readonly IEvaluationDataService _dataService;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService; // Service pour l'envoi d'emails.
 
 
 
 
-        public UserService(IGenericRepository<User> repository, ApplicationDbContext context, IConfiguration configuration, IEmailService emailService)
+        public UserService(IGenericRepository<User> repository, IEvaluationDataService dataService, IConfiguration configuration, IEmailService emailService)
         {
             _userRepository = repository;
-            _context = context;
+            _dataService = dataService;
             _configuration = configuration;
             _emailService = emailService;
         }
@@ -40,24 +40,41 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         // Méthode pour récupérer tous les employés avec leur position et date d'évaluation
         public async Task<IEnumerable<VEmployeeDetails>> GetAllEmployeesWithDetailsAsync()
         {
-            return await _context.VEmployeeDetails.ToListAsync();
+            return await _dataService.GetAllEmployeeDetailsAsync();
         }
 
         public async Task<VEmployeeDetails?> GetEmployeeAsync(int employeeId)
         {
-            return await _context.VEmployeeDetails
-                .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+            return await _dataService.GetEmployeeDetailsAsync(employeeId);
         }
 
 
         public async Task<Position?> GetPostByIdAsync(int postId)
         {
-            return await _context.Position.FindAsync(postId);
+            var result = await _dataService.ExecuteReaderAsync(
+                "SELECT * FROM Position WHERE PositionId = @p0", postId);
+            if (result.Count == 0) return null;
+            var row = result[0];
+            return new Position
+            {
+                PositionId = Convert.ToInt32(row["PositionId"]),
+                PositionName = row["Name"]?.ToString() ?? row["Designation"]?.ToString()
+            };
         }
 
         public async Task<IEnumerable<User>> GetManagerAndDirector()
         {
-            return await _context.Users.Where(u => u.RoleId == 2 || u.RoleId ==4).ToListAsync();
+            var rows = await _dataService.ExecuteReaderAsync(
+                "SELECT * FROM Users WHERE RoleId = 2 OR RoleId = 4");
+            return rows.Select(row => new User
+            {
+                Id = Convert.ToInt32(row["Id"]),
+                LastName = row["LastName"]?.ToString(),
+                FirstName = row["FirstName"]?.ToString(),
+                Email = row["Email"]?.ToString(),
+                Username = row["Username"]?.ToString(),
+                RoleId = row.ContainsKey("RoleId") ? Convert.ToInt32(row["RoleId"]) : 0
+            }).ToList();
         }
 
         // --------------------------------------AUTHENTIFICATION--------------------------------------- //
@@ -205,13 +222,12 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task<int> CountAsync(int? department = null)
         {
-            var query = _context.Users.AsQueryable();
-
-            //if (department.HasValue)
-                //query = query.Where(u => u.DepartmentId == department.Value);
-            //    query = query.Where(u => u.DepartmentId == department.Value);
-
-            return await query.CountAsync();
+            if (department.HasValue)
+            {
+                return await _dataService.ExecuteScalarAsync(
+                    "SELECT COUNT(*) FROM Users WHERE DepartmentId = @p0", department.Value);
+            }
+            return await _dataService.ExecuteScalarAsync("SELECT COUNT(*) FROM Users");
         }
 
         public async Task<IEnumerable<User>> GetUsersPaginatedAsync(int pageNumber, int pageSize, string includeProperties = "")
@@ -243,7 +259,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             string? sortBy = null,
             string? sortDirection = null)
         {
-            var query = _context.VEmployeeDetails.AsQueryable();
+            var query = _dataService.GetEmployeeDetailsQuery();
 
             // Appliquer les filtres
             if (!string.IsNullOrEmpty(search))
@@ -259,12 +275,15 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             // Dans ce cas, nous pourrions filtrer par nom de département obtenu à partir de l'ID
             if (department.HasValue)
             {
-                // Si nous ne pouvons pas le faire de cette façon, une alternative est de simplifier
-                // en utilisant une approche basée sur le contenu du champ Department
-                var departmentDetails = await _context.Department.FindAsync(department.Value);
-                if (departmentDetails != null && !string.IsNullOrEmpty(departmentDetails.Name))
+                var deptRows = await _dataService.ExecuteReaderAsync(
+                    "SELECT Name FROM Department WHERE DepartmentId = @p0", department.Value);
+                if (deptRows.Count > 0)
                 {
-                    query = query.Where(e => e.Department != null && e.Department.Contains(departmentDetails.Name));
+                    var deptName = deptRows[0]["Name"]?.ToString();
+                    if (!string.IsNullOrEmpty(deptName))
+                    {
+                        query = query.Where(e => e.Department != null && e.Department.Contains(deptName));
+                    }
                 }
             }
 
@@ -317,16 +336,12 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task<User> GetUserByEmailAsync(string email)
         {
-            return await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Email == email);
+            return await _dataService.GetUserByEmailAsync(email);
         }
 
         public async Task<User?> GetUserByIdAsync(int userId)
         {
-            return await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            return await _dataService.GetUserByIdAsync(userId);
         }
 
         // Méthode pour mettre à jour un utilisateur

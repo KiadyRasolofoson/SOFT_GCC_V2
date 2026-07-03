@@ -1,86 +1,47 @@
-using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Core.Entities.wish_evolution;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class CompetenceLineService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IEvaluationDataService _dataService;
 
-        public CompetenceLineService(ApplicationDbContext context)
+        public CompetenceLineService(IEvaluationDataService dataService)
         {
-            _context = context;
+            _dataService = dataService;
         }
 
         public async Task<IEnumerable<CompetenceLine>> GetAllAsync()
         {
-            return await _context.competenceLines
-                .Include(c => c.SkillPosition)
-                    .ThenInclude(sp => sp.Skill)
-                .Include(c => c.SkillPosition)
-                    .ThenInclude(sp => sp.Position)
-                .Where(c => c.State == 1)
-                .ToListAsync();
+            return await _dataService.GetAllCompetenceLinesAsync();
         }
 
         public async Task<CompetenceLine> GetByIdAsync(int id)
         {
-            return await _context.competenceLines
-                .Include(c => c.SkillPosition)
-                    .ThenInclude(sp => sp.Skill)
-                .Include(c => c.SkillPosition)
-                    .ThenInclude(sp => sp.Position)
-                .FirstOrDefaultAsync(c => c.CompetenceLineId == id && c.State == 1);
+            return await _dataService.GetCompetenceLineByIdAsync(id);
         }
 
         public async Task<IEnumerable<CompetenceLine>> GetByPositionIdAsync(int positionId)
         {
-            return await _context.competenceLines
-                .Include(c => c.SkillPosition)
-                    .ThenInclude(sp => sp.Skill)
-                .Include(c => c.SkillPosition)
-                    .ThenInclude(sp => sp.Position)
-                .Where(c => c.SkillPosition.Position.PositionId == positionId && c.State == 1)
-                .Select(c => new CompetenceLine
-                {
-                    CompetenceLineId = c.CompetenceLineId,
-                    SkillPositionId = c.SkillPositionId,
-                    Description = c.Description,
-                    State = c.State,
-                    SkillPosition = new SkillPosition
-                    {
-                        SkillPositionId = c.SkillPosition.SkillPositionId,
-                        Skill = c.SkillPosition.Skill,
-                        Position = c.SkillPosition.Position
-                    }
-                })
-                .ToListAsync();
+            return await _dataService.GetCompetenceLinesByPositionIdAsync(positionId);
         }
 
         public async Task<IEnumerable<CompetenceLine>> GetBySkillPositionIdAsync(int skillPositionId)
         {
-            return await _context.competenceLines
-                .Include(c => c.SkillPosition)
-                    .ThenInclude(sp => sp.Skill)
-                .Include(c => c.SkillPosition)
-                    .ThenInclude(sp => sp.Position)
-                .Where(c => c.SkillPositionId == skillPositionId && c.State == 1)
-                .ToListAsync();
+            return await _dataService.GetCompetenceLinesBySkillPositionIdAsync(skillPositionId);
         }
 
         public async Task<CompetenceLine> CreateAsync(CompetenceLine competenceLine)
         {
             competenceLine.State = 1;
-            _context.competenceLines.Add(competenceLine);
-            await _context.SaveChangesAsync();
+            await _dataService.CreateCompetenceLineAsync(competenceLine);
             return competenceLine;
         }
 
         public async Task<CompetenceLine> UpdateAsync(CompetenceLine competenceLine)
         {
-            var existingCompetenceLine = await _context.competenceLines.FindAsync(competenceLine.CompetenceLineId);
+            var existingCompetenceLine = await _dataService.GetCompetenceLineByIdAsync(competenceLine.CompetenceLineId);
             if (existingCompetenceLine == null)
                 throw new Exception("Ligne de compétence non trouvée");
 
@@ -88,18 +49,18 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             existingCompetenceLine.Description = competenceLine.Description;
             existingCompetenceLine.State = competenceLine.State;
             
-            await _context.SaveChangesAsync();
+            await _dataService.UpdateCompetenceLineAsync(existingCompetenceLine);
             return existingCompetenceLine;
         }
 
         public async Task DeleteAsync(int id)
         {
-            var competenceLine = await _context.competenceLines.FindAsync(id);
+            var competenceLine = await _dataService.GetCompetenceLineByIdAsync(id);
             if (competenceLine == null)
                 throw new Exception("Ligne de compétence non trouvée");
 
             competenceLine.State = 0;
-            await _context.SaveChangesAsync();
+            await _dataService.UpdateCompetenceLineAsync(competenceLine);
         }
     }
 } 

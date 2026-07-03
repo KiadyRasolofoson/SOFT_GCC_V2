@@ -1,28 +1,43 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using soft_carriere_competence.Core.Entities.crud_career;
+﻿using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
-using soft_carriere_competence.Infrastructure.Data;
 using soft_carriere_competence.Core.Interface.AuthInterface;
+using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class EvaluationInterviewService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IEvaluationDataService _dataService;
         private readonly IGenericRepository<Position> _posteRepository;
         private readonly IGenericRepository<Department> _departementRepository;
         private readonly IGenericRepository<User> _userRepository;
+        private readonly IGenericRepository<EvaluationInterviews> _interviewRepository;
+        private readonly IGenericRepository<InterviewParticipants> _participantRepository;
+        private readonly IGenericRepository<Evaluation> _evaluationRepository;
+        private readonly IGenericRepository<Employee> _employeeRepository;
         private readonly IEmailService _emailService;
 
-        public EvaluationInterviewService(ApplicationDbContext context, IGenericRepository<Position> posteRepository, IGenericRepository<Department> departementRepository, IGenericRepository<User> userRepository, IEmailService emailService)
+        public EvaluationInterviewService(
+            IEvaluationDataService dataService,
+            IGenericRepository<Position> posteRepository,
+            IGenericRepository<Department> departementRepository,
+            IGenericRepository<User> userRepository,
+            IGenericRepository<EvaluationInterviews> interviewRepository,
+            IGenericRepository<InterviewParticipants> participantRepository,
+            IGenericRepository<Evaluation> evaluationRepository,
+            IGenericRepository<Employee> employeeRepository,
+            IEmailService emailService)
         {
-            _context = context;
+            _dataService = dataService;
             _posteRepository = posteRepository;
             _departementRepository = departementRepository;
             _userRepository = userRepository;
+            _interviewRepository = interviewRepository;
+            _participantRepository = participantRepository;
+            _evaluationRepository = evaluationRepository;
+            _employeeRepository = employeeRepository;
             _emailService = emailService;
         }
 
@@ -31,7 +46,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 int? department = null,
                 string? search = null)
         {
-            var query = _context.vEmployeesFinishedEvaluations.AsQueryable();
+            var query = _dataService.GetEmployeesFinishedEvalQuery();
 
             if (position.HasValue)
                 query = query.Where(e => e.positionId == position);
@@ -45,7 +60,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     e.FirstName.Contains(search) ||
                     e.LastName.Contains(search));
 
-            return await query.ToListAsync();
+            return query.ToList();
         }
 
         //pagination
@@ -58,7 +73,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
     string? sortBy = null,
     string? sortDirection = null)
         {
-            var query = _context.vEmployeesFinishedEvaluations.AsQueryable();
+            var query = _dataService.GetEmployeesFinishedEvalQuery();
 
             // Appliquer les filtres
             if (position.HasValue)
@@ -114,24 +129,24 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
 
             // Calculer le nombre total d'éléments
-            var totalItems = await query.CountAsync();
+            var totalItems = query.Count();
 
             // Calculer le nombre total de pages
             var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
             // Paginer les résultats
-            var employees = await query
+            var employees = query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToList();
 
             return (employees, totalPages);
         }
 
         public async Task<VEmployeesFinishedEvaluation?> GetEmployeeAsync(int employeeId)
         {
-            return await _context.vEmployeesFinishedEvaluations
-                .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+            return _dataService.GetEmployeesFinishedEvalQuery()
+                .FirstOrDefault(e => e.EmployeeId == employeeId);
         }
 
         public async Task<Position> GetPosteByIdAsync(int posteId)
@@ -158,21 +173,21 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         // Planifier un entretien
         public async Task<(bool Success, string Message, int? InterviewId)> ScheduleInterviewAsync(int evaluationId, DateTime scheduledDate, List<int> participantIds, int? employeeId = null, bool sendEmails = true)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            await _dataService.BeginTransactionAsync();
             try
             {
                 Console.WriteLine($"Planification d'un entretien pour l'évaluation ID: {evaluationId}, employé ID: {employeeId}");
                 
                 // Vérifier si l'évaluation existe
-                var evaluationExists = await _context.Evaluations.AnyAsync(e => e.EvaluationId == evaluationId);
-                if (!evaluationExists)
+                var evaluation = await _evaluationRepository.GetByIdAsync(evaluationId);
+                if (evaluation == null)
                 {
                     return (false, "Évaluation non trouvée.", null);
                 }
 
                 // Vérifier si un entretien existe déjà pour cette évaluation
-                var existingInterview = await _context.evaluationInterviews
-                    .FirstOrDefaultAsync(e => e.EvaluationId == evaluationId);
+                var existingInterview = await _interviewRepository
+                    .GetFirstOrDefaultAsync(e => e.EvaluationId == evaluationId);
 
                 EvaluationInterviews interview;
                 bool isUpdate = false;
@@ -186,25 +201,25 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     // Mettre à jour seulement si l'entretien n'est pas déjà terminé
                     if (existingInterview.status == InterviewStatus.Completed)
                     {
+                        await _dataService.RollbackTransactionAsync();
                         return (false, "Impossible de reprogrammer un entretien déjà terminé.", null);
                     }
                     
                     existingInterview.InterviewDate = scheduledDate;
                     existingInterview.status = InterviewStatus.Planned;
                     
-                    _context.evaluationInterviews.Update(existingInterview);
-                    await _context.SaveChangesAsync();
+                    await _interviewRepository.UpdateAsync(existingInterview);
                     
                     // Supprimer les participants existants avant d'en ajouter de nouveaux
-                    var existingParticipants = await _context.interviewParticipants
-                        .Where(p => p.InterviewId == existingInterview.InterviewId)
-                        .ToListAsync();
+                    var existingParticipants = (await _participantRepository
+                        .FindAsync(p => p.InterviewId == existingInterview.InterviewId))
+                        .ToList();
                     
                     if (existingParticipants.Any())
                     {
                         Console.WriteLine($"Suppression de {existingParticipants.Count} participants existants");
-                        _context.interviewParticipants.RemoveRange(existingParticipants);
-                        await _context.SaveChangesAsync();
+                        foreach (var p in existingParticipants)
+                            await _participantRepository.DeleteAsync(p);
                     }
                     
                     interview = existingInterview;
@@ -219,9 +234,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         status = InterviewStatus.Planned
                     };
 
-                    _context.evaluationInterviews.Add(interview);
-                    await _context.SaveChangesAsync();
-                    
+                    await _interviewRepository.CreateAsync(interview);
                     Console.WriteLine($"Nouvel entretien créé avec ID: {interview.InterviewId}");
                 }
 
@@ -233,7 +246,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 {
                     Console.WriteLine($"Ajout de l'employé {employeeId.Value} comme personne évaluée");
                     
-                    _context.interviewParticipants.Add(new InterviewParticipants
+                    await _participantRepository.CreateAsync(new InterviewParticipants
                     {
                         InterviewId = interview.InterviewId,
                         EmployeeId = employeeId.Value,
@@ -253,7 +266,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         if (employeeId.HasValue && participantId == employeeId.Value) 
                             continue;
                         
-                        _context.interviewParticipants.Add(new InterviewParticipants
+                        await _participantRepository.CreateAsync(new InterviewParticipants
                         {
                             InterviewId = interview.InterviewId,
                             UserId = participantId
@@ -263,8 +276,6 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         participantsInfo.Add((participantId, false));
                     }
                 }
-
-                await _context.SaveChangesAsync();
                 
                 // Envoi des notifications par email si demandé
                 if (sendEmails)
@@ -272,13 +283,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     await SendInterviewNotificationsAsync(interview, participantsInfo);
                 }
 
-                await transaction.CommitAsync();
+                await _dataService.CommitTransactionAsync();
                 
                 return (true, isUpdate ? "Entretien mis à jour avec succès." : "Entretien planifié avec succès.", interview.InterviewId);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                await _dataService.RollbackTransactionAsync();
                 Console.WriteLine($"Exception lors de la planification: {ex.Message}");
                 Console.WriteLine($"StackTrace: {ex.StackTrace}");
                 if (ex.InnerException != null)
@@ -295,9 +306,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             try
             {
                 // Récupérer les détails de l'évaluation
-                var evaluation = await _context.Evaluations
-                    .Include(e => e.EvaluationType)
-                    .FirstOrDefaultAsync(e => e.EvaluationId == interview.EvaluationId);
+                var evaluation = await _evaluationRepository
+                    .GetFirstOrDefaultAsync(e => e.EvaluationId == interview.EvaluationId, e => e.EvaluationType);
                 
                 if (evaluation == null) 
                 {
@@ -322,8 +332,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     if (isEvaluatedEmployee)
                     {
                         // Cas de l'employé évalué
-                        var employee = await _context.Employee
-                            .FirstOrDefaultAsync(e => e.EmployeeId == participantId);
+                        var employee = await _employeeRepository.GetByIdAsync(participantId);
                         
                         if (employee != null)
                         {
@@ -407,8 +416,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             try
             {
                 // Vérifier si l'entretien existe avant d'essayer de mettre à jour
-                var interview = await _context.evaluationInterviews
-                    .FirstOrDefaultAsync(i => i.InterviewId == interviewId);
+                var interview = await _interviewRepository.GetByIdAsync(interviewId);
 
                 if (interview == null)
                 {
@@ -418,30 +426,18 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
                 Console.WriteLine($"Entretien trouvé, statut actuel: {interview.status}");
 
-                // Mettre à jour directement avec EF Core au lieu d'une requête SQL
+                // Mettre à jour le statut
                 interview.status = InterviewStatus.InProgress;
-                _context.evaluationInterviews.Update(interview);
-                var rowsAffected = await _context.SaveChangesAsync();
+                await _interviewRepository.UpdateAsync(interview);
 
-                Console.WriteLine($"Mise à jour effectuée, {rowsAffected} lignes affectées");
-
-                // Vérifier que la mise à jour a bien fonctionné
-                var updatedInterview = await _context.evaluationInterviews
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(i => i.InterviewId == interviewId);
-
-                if (updatedInterview != null)
-                {
-                    Console.WriteLine($"Vérification après mise à jour: statut actuel = {updatedInterview.status}");
-                }
-
-                return rowsAffected > 0;
+                Console.WriteLine($"Mise à jour effectuée");
+                return true;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Exception dans StartInterviewAsync: {ex.Message}");
                 Console.WriteLine($"StackTrace: {ex.StackTrace}");
-                throw; // Relancer l'exception pour que l'appelant puisse la gérer
+                throw;
             }
         }
 
@@ -458,8 +454,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             Console.WriteLine($"Démarrage de CompleteInterviewAsync pour l'interview ID: {interviewId}");
 
-            var interview = await _context.evaluationInterviews
-                .FirstOrDefaultAsync(i => i.InterviewId == interviewId);
+            var interview = await _interviewRepository.GetByIdAsync(interviewId);
 
             if (interview == null)
             {
@@ -522,11 +517,11 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     if (interview.EvaluationId != null && interview.EvaluationId > 0)
                     {
                         // Mettre à jour l'état de l'évaluation à 30 (archivé)
-                        var evaluation = await _context.Evaluations.FindAsync(interview.EvaluationId);
+                        var evaluation = await _evaluationRepository.GetByIdAsync(interview.EvaluationId);
                         if (evaluation != null)
                         {
                             evaluation.state = 30; // État archivé
-                            _context.Evaluations.Update(evaluation);
+                            await _evaluationRepository.UpdateAsync(evaluation);
                             Console.WriteLine($"État de l'évaluation (ID: {interview.EvaluationId}) mis à jour à 30 (archivé)");
                         }
                         else
@@ -561,8 +556,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             try
             {
-                _context.evaluationInterviews.Update(interview);
-                await _context.SaveChangesAsync();
+                await _interviewRepository.UpdateAsync(interview);
                 Console.WriteLine("Interview mis à jour avec succès dans la base de données");
                 return true;
             }
@@ -570,7 +564,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             {
                 Console.WriteLine($"Exception lors de la sauvegarde des changements: {ex.Message}");
                 Console.WriteLine($"StackTrace: {ex.StackTrace}");
-                throw; // Relancer l'exception pour que l'appelant puisse la gérer
+                throw;
             }
         }
 
@@ -578,33 +572,22 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
 
         // Récupérer les détails d'un entretien
-        // Récupérer les détails d'un entretien
         public async Task<EvaluationInterviews?> GetInterviewDetailsAsync(int interviewId)
         {
             // Récupère les détails de l'entretien sans les participants d'abord
-            var interview = await _context.evaluationInterviews
-                .FirstOrDefaultAsync(i => i.InterviewId == interviewId);
+            var interview = await _interviewRepository.GetByIdAsync(interviewId);
 
             if (interview != null)
             {
                 try
                 {
-                    // Récupère les participants associés à cet entretien avec gestion des nulls
-                    var participants = await _context.interviewParticipants
-                        .Where(p => p.InterviewId == interviewId)
-                        .Select(p => new
-                        {
-                            ParticipantId = p.ParticipantId,
-                            UserId = p.UserId,  // Peut être null
-                            EmployeeId = p.EmployeeId,  // Peut être null
-                                                        // Ne pas inclure .User directement si UserId peut être null
-                        })
-                        .ToListAsync();
+                    // Récupère les participants associés à cet entretien
+                    var participants = (await _participantRepository
+                        .FindAsync(p => p.InterviewId == interviewId))
+                        .ToList();
 
-                    // Log pour debug
                     Console.WriteLine($"Récupération des participants pour l'entretien {interviewId}: {participants.Count} trouvés");
 
-                    // Si nécessaire, charger les détails des utilisateurs séparément
                     if (participants.Any())
                     {
                         Console.WriteLine("Participants trouvés, mais non chargés avec les détails utilisateur pour éviter les erreurs NULL");
@@ -612,7 +595,6 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 }
                 catch (Exception ex)
                 {
-                    // Capturer l'exception mais continuer - nous retournons quand même l'entretien
                     Console.WriteLine($"Erreur lors de la récupération des participants: {ex.Message}");
                     Console.WriteLine($"StackTrace: {ex.StackTrace}");
                 }
@@ -624,8 +606,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task<bool> UpdateInterviewAsync(int interviewId, DateTime? newDate, List<int> newParticipantIds, int? newStatus)
         {
-            var interview = await _context.evaluationInterviews
-                .FirstOrDefaultAsync(i => i.InterviewId == interviewId);
+            var interview = await _interviewRepository.GetByIdAsync(interviewId);
 
             if (interview == null)
             {
@@ -647,13 +628,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             // Mise à jour des participants
             if (newParticipantIds != null && newParticipantIds.Any())
             {
-                // Supprimer les anciens participants
-                // _context.interviewParticipants.RemoveRange(interview.Participants);
-
-                // Ajouter les nouveaux participants
                 foreach (var participantId in newParticipantIds)
                 {
-                    _context.interviewParticipants.Add(new InterviewParticipants
+                    await _participantRepository.CreateAsync(new InterviewParticipants
                     {
                         InterviewId = interview.InterviewId,
                         EmployeeId = participantId
@@ -665,20 +642,17 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             if (newStatus.HasValue)
             {
                 var status = (InterviewStatus)newStatus.Value;
-                // Si le statut est valide, mettre à jour
                 if (Enum.IsDefined(typeof(InterviewStatus), status))
                 {
                     interview.status = status;
                 }
                 else
                 {
-                    return false; // Si le statut n'est pas valide, la mise à jour échoue
+                    return false;
                 }
             }
 
-            _context.evaluationInterviews.Update(interview);
-            await _context.SaveChangesAsync();
-
+            await _interviewRepository.UpdateAsync(interview);
 
             return true;
         }
@@ -690,21 +664,16 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 Console.WriteLine($"Recherche d'entretien pour le participant/employé ID: {participantId}");
 
                 // Rechercher d'abord si c'est un employé évalué
-                var interviewIds = await _context.interviewParticipants
-                    .Where(p => p.EmployeeId == participantId)
-                    .Select(p => p.InterviewId)
-                    .ToListAsync();
+                var participants = await _participantRepository.FindAsync(p => p.EmployeeId == participantId);
+                var interviewIds = participants.Select(p => p.InterviewId).ToList();
 
                 Console.WriteLine($"Entretiens trouvés via EmployeeId: {string.Join(", ", interviewIds)}");
 
                 // Si aucun résultat, chercher comme participant (User)
                 if (!interviewIds.Any())
                 {
-                    interviewIds = await _context.interviewParticipants
-                        .Where(p => p.UserId == participantId)
-                        .Select(p => p.InterviewId)
-                        .ToListAsync();
-
+                    participants = await _participantRepository.FindAsync(p => p.UserId == participantId);
+                    interviewIds = participants.Select(p => p.InterviewId).ToList();
                     Console.WriteLine($"Entretiens trouvés via UserId: {string.Join(", ", interviewIds)}");
                 }
 
@@ -715,10 +684,11 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 }
 
                 // Récupérer l'entretien le plus récent
-                var interview = await _context.evaluationInterviews
+                var allInterviews = await _interviewRepository.GetAllAsync();
+                var interview = allInterviews
                     .Where(i => interviewIds.Contains(i.InterviewId))
                     .OrderByDescending(i => i.InterviewDate)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefault();
 
                 if (interview != null)
                 {
@@ -731,14 +701,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             {
                 Console.WriteLine($"Exception dans GetInterviewByParticipantIdAsync: {ex.Message}");
                 Console.WriteLine($"StackTrace: {ex.StackTrace}");
-                return null; // Retourner null au lieu de relancer l'exception
+                return null;
             }
         }
 
         public string GetValidationStatus(int interviewId)
         {
-            var interview = _context.evaluationInterviews
-                .FirstOrDefault(i => i.InterviewId == interviewId);
+            var interview = _interviewRepository.GetByIdAsync(interviewId).GetAwaiter().GetResult();
 
             if (interview == null)
             {

@@ -15,6 +15,8 @@ using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Interface.EvaluationInterface;
 using soft_carriere_competence.Infrastructure.Repositories.EvaluationRepositories;
+using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Infrastructure.Repositories.DataService;
 using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Application.Services.retirement;
 using soft_carriere_competence.Application.Services.wish_evolution;
@@ -173,8 +175,15 @@ builder.Services.Configure<ReminderSettings>(builder.Configuration.GetSection("R
 // Enregistrement des services
 builder.Services.AddScoped<soft_carriere_competence.Application.Services.PDFExtraction.PdfExtractionService>();
 
-
-
+// Data Services (abstraction layer for data access)
+builder.Services.AddScoped<ISalarySkillDataService, SalarySkillDataService>();
+builder.Services.AddScoped<ICareerPlanDataService, CareerPlanDataService>();
+builder.Services.AddScoped<IDashboardDataService, DashboardDataService>();
+builder.Services.AddScoped<IOrgDataService, OrgDataService>();
+builder.Services.AddScoped<IRetirementDataService, RetirementDataService>();
+builder.Services.AddScoped<IHistoryDataService, HistoryDataService>();
+builder.Services.AddScoped<IWishEvolutionDataService, WishEvolutionDataService>();
+builder.Services.AddScoped<IEvaluationDataService, EvaluationDataService>();
 
 #endregion
 

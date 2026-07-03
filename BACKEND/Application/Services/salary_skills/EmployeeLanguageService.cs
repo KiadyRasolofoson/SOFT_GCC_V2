@@ -1,19 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
-using soft_carriere_competence.Core.Entities.salary_skills;
+﻿using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
 	public class EmployeeLanguageService
 	{
 		private readonly ICrudRepository<EmployeeLanguage> _repository;
-		private readonly ApplicationDbContext _context;
+		private readonly ISalarySkillDataService _dataService;
 
-		public EmployeeLanguageService(ICrudRepository<EmployeeLanguage> repository, ApplicationDbContext context)
+		public EmployeeLanguageService(ICrudRepository<EmployeeLanguage> repository, ISalarySkillDataService dataService)
 		{
 			_repository = repository;
-			_context = context;
+			_dataService = dataService;
 		}
 
 		public async Task<IEnumerable<EmployeeLanguage>> GetAll()
@@ -41,21 +40,14 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 			await _repository.Delete(id);
 		}
 
-		// Recuperer les competences linguistiques d'un employee
 		public async Task<List<VEmployeeLanguage>> GetEmployeeLanguages(int idEmployee)
 		{
-			return await _context.VEmployeeLanguage
-					 .FromSqlRaw("SELECT * FROM v_employee_language WHERE Employee_id = {0}", idEmployee)
-					 .ToListAsync();
+			return await _dataService.GetEmployeeLanguages(idEmployee);
 		}
 
-        // Recuperer une language d'un employé par son id
         public async Task<VEmployeeLanguage?> GetEmployeeLanguageById(int id)
         {
-            return await _context.VEmployeeLanguage
-                .FromSqlRaw("SELECT * FROM v_employee_language WHERE Employee_language_id = {0}", id)
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
+            return await _dataService.GetEmployeeLanguageById(id);
         }
     }
 }

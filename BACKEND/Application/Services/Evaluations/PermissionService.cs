@@ -1,134 +1,102 @@
-using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface;
+using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class PermissionService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IEvaluationDataService _dataService;
+        private readonly IGenericRepository<User> _userRepository;
 
-        public PermissionService(ApplicationDbContext context)
+        public PermissionService(IEvaluationDataService dataService, IGenericRepository<User> userRepository)
         {
-            _context = context;
+            _dataService = dataService;
+            _userRepository = userRepository;
         }
 
         public async Task<IEnumerable<Permission>> GetAllAsync()
         {
-            return await _context.Permissions
-                .Where(p => p.State == 1)
-                .ToListAsync();
+            var permissions = await _dataService.GetAllPermissionsAsync();
+            return permissions.Where(p => p.State == 1);
         }
 
         public async Task<Permission> GetByIdAsync(int id)
         {
-            return await _context.Permissions
-                .FirstOrDefaultAsync(p => p.PermissionId == id && p.State == 1);
+            return await _dataService.GetPermissionByIdAsync(id);
         }
 
         public async Task<Permission> CreateAsync(Permission permission)
         {
             permission.State = 1;
-            _context.Permissions.Add(permission);
-            await _context.SaveChangesAsync();
+            await _dataService.CreatePermissionAsync(permission);
             return permission;
         }
 
         public async Task<Permission> UpdateAsync(Permission permission)
         {
-            var existingPermission = await _context.Permissions.FindAsync(permission.PermissionId);
+            var existingPermission = await _dataService.GetPermissionByIdAsync(permission.PermissionId);
             if (existingPermission == null)
                 throw new Exception("Permission non trouvée");
 
             existingPermission.Name = permission.Name;
             existingPermission.Description = permission.Description;
             existingPermission.State = permission.State;
-            await _context.SaveChangesAsync();
+            await _dataService.UpdatePermissionAsync(existingPermission);
             return existingPermission;
         }
 
         public async Task DeleteAsync(int id)
         {
-            var permission = await _context.Permissions.FindAsync(id);
+            var permission = await _dataService.GetPermissionByIdAsync(id);
             if (permission == null)
                 throw new Exception("Permission non trouvée");
 
             permission.State = 0;
-            await _context.SaveChangesAsync();
+            await _dataService.UpdatePermissionAsync(permission);
         }
 
         public async Task<IEnumerable<Permission>> GetPermissionsByRoleIdAsync(int roleId)
         {
-            return await _context.rolePermissions
-                .Where(rp => rp.RoleId == roleId)
-                .Include(rp => rp.Permission)
-                .Select(rp => rp.Permission)
-                .Where(p => p.State == 1)
-                .ToListAsync();
+            var rolePermissions = await _dataService.GetPermissionsByRoleIdAsync(roleId);
+            return rolePermissions.Select(rp => rp.Permission).Where(p => p != null).ToList();
         }
 
         public async Task DeleteRolePermissionsAsync(int roleId)
         {
             // Vérifier si le rôle existe
-            var role = await _context.Roles.FindAsync(roleId);
+            var role = await _dataService.GetRoleByIdAsync(roleId);
             if (role == null)
                 throw new Exception($"Le rôle avec l'ID {roleId} n'existe pas.");
 
-            // Supprimer les anciennes associations
-            var existingPermissions = await _context.rolePermissions
-                .Where(rp => rp.RoleId == roleId)
-                .ToListAsync();
-
-            if (existingPermissions.Any())
-            {
-                _context.rolePermissions.RemoveRange(existingPermissions);
-                await _context.SaveChangesAsync();
-            }
+            await _dataService.DeleteRolePermissionsAsync(roleId);
         }
 
         public async Task UpdateRolePermissionsAsync(int roleId, List<int> permissionIds)
         {
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            // Supprimer les anciennes permissions
+            await _dataService.DeleteRolePermissionsAsync(roleId);
+
+            // Ajouter les nouvelles associations
+            foreach (var permissionId in permissionIds)
             {
-                try
+                // Vérifier si la permission existe et est active
+                var permission = await _dataService.GetPermissionByIdAsync(permissionId);
+                if (permission == null || permission.State != 1)
+                    throw new Exception($"La permission avec l'ID {permissionId} n'existe pas ou n'est pas active.");
+
+                await _dataService.AddRolePermissionAsync(new RolePermission
                 {
-                    // Supprimer les anciennes permissions
-                    await DeleteRolePermissionsAsync(roleId);
-
-                    // Ajouter les nouvelles associations
-                    foreach (var permissionId in permissionIds)
-                    {
-                        // Vérifier si la permission existe et est active
-                        var permission = await _context.Permissions
-                            .FirstOrDefaultAsync(p => p.PermissionId == permissionId && p.State == 1);
-                        
-                        if (permission == null)
-                            throw new Exception($"La permission avec l'ID {permissionId} n'existe pas ou n'est pas active.");
-
-                        _context.rolePermissions.Add(new RolePermission
-                        {
-                            RoleId = roleId,
-                            PermissionId = permissionId
-                        });
-                    }
-
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    throw new Exception($"Erreur lors de la mise à jour des permissions : {ex.Message}");
-                }
+                    RoleId = roleId,
+                    PermissionId = permissionId
+                });
             }
         }
 
         public async Task<IEnumerable<Permission>> GetUserPermissionsAsync(int userId)
         {
             // Récupérer l'utilisateur avec son rôle
-            var user = await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepository.GetFirstOrDefaultAsync(u => u.Id == userId, u => u.Role);
 
             if (user == null || user.Role == null)
             {
@@ -139,11 +107,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             Console.WriteLine($"Récupération des permissions pour l'utilisateur {userId} avec le rôle {user.Role.Title}");
 
             // Récupérer les permissions associées au rôle de l'utilisateur
-            var permissions = await _context.rolePermissions
-                .Where(rp => rp.RoleId == user.RoleId)
-                .Include(rp => rp.Permission)
-                .Select(rp => rp.Permission)
-                .ToListAsync();
+            var rolePermissions = await _dataService.GetPermissionsByRoleIdAsync(user.RoleId);
+            var permissions = rolePermissions.Select(rp => rp.Permission).Where(p => p != null).ToList();
 
             Console.WriteLine($"Nombre de permissions trouvées: {permissions.Count}");
             foreach (var permission in permissions)

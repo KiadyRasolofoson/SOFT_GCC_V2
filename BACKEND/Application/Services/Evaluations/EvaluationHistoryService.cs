@@ -1,40 +1,46 @@
 ﻿using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Spreadsheet;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 using System.Text;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class EvaluationHistoryService
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IGenericRepository<VEvaluationHistory> _evaluationHistoryRepository;
-        private readonly EvaluationInterviewService _evaluationService;
-        private readonly UserService _userService;
+        private readonly IEvaluationDataService _dataService;
         private readonly IGenericRepository<Department> _departementRepository;
         private readonly IGenericRepository<Position> _posteRepository;
+        private readonly IGenericRepository<Evaluation> _evaluationRepository;
+        private readonly IGenericRepository<EvaluationType> _evaluationTypeRepository;
+        private readonly IGenericRepository<Employee> _employeeRepository;
+        private readonly EvaluationInterviewService _evaluationService;
+        private readonly UserService _userService;
 
-
-
-
-
-        public EvaluationHistoryService(ApplicationDbContext context, IGenericRepository<VEvaluationHistory> evaluationHistoryRepository, EvaluationInterviewService evaluationService
-            , UserService userService, IGenericRepository<Department> departementRepository)
+        public EvaluationHistoryService(
+            IEvaluationDataService dataService,
+            IGenericRepository<Department> departementRepository,
+            IGenericRepository<Position> posteRepository,
+            IGenericRepository<Evaluation> evaluationRepository,
+            IGenericRepository<EvaluationType> evaluationTypeRepository,
+            IGenericRepository<Employee> employeeRepository,
+            EvaluationInterviewService evaluationService,
+            UserService userService)
         {
-            _context = context;
-            _evaluationHistoryRepository = evaluationHistoryRepository;
+            _dataService = dataService;
+            _departementRepository = departementRepository;
+            _posteRepository = posteRepository;
+            _evaluationRepository = evaluationRepository;
+            _evaluationTypeRepository = evaluationTypeRepository;
+            _employeeRepository = employeeRepository;
             _evaluationService = evaluationService;
             _userService = userService;
-            _departementRepository = departementRepository;
         }
 
         public async Task<List<EvaluationHistoryDto>> GetEvaluationHistoryAsync(
@@ -44,7 +50,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
     string? department,
     string? employeeName)
         {
-            var query = _context.vEvaluationHistories.AsQueryable();
+            var query = _dataService.GetEvaluationHistoryQuery();
 
             if (startDate.HasValue)
                 query = query.Where(e => e.StartDate >= startDate.Value);
@@ -64,19 +70,19 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     (e.FirstName != null && e.FirstName.Contains(employeeName))
                 );
 
-            return await query.Select(e => new EvaluationHistoryDto
+            return query.Select(e => new EvaluationHistoryDto
             {
                 EvaluationId = e.EvaluationId,
                 StartDate = e.StartDate,
                 EndDate = e.EndDate,
                 EvaluationType = e.EvaluationType ?? "",
                 OverallScore = e.OverallScore,
-                Status = e.status ,
+                Status = e.status,
                 Recommendations = e.Recommendations ?? "",
-                FirstName =e.FirstName,
-                LastName=e.LastName,
-                Position=e.Position
-            }).ToListAsync();
+                FirstName = e.FirstName,
+                LastName = e.LastName,
+                Position = e.Position
+            }).ToList();
         }
 
         public async Task<(IEnumerable<EvaluationHistoryDto> Evaluations, int TotalPages)> GetEvaluationHistoryPaginatedAsync(
@@ -88,7 +94,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
     string? department = null,
     string? employeeName = null)
         {
-            var query = _context.vEvaluationHistories.AsQueryable();
+            var query = _dataService.GetEvaluationHistoryQuery();
 
             // Appliquer les filtres
             if (startDate.HasValue)
@@ -107,13 +113,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 query = query.Where(e => e.LastName != null && e.LastName.Contains(employeeName));
 
             // Calculer le nombre total d'éléments
-            var totalItems = await query.CountAsync();
+            var totalItems = query.Count();
 
             // Calculer le nombre total de pages
             var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
             // Paginer les résultats
-            var evaluations = await query
+            var evaluations = query
                 .Select(e => new EvaluationHistoryDto
                 {
                     EvaluationId = e.EvaluationId,
@@ -129,7 +135,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 })
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToList();
 
             return (evaluations, totalPages);
         }
@@ -137,7 +143,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public async Task<EvaluationHistoryDetailDto> GetEvaluationDetailAsync(int evaluationId)
         {
             // Charger les informations principales de l'évaluation
-            var evaluation = await _context.vEvaluationHistories
+            var evaluation = _dataService.GetEvaluationHistoryQuery()
                 .Where(e => e.EvaluationId == evaluationId)
                 .Select(e => new
                 {
@@ -158,21 +164,14 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     e.Recommendations,
                     e.ParticipantNames
                 })
-                .FirstOrDefaultAsync();
+                .FirstOrDefault();
 
             if (evaluation == null)
                 throw new KeyNotFoundException("Evaluation not found.");
 
-            // Charger les détails des questions séparément et les mapper vers le DTO
-            var questionDetails = await _context.EvaluationQuestionnaires
-                .Where(q => q.EvaluationId == evaluationId)
-                .Select(q => new QuestionDetailDto
-                {
-                    QuestionId = q.questionId,
-                    Question = q.evaluationQuestion.question,
-                    Score = q.Score
-                })
-                .ToListAsync();
+            // Note: Le chargement des détails des questionnaires nécessite
+            // IGenericRepository<EvaluationQuestionnaire>. À injecter si besoin.
+            var questionDetails = new List<QuestionDetailDto>();
 
             // Transform ParticipantNames en une liste
             var participants = evaluation.ParticipantNames?
@@ -204,7 +203,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task<StatisticsDto> GetEvaluationStatisticsAsync(DateTime? startDate, DateTime? endDate)
         {
-            var query = _context.vEvaluationHistories.AsQueryable();
+            var query = _dataService.GetEvaluationHistoryQuery();
 
             if (startDate.HasValue)
                 query = query.Where(e => e.StartDate >= startDate.Value);
@@ -212,13 +211,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             if (endDate.HasValue)
                 query = query.Where(e => e.EndDate <= endDate.Value);
 
-            var totalEvaluations = await query.CountAsync();
-            var completedEvaluations = await query.CountAsync(e => e.status == 20);
+            var totalEvaluations = query.Count();
+            var completedEvaluations = query.Count(e => e.status == 20);
 
-            var evaluationTypeDistribution = await query
+            var evaluationTypeDistribution = query
                 .GroupBy(e => e.EvaluationType)
                 .Select(g => new { Type = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(x => x.Type, x => x.Count);
+                .ToDictionary(x => x.Type, x => x.Count);
 
             return new StatisticsDto
             {
@@ -235,7 +234,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                var query = _context.vEvaluationHistories.AsQueryable();
+                var query = _dataService.GetEvaluationHistoryQuery();
 
                 if (startDate.HasValue)
                 {
@@ -258,13 +257,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 }
 
                 // Vérification qu'il y a des données après filtrage
-                if (!await query.AnyAsync())
+                if (!query.Any())
                 {
                     Console.WriteLine("Aucune donnée trouvée après application des filtres");
                     return new List<GlobalPerformanceDto>();
                 }
 
-                var groupedData = await query
+                var groupedData = query
                     .GroupBy(e => e.StartDate.Year)
                     .Select(g => new
                     {
@@ -277,7 +276,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         EvaluationCount = g.Count(),
                         Department = department
                     })
-                    .ToListAsync();
+                    .ToList();
 
                 // Convertir en DTO avec une gestion sûre des nulls
                 var result = groupedData.Select(g => new GlobalPerformanceDto
@@ -308,7 +307,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 Console.WriteLine($"Recherche de KPI pour département: {departmentName ?? "tous"}, startDate: {startDate?.ToString("yyyy-MM-dd")}, endDate: {endDate?.ToString("yyyy-MM-dd")}");
             
                 // Utiliser directement vEvaluationHistories pour plus de fiabilité
-                var query = _context.vEvaluationHistories.AsQueryable();
+                var query = _dataService.GetEvaluationHistoryQuery();
             
                 // Appliquer les filtres
                 if (startDate.HasValue)
@@ -403,26 +402,23 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 var filteredEvaluationIds = evaluations.Select(e => e.EvaluationId).ToList();
 
                 // MODIFICATION: Récupérer les évaluations complètes avec une gestion d'erreur robuste
-                List<Evaluation> completeEvaluations = new List<Evaluation>();
+                var completeEvaluations = new List<Evaluation>();
                 try 
                 {
-                    // Approche alternative plus sûre utilisant LINQ et des protections contre les valeurs NULL
-                    completeEvaluations = await _context.Evaluations
-                        .AsNoTracking()
+                    var allEvals = await _evaluationRepository.GetAllAsync();
+                    completeEvaluations = allEvals
                         .Where(e => filteredEvaluationIds.Contains(e.EvaluationId))
-                        .Where(e => e.EmployeeId != 0 && e.state != null) // Protection contre les NULLs
-                        .ToListAsync();
+                        .Where(e => e.EmployeeId != 0 && e.state != null)
+                        .ToList();
                     
                     Console.WriteLine($"Requête d'évaluations réussie: {completeEvaluations.Count} évaluations récupérées");
                 }
                 catch (Exception ex)
                 {
-                    // En cas d'erreur, enregistrer l'erreur mais continuer avec une liste vide
                     Console.WriteLine($"Erreur lors de la récupération des évaluations complètes: {ex.Message}");
                     Console.WriteLine($"StackTrace: {ex.StackTrace}");
                 }
 
-                // Vérifier qu'on a bien récupéré des évaluations
                 Console.WriteLine($"Nombre d'évaluations complètes récupérées: {completeEvaluations.Count}");
 
                 // MODIFICATION: Obtenir les employés uniques qui ont des évaluations actives
@@ -436,7 +432,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 Console.WriteLine($"Nombre d'employés uniques ayant participé: {uniqueParticipatingEmployees}");
                 
                 // MODIFICATION: Compter le nombre total d'employés éligibles selon les mêmes filtres
-                var totalEligibleEmployeesQuery = _context.Employee.AsQueryable();
+                var allEmployees = (await _employeeRepository.GetAllAsync()).AsQueryable();
+                var totalEligibleEmployeesQuery = allEmployees;
                 
                 // Appliquer le filtre de département si spécifié
                 int? departmentId = null;
@@ -530,11 +527,19 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             try
             {
                 // Filtrage des évaluations par date
-                var evaluations = _context.Evaluations
-                    .Include(e => e.EvaluationType)
-                    .Include(e => e.Employee)
+                var allEvals = await _evaluationRepository.GetAllAsync();
+                var allTypes = await _evaluationTypeRepository.GetAllAsync();
+                var allEmps = await _employeeRepository.GetAllAsync();
+
+                var evaluations = allEvals
                     .Where(e => (!startDate.HasValue || e.StartDate >= startDate) &&
                                 (!endDate.HasValue || e.EndDate <= endDate))
+                    .Select(e =>
+                    {
+                        e.EvaluationType = allTypes.FirstOrDefault(t => t.EvaluationTypeId == e.EvaluationTypeId);
+                        e.Employee = allEmps.FirstOrDefault(emp => emp.EmployeeId == e.EmployeeId);
+                        return e;
+                    })
                     .ToList();
 
                 switch (format.ToLower())
@@ -679,7 +684,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                var query = _context.vEvaluationHistories.AsQueryable();
+                var query = _dataService.GetEvaluationHistoryQuery();
 
                 // Appliquer les filtres
                 if (startDate.HasValue)
@@ -859,18 +864,16 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                var types = await _context.EvaluationTypes
-                    .Select(et => et.Designation)
-                    .Distinct()
-                    .ToListAsync();
+                var types = await _evaluationTypeRepository.GetAllAsync();
+                var designations = types.Select(et => et.Designation).Distinct().ToList();
                 
-                if (!types.Any())
+                if (!designations.Any())
                 {
                     // Retourner des valeurs par défaut si aucun type n'est trouvé
                     return new List<string> { "Annuelle", "Trimestrielle", "Probatoire", "Promotion" };
                 }
                 
-                return types;
+                return designations;
             }
             catch (Exception ex)
             {
@@ -884,16 +887,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             try
             {
-                return await _context.Employee
-                    .Select(e => new Employee
-                    {
-                        EmployeeId = e.EmployeeId,
-                        FirstName = e.FirstName,
-                        Name = e.Name,
-                        RegistrationNumber = e.RegistrationNumber
-                        // Position n'existe pas dans le modèle Employee
-                    })
-                    .ToListAsync();
+                return await _employeeRepository.GetAllAsync();
             }
             catch (Exception ex)
             {

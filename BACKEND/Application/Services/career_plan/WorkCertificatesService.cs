@@ -1,19 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
-using soft_carriere_competence.Core.Entities.career_plan;
+﻿using soft_carriere_competence.Core.Entities.career_plan;
 using soft_carriere_competence.Core.Interface;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.career_plan
 {
     public class WorkCertificatesService
     {
         private readonly ICrudRepository<WorkCertificates> _repository;
-        private readonly ApplicationDbContext _context;
+        private readonly ICareerPlanDataService _dataService;
 
-        public WorkCertificatesService(ICrudRepository<WorkCertificates> repository, ApplicationDbContext context)
+        public WorkCertificatesService(ICrudRepository<WorkCertificates> repository, ICareerPlanDataService dataService)
         {
             _repository = repository;
-            _context = context;
+            _dataService = dataService;
         }
 
         public async Task<IEnumerable<WorkCertificates>> GetAll()
@@ -36,19 +35,14 @@ namespace soft_carriere_competence.Application.Services.career_plan
             await _repository.Delete(id);
         }
    
-        //Avoir une cartification par son token
         public async Task<WorkCertificates?> GetValidCertificateByToken(string token)
         {
-            return await _context.WorkCertificates
-                .FirstOrDefaultAsync(c =>
-                    c.Token == token
-                );
+            return await _dataService.GetValidCertificateByToken(token);
         }
 
-        //Verification d'existence d'une certification par son token
         public async Task<bool> IsExist(string token)
         {
-            return await _context.WorkCertificates.AnyAsync(c => c.Token == token);
+            return await _dataService.IsWorkCertificateExist(token);
         }
     }
 }

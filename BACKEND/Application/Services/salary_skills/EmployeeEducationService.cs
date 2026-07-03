@@ -1,20 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
-using soft_carriere_competence.Core.Entities.salary_skills;
+﻿using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
-using soft_carriere_competence.Infrastructure.Data;
-using soft_carriere_competence.Infrastructure.Repositories;
+using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
 	public class EmployeeEducationService
 	{
 		private readonly ICrudRepository<EmployeeEducation> _repository;
-		private readonly ApplicationDbContext _context;
+		private readonly ISalarySkillDataService _dataService;
 
-		public EmployeeEducationService(ICrudRepository<EmployeeEducation> repository, ApplicationDbContext context)
+		public EmployeeEducationService(ICrudRepository<EmployeeEducation> repository, ISalarySkillDataService dataService)
 		{
 			_repository = repository;
-			_context = context;
+			_dataService = dataService;
 		}
 
 		public async Task<IEnumerable<EmployeeEducation>> GetAll()
@@ -42,22 +40,14 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 			await _repository.Delete(id);
 		}
 
-		// Recuperer les diplomes et formations d'un employee
 		public async Task<List<VEmployeeEducation>> GetEmployeeEducations(int idEmployee)
 		{
-			return await _context.VEmployeeEducation
-					 .FromSqlRaw("SELECT * FROM v_employee_education WHERE Employee_id = {0}", idEmployee)
-					 .ToListAsync();
+			return await _dataService.GetEmployeeEducations(idEmployee);
 		}
 
-        // Recuperer un diplome et formation par son id
         public async Task<VEmployeeEducation?> GetEmployeeEducationById(int idEmployeeEducation)
         {
-            return await _context.VEmployeeEducation
-                .FromSqlRaw("SELECT * FROM v_employee_education WHERE Employee_education_id = {0}", idEmployeeEducation)
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
+            return await _dataService.GetEmployeeEducationById(idEmployeeEducation);
         }
     }
-
 }

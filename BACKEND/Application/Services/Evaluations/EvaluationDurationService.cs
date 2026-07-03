@@ -1,21 +1,20 @@
-using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using soft_carriere_competence.Core.Interface;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class EvaluationDurationService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IGenericRepository<EvaluationType> _evaluationTypeRepository;
+        private readonly IGenericRepository<Evaluation> _evaluationRepository;
 
-        public EvaluationDurationService(ApplicationDbContext context)
+        public EvaluationDurationService(
+            IGenericRepository<EvaluationType> evaluationTypeRepository,
+            IGenericRepository<Evaluation> evaluationRepository)
         {
-            _context = context;
+            _evaluationTypeRepository = evaluationTypeRepository;
+            _evaluationRepository = evaluationRepository;
         }
 
         public async Task<DurationRecommendationDto> CalculateRecommendedDurationAsync(CalculateDurationRequestDto request)
@@ -147,7 +146,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             };
 
             // Vérifier si le type d'évaluation existe
-            bool exists = await _context.EvaluationTypes.AnyAsync(et => et.EvaluationTypeId == evaluationTypeId);
+            bool exists = await _evaluationTypeRepository.AnyAsync(et => et.EvaluationTypeId == evaluationTypeId);
             
             // Utiliser le facteur correspondant ou 1.0 par défaut
             if (exists && evaluationTypeFactors.ContainsKey(evaluationTypeId))
@@ -186,8 +185,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         private async Task<string> GetEvaluationTypeNameAsync(int evaluationTypeId)
         {
-            var evaluationType = await _context.EvaluationTypes
-                .FirstOrDefaultAsync(et => et.EvaluationTypeId == evaluationTypeId);
+            var evaluationType = await _evaluationTypeRepository
+                .GetFirstOrDefaultAsync(et => et.EvaluationTypeId == evaluationTypeId);
                 
             return evaluationType?.Designation ?? "Type d'évaluation standard";
         }
@@ -228,18 +227,20 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         private async Task<HistoricalData> GetHistoricalCompletionDataAsync(int evaluationTypeId, List<int> positionIds)
         {
             // Récupérer les évaluations terminées avec des dates de complétion
-            var completedEvaluations = await _context.Evaluations
-                .Where(e => e.EvaluationTypeId == evaluationTypeId &&
-                       e.state == 20 && // État terminé
-                       e.completionDate != null &&
-                       e.StartDate != null)
+            var evaluations = await _evaluationRepository.FindAsync(e =>
+                e.EvaluationTypeId == evaluationTypeId &&
+                e.state == 20 &&
+                e.completionDate != null &&
+                e.StartDate != null);
+
+            var completedEvaluations = evaluations
                 .Select(e => new
                 {
                     e.StartDate,
-                    CompletionDate = e.completionDate.Value,
+                    CompletionDate = e.completionDate!.Value,
                     EmployeeId = e.EmployeeId
                 })
-                .ToListAsync();
+                .ToList();
 
             if (completedEvaluations.Count < 3)
                 return null; // Pas assez de données historiques

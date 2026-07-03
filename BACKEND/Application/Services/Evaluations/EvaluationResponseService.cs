@@ -3,25 +3,25 @@ using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Controllers.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Interface;
-using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
     public class EvaluationResponseService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IEvaluationDataService _dataService;
         private readonly IGenericRepository<EvaluationResponses> _responseRepository;
         
         private readonly IGenericRepository<Evaluation> _evaluationRepository;
         private readonly IGenericRepository<EvaluationQuestion> _questionRepository;
 
         public EvaluationResponseService(
-            ApplicationDbContext context,
+            IEvaluationDataService dataService,
             IGenericRepository<EvaluationResponses> responseRepository,
             IGenericRepository<Evaluation> evaluationRepository,
             IGenericRepository<EvaluationQuestion> questionRepository)
         {
-            _context = context;
+            _dataService = dataService;
             _responseRepository = responseRepository;
             _evaluationRepository = evaluationRepository;
             _questionRepository = questionRepository;
@@ -53,24 +53,42 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             };
 
             await _responseRepository.CreateAsync(response);
-            await _context.SaveChangesAsync();
+            await _dataService.SaveChangesAsync();
 
             return response;
         }
 
         public async Task<List<EvaluationResponses>> GetResponsesAsync(int evaluationId)
         {
-            return await _context.evaluationResponses
-                .Include(r => r.Question)
-                .Where(r => r.EvaluationId == evaluationId)
-                .ToListAsync();
+            var rows = await _dataService.ExecuteReaderAsync(
+                "SELECT * FROM evaluationResponses WHERE EvaluationId = @p0", evaluationId);
+            return rows.Select(row => new EvaluationResponses
+            {
+                ResponseId = Convert.ToInt32(row["ResponseId"]),
+                EvaluationId = Convert.ToInt32(row["EvaluationId"]),
+                QuestionId = Convert.ToInt32(row["QuestionId"]),
+                ResponseValue = row["ResponseValue"]?.ToString(),
+                ResponseType = row["ResponseType"]?.ToString(),
+                State = row.ContainsKey("State") && row["State"] != DBNull.Value ? Convert.ToInt32(row["State"]) : 0
+            }).ToList();
         }
 
         public async Task<EvaluationResponses> GetResponseAsync(int evaluationId, int questionId)
         {
-            return await _context.evaluationResponses
-                .Include(r => r.Question)
-                .FirstOrDefaultAsync(r => r.EvaluationId == evaluationId && r.QuestionId == questionId);
+            var rows = await _dataService.ExecuteReaderAsync(
+                "SELECT TOP 1 * FROM evaluationResponses WHERE EvaluationId = @p0 AND QuestionId = @p1",
+                evaluationId, questionId);
+            if (rows.Count == 0) return null;
+            var row = rows[0];
+            return new EvaluationResponses
+            {
+                ResponseId = Convert.ToInt32(row["ResponseId"]),
+                EvaluationId = Convert.ToInt32(row["EvaluationId"]),
+                QuestionId = Convert.ToInt32(row["QuestionId"]),
+                ResponseValue = row["ResponseValue"]?.ToString(),
+                ResponseType = row["ResponseType"]?.ToString(),
+                State = row.ContainsKey("State") && row["State"] != DBNull.Value ? Convert.ToInt32(row["State"]) : 0
+            };
         }
 
         public async Task<bool> UpdateResponseAsync(int responseId, EvaluationResponseDto responseDto)
@@ -86,7 +104,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             response.IsCorrect = responseDto.IsCorrect;
 
             await _responseRepository.UpdateAsync(response);
-            await _context.SaveChangesAsync();
+            await _dataService.SaveChangesAsync();
 
             return true;
         }
@@ -98,7 +116,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 throw new Exception($"Réponse avec l'ID {responseId} non trouvée");
 
             await _responseRepository.DeleteAsync(response);
-            await _context.SaveChangesAsync();
+            await _dataService.SaveChangesAsync();
 
             return true;
         }
@@ -106,21 +124,32 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         // Nouvelles méthodes pour les options de questions
         public async Task<Dictionary<int, IEnumerable<EvaluationQuestionOptions>>> GetQuestionOptionsAsync(int evaluationId)
         {
-            // Récupérer les questions associées à l'évaluation
-            var questionIds = await _context.evaluationSelectedQuestions
-                .Where(esq => esq.EvaluationId == evaluationId)
-                .Select(esq => esq.QuestionId)
-                .ToListAsync();
+            // Récupérer les IDs de questions associées à l'évaluation (type QCM uniquement)
+            var questionIdsRows = await _dataService.ExecuteReaderAsync(@"
+                SELECT esq.QuestionId FROM evaluationSelectedQuestions esq
+                INNER JOIN evaluationQuestions q ON esq.QuestionId = q.questionId
+                WHERE esq.EvaluationId = @p0 AND q.ResponseTypeId = 2", evaluationId);
 
-            // Récupérer uniquement les options pour les questions de type QCM (ResponseTypeId = 2)
-            var options = await _context.evaluationQuestionOptions
-                .Join(_context.evaluationQuestions,
-                    opt => opt.QuestionId,
-                    q => q.questionId,
-                    (opt, q) => new { Option = opt, Question = q })
-                .Where(x => questionIds.Contains(x.Option.QuestionId) && x.Question.ResponseTypeId == 2)
-                .Select(x => x.Option)
-                .ToListAsync();
+            var questionIds = questionIdsRows
+                .Select(r => Convert.ToInt32(r["QuestionId"]))
+                .ToList();
+
+            if (!questionIds.Any())
+                return new Dictionary<int, IEnumerable<EvaluationQuestionOptions>>();
+
+            // Récupérer les options pour ces questions
+            var placeholders = string.Join(",", questionIds.Select((_, i) => $"@p{i}"));
+            var optionsRows = await _dataService.ExecuteReaderAsync($@"
+                SELECT * FROM evaluationQuestionOptions 
+                WHERE QuestionId IN ({placeholders})", questionIds.Cast<object>().ToArray());
+
+            var options = optionsRows.Select(row => new EvaluationQuestionOptions
+            {
+                OptionId = Convert.ToInt32(row["OptionId"]),
+                QuestionId = Convert.ToInt32(row["QuestionId"]),
+                OptionText = row["OptionText"]?.ToString(),
+                IsCorrect = row.ContainsKey("IsCorrect") && row["IsCorrect"] != DBNull.Value && Convert.ToBoolean(row["IsCorrect"])
+            }).ToList();
 
             // Grouper les options par questionId
             return options.GroupBy(opt => opt.QuestionId)
@@ -130,17 +159,17 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         // Méthode pour sauvegarder la progression
         public async Task SaveProgressAsync(int evaluationId, EvaluationProgressDto progress)
         {
-            var evaluationProgress = await _context.evaluationProgresses
-                .FirstOrDefaultAsync(ep => ep.evaluationId == evaluationId);
+            var progressRows = await _dataService.ExecuteReaderAsync(
+                "SELECT * FROM evaluationProgresses WHERE evaluationId = @p0", evaluationId);
 
-            if (evaluationProgress == null)
+            if (progressRows.Count == 0)
             {
                 // Récupérer l'employeeId depuis l'évaluation
-                var evaluation = await _context.Evaluations.FindAsync(evaluationId);
+                var evaluation = await _dataService.FindEvaluationAsync(evaluationId);
                 if (evaluation == null) 
                     throw new Exception($"Évaluation avec ID {evaluationId} non trouvée");
 
-                evaluationProgress = new EvaluationProgress
+                var evaluationProgress = new EvaluationProgress
                 {
                     evaluationId = evaluationId,
                     employeeId = evaluation.EmployeeId, // Utiliser l'ID de l'employé lié à l'évaluation
@@ -149,22 +178,23 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     progressPercentage = progress.ProgressPercentage,
                     lastUpdate = DateTime.UtcNow
                 };
-                await _context.evaluationProgresses.AddAsync(evaluationProgress);
+                await _dataService.AddRangeAsync(new[] { evaluationProgress });
             }
             else
             {
-                evaluationProgress.answeredQuestions = progress.AnsweredQuestions;
-                evaluationProgress.progressPercentage = progress.ProgressPercentage;
-                evaluationProgress.lastUpdate = DateTime.UtcNow;
+                var progressId = Convert.ToInt32(progressRows[0]["progressId"]);
+                await _dataService.ExecuteNonQueryAsync(@"
+                    UPDATE evaluationProgresses 
+                    SET answeredQuestions = @p0, progressPercentage = @p1, lastUpdate = @p2 
+                    WHERE progressId = @p3",
+                    progress.AnsweredQuestions, progress.ProgressPercentage, DateTime.UtcNow, progressId);
             }
-
-            await _context.SaveChangesAsync();
         }
 
         // Méthode pour obtenir le temps restant
         public async Task<TimeSpan> GetTimeRemainingAsync(int evaluationId)
         {
-            var evaluation = await _context.Evaluations.FindAsync(evaluationId);
+            var evaluation = await _dataService.FindEvaluationAsync(evaluationId);
             if (evaluation == null) throw new Exception("Évaluation non trouvée");
 
             var timeRemaining = evaluation.EndDate - DateTime.UtcNow;
@@ -173,10 +203,12 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task<EvaluationResponses> UpdateProgressAsync(int evaluationId, int questionId, int timeSpent)
         {
-            var response = await _context.evaluationResponses
-                .FirstOrDefaultAsync(r => r.EvaluationId == evaluationId && r.QuestionId == questionId);
+            var existingRows = await _dataService.ExecuteReaderAsync(
+                "SELECT * FROM evaluationResponses WHERE EvaluationId = @p0 AND QuestionId = @p1",
+                evaluationId, questionId);
 
-            if (response == null)
+            EvaluationResponses response;
+            if (existingRows.Count == 0)
             {
                 response = new EvaluationResponses
                 {
@@ -191,20 +223,21 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
             else
             {
+                var responseId = Convert.ToInt32(existingRows[0]["ResponseId"]);
+                response = await _responseRepository.GetByIdAsync(responseId);
                 response.TimeSpent = timeSpent;
                 response.EndTime = DateTime.UtcNow;
                 await _responseRepository.UpdateAsync(response);
             }
 
-            await _context.SaveChangesAsync();
+            await _dataService.SaveChangesAsync();
             return response;
         }
 
         public async Task<bool> IsResponseCorrect(int questionId, string responseValue)
         {
             // Vérifier si c'est une réponse QCM
-            var question = await _context.evaluationQuestions
-                .FirstOrDefaultAsync(q => q.questionId == questionId);
+            var question = await _dataService.GetQuestionWithOptionsAsync(questionId);
             
             if (question == null)
                 return false;
@@ -216,8 +249,11 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 if (int.TryParse(responseValue, out int optionId))
                 {
                     // Vérifier si l'option sélectionnée est marquée comme correcte
-                    return await _context.evaluationQuestionOptions
-                        .AnyAsync(o => o.QuestionId == questionId && o.OptionId == optionId && o.IsCorrect);
+                    var count = await _dataService.ExecuteScalarAsync(@"
+                        SELECT COUNT(1) FROM evaluationQuestionOptions 
+                        WHERE QuestionId = @p0 AND OptionId = @p1 AND IsCorrect = 1",
+                        questionId, optionId);
+                    return count > 0;
                 }
             }
             
@@ -231,32 +267,38 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             try
             {
                 // Récupérer toutes les réponses de l'évaluation
-                var responses = await _context.evaluationResponses
-                    .Where(r => r.EvaluationId == evaluationId)
-                    .ToListAsync();
+                var responsesData = await _dataService.ExecuteReaderAsync(
+                    "SELECT * FROM evaluationResponses WHERE EvaluationId = @p0", evaluationId);
 
-                foreach (var response in responses)
+                foreach (var row in responsesData)
                 {
+                    var responseId = Convert.ToInt32(row["ResponseId"]);
+                    var questionId = Convert.ToInt32(row["QuestionId"]);
+                    var responseType = row["ResponseType"]?.ToString();
+                    var responseValue = row["ResponseValue"]?.ToString();
+
                     // Vérifier si la réponse est correcte
                     bool isCorrect = false;
-                    if (response.ResponseType == "QCM")
+                    if (responseType == "QCM")
                     {
-                        // Pour les questions QCM, vérifier si l'ID de l'option sélectionnée correspond à une option marquée comme correcte
-                        int optionId;
-                        if (int.TryParse(response.ResponseValue, out optionId))
+                        if (int.TryParse(responseValue, out int optionId))
                         {
-                            isCorrect = await _context.evaluationQuestionOptions
-                                .Where(o => o.QuestionId == response.QuestionId && o.OptionId == optionId && o.IsCorrect)
-                                .AnyAsync();
+                            var count = await _dataService.ExecuteScalarAsync(@"
+                                SELECT COUNT(1) FROM evaluationQuestionOptions 
+                                WHERE QuestionId = @p0 AND OptionId = @p1 AND IsCorrect = 1",
+                                questionId, optionId);
+                            isCorrect = count > 0;
                         }
                     }
 
                     // Mettre à jour le statut de la réponse
-                    response.IsCorrect = isCorrect;
-                    response.State = 10; // État TERMINEE
+                    await _dataService.ExecuteNonQueryAsync(@"
+                        UPDATE evaluationResponses 
+                        SET IsCorrect = @p0, State = 10 
+                        WHERE ResponseId = @p1",
+                        isCorrect ? 1 : 0, responseId);
                 }
 
-                await _context.SaveChangesAsync();
                 return true;
             }
             catch (Exception ex)
