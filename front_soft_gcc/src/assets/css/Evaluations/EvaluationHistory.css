@@ -1,0 +1,542 @@
+/* Background sombre pour le modal */
+.darken-background {
+    position: relative;
+}
+
+.darken-background::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Assombrit davantage */
+    z-index: 1;
+}
+
+/* Modal styling */
+.modal-lg-custom {
+    max-width: 75%; /* Taille adaptée */
+    height: auto; /* Ajustable au contenu */
+    max-height: 90vh;
+    margin: auto;
+    border-radius: 10px;
+}
+
+.modal-dialog-centered {
+    display: flex;
+    align-items: center; /* Centre verticalement */
+    justify-content: center; /* Centre horizontalement */
+}
+
+.modal-content {
+    background-color: #ffffff; /* Couleur de fond claire */
+    color: #333333; /* Texte sombre pour bon contraste */
+    border-radius: 8px;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2); /* Légère ombre pour relief */
+    padding: 20px;
+}
+
+/* Style du header */
+.modal-header {
+  
+    color: black; /* Texte en blanc */
+    padding: 15px;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 18px;
+}
+
+/* Contenu du modal */
+.modal-body {
+    padding: 15px;
+    max-height: 70vh; /* Garde une hauteur max */
+    overflow-y: auto; /* Ajoute un scroll si nécessaire */
+    line-height: 1.6; /* Espacement entre les lignes pour la lisibilité */
+}
+
+/* Footer */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end; /* Aligne les boutons à droite */
+    padding: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+.modal-footer .btn {
+    padding: 8px 15px;
+    margin-left: 10px; /* Espacement entre les boutons */
+    font-size: 14px;
+    border-radius: 5px;
+}
+
+/* Style des étapes (wizard) */
+.step-navigation {
+    display: flex;
+    justify-content: space-between;
+    background-color: #f1f1f1;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.step-navigation li {
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+    padding: 10px;
+    transition: background-color 0.3s, color 0.3s;
+    font-weight: bold; /* Texte en gras */
+    border-radius: 5px;
+}
+
+.step-navigation li.active {
+    background-color: #95c007; /* Couleur primaire pour l'étape active */
+    color: white;
+}
+
+.step-navigation li:hover {
+    background-color: #e9ecef; /* Couleur au survol */
+}
+
+/* Texte et contenu */
+.step-content h5 {
+    font-size: 20px; /* Taille du titre */
+    margin-bottom: 15px;
+    color: #007bff; /* Accent couleur primaire */
+}
+
+.step-content p,
+.step-content ul li {
+    font-size: 14px; /* Taille standard pour le texte */
+    color: #333; /* Texte sombre */
+}
+
+.step-content ul {
+    padding-left: 20px;
+    margin-bottom: 15px;
+}
+
+/* Badges */
+.badge-success {
+    background-color: #28a745;
+    color: white;
+    font-size: 12px;
+    border-radius: 12px;
+    padding: 5px 10px;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #333;
+    font-size: 12px;
+    border-radius: 12px;
+    padding: 5px 10px;
+}
+
+/* Graphique */
+
+.performance-graph-container {
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.graph-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+/* Boutons suivant/précédent */
+.modal-footer .btn-primary {
+    background-color: #007bff; /* Bleu primaire */
+    border-color: #007bff;
+}
+
+.modal-footer .btn-secondary {
+    background-color: #6c757d; /* Gris */
+    border-color: #6c757d;
+}
+
+.modal-footer .btn-danger {
+    background-color: #dc3545; /* Rouge pour annuler */
+    border-color: #dc3545;
+}
+
+/* GLOBAL CHART */
+.filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .filters select,
+  .filters input {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .graph-container {
+    margin-top: 20px;
+  }
+  
+  .trend {
+    margin-top: 10px;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  
+  .positive-trend {
+    color: green;
+  }
+  
+  .negative-trend {
+    color: red;
+  }
+  
+
+
+  .kpi-card {
+    background-color: #fff;
+    border-radius: 6px;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    position: relative;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+  }
+  
+  .kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+  }
+  
+  .kpi-card h6 {
+    font-size: 0.85rem;
+    color: #777;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  
+  .kpi-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0;
+    color: #D4AC0D;
+  }
+  
+  .kpi-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #e5e5e5;
+    font-size: 1.5rem;
+  }
+  
+.stat-card {
+  background-color: #f8f9fc;
+  border: 1px solid #e3e6f0;
+  border-radius: 8px;
+  padding: 15px;
+  height: 100%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card h6 {
+  color: #D4AC0D;
+  font-weight: 600;
+  margin-bottom: 15px;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.progress-container {
+  margin-top: 15px;
+}
+
+.legend {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.trend-arrow {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.trend-value {
+  font-size: 1.2rem;
+}
+
+.trend-value .small {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+/* Styles pour les cartes KPI */
+.kpi-card {
+  background-color: #fff;
+  border-radius: 6px;
+  padding: 1rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+  position: relative;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+}
+
+.kpi-card h6 {
+  font-size: 0.85rem;
+  color: #777;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0;
+  color: #D4AC0D;
+}
+
+.kpi-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: #e5e5e5;
+  font-size: 1.5rem;
+}
+
+/* Styles pour le tableau d'évaluations */
+.table-hover tbody tr:hover {
+  background-color: rgba(212, 172, 13, 0.05);
+}
+
+.table thead th {
+  background-color: #f8f9fc;
+  border-bottom: 2px solid rgba(212, 172, 13, 0.5);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+/* Styles pour les filtres */
+.filters-section {
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-title {
+  margin-bottom: 1rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Styles pour les boutons */
+.btn-primary {
+  background-color: #D4AC0D !important;
+  border-color: #D4AC0D !important;
+}
+
+.btn-primary:hover {
+  background-color: #B7950B !important;
+  border-color: #B7950B !important;
+}
+
+.btn-outline-primary {
+  color: #D4AC0D !important;
+  border-color: #D4AC0D !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: #D4AC0D !important;
+  color: white !important;
+}
+
+/* Styles pour les alertes et états */
+.status-pill {
+  padding: 0.35rem 0.75rem;
+  border-radius: 50rem;
+  display: inline-block;
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-completed {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #198754;
+}
+
+.status-pending {
+  background-color: rgba(212, 172, 13, 0.1);
+  color: #D4AC0D;
+}
+
+.status-cancelled {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+/* Graphique de score en barre horizontale */
+.score-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.score-bar {
+  height: 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  flex-grow: 1;
+  position: relative;
+}
+
+.score-bar-fill {
+  position: absolute;
+  height: 100%;
+  border-radius: 4px;
+  background-color: #D4AC0D;
+  transition: width 0.5s ease-in-out;
+}
+
+.score-value {
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* Styles pour les stats cards */
+.stats-card {
+  border-left: 3px solid #D4AC0D;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.stats-card .text-muted {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Styles pour la pagination */
+.pagination .page-item.active .page-link {
+  background-color: #D4AC0D;
+  border-color: #D4AC0D;
+}
+
+.pagination .page-link {
+  color: #D4AC0D;
+}
+
+.pagination .page-link:hover {
+  background-color: rgba(212, 172, 13, 0.1);
+}
+
+/* Styles pour les modals */
+.modal-header {
+  border-bottom: 2px solid #D4AC0D;
+}
+
+.modal-footer {
+  border-top: 1px solid #eeeeee;
+}
+
+/* Styles pour la recherche avancée */
+.advanced-search {
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px dashed #ddd;
+}
+
+.advanced-search-toggle {
+  font-size: 0.9rem;
+  color: #D4AC0D;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Animation de chargement */
+@keyframes loading {
+  0% { width: 0%; }
+  50% { width: 50%; }
+  100% { width: 100%; }
+}
+
+.loading-bar {
+  height: 4px;
+  background-color: #D4AC0D;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  animation: loading 2s infinite;
+}
+
+/* Styles pour les vignettes de résumé */
+.performance-stats {
+  margin-top: 1.5rem;
+}
+
+.performance-stats h6 {
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* Réactivité pour mobile */
+@media (max-width: 768px) {
+  .kpi-card {
+    height: auto;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  
+  .kpi-value {
+    font-size: 1.2rem;
+  }
+  
+  .filters-form {
+    flex-direction: column;
+  }
+  
+  .filter-group {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}
+  
