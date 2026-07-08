@@ -887,5 +887,435 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             await _evaluationRepository.UpdateAsync(evaluation);
             return true;
         }
+
+        // ===================== New methods for controller refactoring =====================
+
+        // Get evaluation details with employee, evaluation type and position info
+        public async Task<object?> GetEvaluationDetailsAsync(int id)
+        {
+            var evaluation = await _evaluationRepository.GetByIdAsync(id);
+            if (evaluation == null) return null;
+
+            // Get employee name
+            string employeeName = "Unknown";
+            var employeeRows = await _dataService.ExecuteReaderAsync(
+                "SELECT FirstName, Name FROM Employee WHERE EmployeeId = @p0", evaluation.EmployeeId);
+            if (employeeRows.Count > 0)
+            {
+                employeeName = $"{employeeRows[0]["FirstName"]} {employeeRows[0]["Name"]}";
+            }
+
+            // Get employee position info from view
+            string? positionName = null;
+            string? departmentName = null;
+            var positionRows = await _dataService.ExecuteReaderAsync(
+                "SELECT Position_name, Department_name FROM v_employee_position WHERE Employee_id = @p0", evaluation.EmployeeId);
+            if (positionRows.Count > 0)
+            {
+                positionName = positionRows[0].GetValueOrDefault("Position_name")?.ToString();
+                departmentName = positionRows[0].GetValueOrDefault("Department_name")?.ToString();
+            }
+
+            // Get evaluation type
+            var evalType = await _evaluationTypeRepository.GetByIdAsync(evaluation.EvaluationTypeId);
+
+            return new
+            {
+                evaluationId = evaluation.EvaluationId,
+                title = evalType?.Designation ?? "",
+                description = $"Évaluation du {evaluation.StartDate.ToShortDateString()} au {evaluation.EndDate.ToShortDateString()}",
+                employeeName,
+                position = positionName ?? "Non défini",
+                department = departmentName ?? "Non défini",
+                evaluationTypeId = evaluation.EvaluationTypeId
+            };
+        }
+
+        // Get evaluation templates (types with question counts)
+        public async Task<IEnumerable<object>> GetEvaluationTemplatesAsync()
+        {
+            var types = await _evaluationTypeRepository.GetAllAsync();
+            var questions = await _evaluationQuestion.GetAllAsync();
+
+            return types
+                .Where(et => et.state == 1)
+                .Select(et => new
+                {
+                    id = et.EvaluationTypeId,
+                    title = et.Designation,
+                    description = et.Designation,
+                    questionCount = questions.Count(q => q.evaluationTypeId == et.EvaluationTypeId && q.state == 1)
+                })
+                .ToList();
+        }
+
+        // Get questions by evaluation type with response types and time configs
+        public async Task<IEnumerable<object>> GetQuestionsByEvaluationTypeAsync(int evaluationTypeId)
+        {
+            // Get questions
+            var questions = await _evaluationQuestion.GetAllAsync();
+            var filteredQuestions = questions.Where(q => q.evaluationTypeId == evaluationTypeId && q.state == 1).ToList();
+
+            // Get response types
+            var responseTypes = await _dataService.GetAllResponseTypesAsync();
+            var responseTypeDict = responseTypes.ToDictionary(rt => rt.ResponseTypeId, rt => rt.TypeName);
+
+            // Get time configs
+            var questionIds = filteredQuestions.Select(q => q.questionId).ToList();
+            var timeConfigRows = questionIds.Count > 0
+                ? await _dataService.ExecuteReaderAsync(
+                    $"SELECT QuestionId, MaxTimeInMinutes FROM EvaluationQuestionConfig WHERE QuestionId IN ({string.Join(",", questionIds)})")
+                : new List<Dictionary<string, object>>();
+
+            var timeConfigs = timeConfigRows
+                .GroupBy(r => Convert.ToInt32(r["QuestionId"]))
+                .ToDictionary(g => g.Key, g => Convert.ToInt32(g.First()["MaxTimeInMinutes"]));
+
+            return filteredQuestions.Select(q => new
+            {
+                questionId = q.questionId,
+                text = q.question,
+                positionId = q.positionId,
+                competenceLineId = q.CompetenceLineId,
+                responseType = responseTypeDict.ContainsKey(q.ResponseTypeId) ? responseTypeDict[q.ResponseTypeId] : "TEXT",
+                maxTimeInMinutes = timeConfigs.ContainsKey(q.questionId) ? timeConfigs[q.questionId] : 15
+            }).ToList();
+        }
+
+        // Update time configs for questions
+        public async Task UpdateQuestionsTimeAsync(List<QuestionTimeUpdateDto> questions)
+        {
+            foreach (var questionUpdate in questions)
+            {
+                var existingRows = await _dataService.ExecuteReaderAsync(
+                    "SELECT Id, QuestionId, MaxTimeInMinutes FROM EvaluationQuestionConfig WHERE QuestionId = @p0",
+                    questionUpdate.QuestionId);
+
+                if (existingRows.Count > 0)
+                {
+                    var configId = Convert.ToInt32(existingRows[0]["Id"]);
+                    await _dataService.ExecuteNonQueryAsync(
+                        "UPDATE EvaluationQuestionConfig SET MaxTimeInMinutes = @p0, UpdatedAt = @p1 WHERE Id = @p2",
+                        questionUpdate.MaxTimeInMinutes, DateTime.UtcNow, configId);
+                }
+                else
+                {
+                    await _dataService.ExecuteNonQueryAsync(
+                        "INSERT INTO EvaluationQuestionConfig (QuestionId, MaxTimeInMinutes, CreatedAt, UpdatedAt) VALUES (@p0, @p1, @p2, @p3)",
+                        questionUpdate.QuestionId, questionUpdate.MaxTimeInMinutes, DateTime.UtcNow, DateTime.UtcNow);
+                }
+            }
+        }
+
+        // Get selected questions and responses for an evaluation (from EvaluationController)
+        public async Task<IEnumerable<object>> GetSelectedQuestionsAndResponsesAsync(int evaluationId)
+        {
+            // Get selected questions with question data
+            var selectedRows = await _dataService.ExecuteReaderAsync(@"
+                SELECT esq.QuestionId, eq.question, eq.CompetenceLineId, eq.ResponseTypeId,
+                       er.ResponseValue, er.IsCorrect, er.ResponseId
+                FROM evaluationSelectedQuestions esq
+                INNER JOIN Evaluation_questions eq ON esq.QuestionId = eq.Question_id
+                LEFT JOIN Evaluation_Responses er ON er.EvaluationId = @p0 AND er.QuestionId = eq.Question_id
+                WHERE esq.EvaluationId = @p0", evaluationId);
+
+            // Get time configs
+            var questionIds = selectedRows
+                .Select(r => Convert.ToInt32(r["QuestionId"]))
+                .Distinct()
+                .ToList();
+
+            var timeConfigs = new Dictionary<int, int>();
+            if (questionIds.Count > 0)
+            {
+                var placeholders = string.Join(",", questionIds.Select((_, i) => $"@p{i + 1}"));
+                var allParams = new List<object> { evaluationId };
+                allParams.AddRange(questionIds.Cast<object>());
+                
+                var timeRows = await _dataService.ExecuteReaderAsync(
+                    $"SELECT QuestionId, MaxTimeInMinutes FROM EvaluationQuestionConfig WHERE QuestionId IN ({placeholders})",
+                    allParams.ToArray());
+                
+                timeConfigs = timeRows
+                    .GroupBy(r => Convert.ToInt32(r["QuestionId"]))
+                    .ToDictionary(g => g.Key, g => Convert.ToInt32(g.First()["MaxTimeInMinutes"]));
+            }
+
+            // Get response types
+            var responseTypes = await _dataService.GetAllResponseTypesAsync();
+            var responseTypeDict = responseTypes.ToDictionary(rt => rt.ResponseTypeId, rt => rt.TypeName);
+
+            // Get competence lines
+            var competenceLineIds = selectedRows
+                .Select(r => r["CompetenceLineId"] as int? ?? (r["CompetenceLineId"] != DBNull.Value ? Convert.ToInt32(r["CompetenceLineId"]) : (int?)null))
+                .Where(id => id.HasValue)
+                .Select(id => id.Value)
+                .Distinct()
+                .ToList();
+
+            var competenceLines = new Dictionary<int, string>();
+            if (competenceLineIds.Count > 0)
+            {
+                var clPlaceholders = string.Join(",", competenceLineIds.Select((_, i) => $"@p{i}"));
+                var clRows = await _dataService.ExecuteReaderAsync(
+                    $"SELECT CompetenceLineId, Description FROM CompetenceLines WHERE CompetenceLineId IN ({clPlaceholders})",
+                    competenceLineIds.Cast<object>().ToArray());
+                competenceLines = clRows
+                    .GroupBy(r => Convert.ToInt32(r["CompetenceLineId"]))
+                    .ToDictionary(g => g.Key, g => g.First()["Description"]?.ToString() ?? "Non spécifiée");
+            }
+
+            // Get option IDs from responses for QCM
+            var optionIds = new List<int>();
+            foreach (var row in selectedRows)
+            {
+                var responseValue = row.GetValueOrDefault("ResponseValue")?.ToString();
+                if (responseValue != null && int.TryParse(responseValue, out int optId))
+                {
+                    optionIds.Add(optId);
+                }
+            }
+
+            var options = new Dictionary<int, string>();
+            if (optionIds.Count > 0)
+            {
+                var optPlaceholders = string.Join(",", optionIds.Select((_, i) => $"@p{i}"));
+                var optRows = await _dataService.ExecuteReaderAsync(
+                    $"SELECT optionId, optionText FROM evaluation_question_options WHERE optionId IN ({optPlaceholders})",
+                    optionIds.Cast<object>().ToArray());
+                options = optRows
+                    .GroupBy(r => Convert.ToInt32(r["optionId"]))
+                    .ToDictionary(g => g.Key, g => g.First()["optionText"]?.ToString() ?? "");
+            }
+
+            var result = new List<object>();
+            foreach (var row in selectedRows)
+            {
+                var questionId = Convert.ToInt32(row["QuestionId"]);
+                responseTypeDict.TryGetValue(Convert.ToInt32(row["ResponseTypeId"]), out var responseType);
+
+                var responseValue = row.GetValueOrDefault("ResponseValue")?.ToString();
+                var isCorrect = row.ContainsKey("IsCorrect") && row["IsCorrect"] != DBNull.Value && Convert.ToBoolean(row["IsCorrect"]);
+
+                string competenceName = "Non spécifiée";
+                var clIdObj = row["CompetenceLineId"];
+                if (clIdObj != DBNull.Value && competenceLines.TryGetValue(Convert.ToInt32(clIdObj), out var cn))
+                {
+                    competenceName = cn;
+                }
+
+                string formattedResponse = responseValue;
+                if (responseType == "QCM" && responseValue != null && int.TryParse(responseValue, out int optId) && options.TryGetValue(optId, out var optText))
+                {
+                    formattedResponse = optText;
+                }
+
+                int maxTime = timeConfigs.ContainsKey(questionId) ? timeConfigs[questionId] : 15;
+
+                result.Add(new
+                {
+                    QuestionId = questionId,
+                    QuestionText = row["question"]?.ToString() ?? "",
+                    CompetenceLineId = clIdObj != DBNull.Value ? Convert.ToInt32(clIdObj) : (int?)null,
+                    CompetenceName = competenceName,
+                    ResponseType = responseType,
+                    ResponseValue = formattedResponse,
+                    IsCorrect = isCorrect,
+                    MaxTimeInMinutes = maxTime
+                });
+            }
+
+            return result;
+        }
+
+        // Submit evaluation - complex logic moved from controller
+        public async Task SubmitEvaluationAsync(int evaluationId, EvaluationSubmissionDto submission)
+        {
+            // Récupérer l'évaluation pour mettre à jour sa date de complétion
+            var evaluation = await _evaluationRepository.GetByIdAsync(evaluationId);
+            if (evaluation == null)
+                throw new Exception($"Évaluation avec ID {evaluationId} non trouvée");
+
+            // Mettre à jour la date de complétion
+            evaluation.completionDate = submission.CompletionDate;
+            evaluation.state = 20; // État terminé
+            await _evaluationRepository.UpdateAsync(evaluation);
+
+            // Récupérer les IDs de réponses existantes pour cette évaluation
+            var existingRows = await _dataService.ExecuteReaderAsync(
+                "SELECT ResponseId, QuestionId FROM Evaluation_Responses WHERE EvaluationId = @p0", evaluationId);
+            var existingByQuestion = existingRows
+                .GroupBy(r => Convert.ToInt32(r["QuestionId"]))
+                .ToDictionary(g => g.Key, g => Convert.ToInt32(g.First()["ResponseId"]));
+
+            var minValidDate = new DateTime(1753, 1, 1);
+            foreach (var response in submission.Responses)
+            {
+                if (response.StartTime < minValidDate || response.EndTime < minValidDate)
+                {
+                    throw new Exception("Les dates doivent être supérieures ou égales au 1er janvier 1753.");
+                }
+
+                // Vérifier si la réponse est correcte
+                bool isCorrect = false;
+                if (response.ResponseType == "QCM")
+                {
+                    if (int.TryParse(response.ResponseValue, out int optionId))
+                    {
+                        var count = await _dataService.ExecuteScalarAsync(
+                            "SELECT COUNT(1) FROM evaluation_question_options WHERE questionId = @p0 AND optionId = @p1 AND isCorrect = 1",
+                            response.QuestionId, optionId);
+                        isCorrect = count > 0;
+                    }
+                }
+
+                if (existingByQuestion.TryGetValue(response.QuestionId, out var existingResponseId))
+                {
+                    // Mettre à jour la réponse existante
+                    await _dataService.ExecuteNonQueryAsync(@"
+                        UPDATE Evaluation_Responses 
+                        SET ResponseType = @p0, ResponseValue = @p1, TimeSpent = @p2, 
+                            StartTime = @p3, EndTime = @p4, IsCorrect = @p5, State = @p6
+                        WHERE ResponseId = @p7",
+                        response.ResponseType, response.ResponseValue, response.TimeSpent,
+                        response.StartTime, response.EndTime, isCorrect, 1, existingResponseId);
+                }
+                else
+                {
+                    // Insérer une nouvelle réponse
+                    await _dataService.ExecuteNonQueryAsync(@"
+                        INSERT INTO Evaluation_Responses (EvaluationId, QuestionId, ResponseType, ResponseValue, TimeSpent, StartTime, EndTime, IsCorrect, State, CreatedAt)
+                        VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9)",
+                        evaluationId, response.QuestionId, response.ResponseType, response.ResponseValue,
+                        response.TimeSpent, response.StartTime, response.EndTime, isCorrect, 1, DateTime.UtcNow);
+                }
+            }
+
+            // Marquer le compte temporaire comme utilisé
+            var tempAccountRows = await _dataService.ExecuteReaderAsync(
+                "SELECT TempAccountId FROM TemporaryAccounts WHERE Evaluations_id = @p0", evaluationId);
+            if (tempAccountRows.Count > 0)
+            {
+                var tempAccountId = Convert.ToInt32(tempAccountRows[0]["TempAccountId"]);
+                await _dataService.ExecuteNonQueryAsync(
+                    "UPDATE TemporaryAccounts SET IsUsed = 1 WHERE TempAccountId = @p0", tempAccountId);
+            }
+
+            // Récupérer l'employé associé
+            var employeeRows = await _dataService.ExecuteReaderAsync(
+                "SELECT FirstName, Name, Email FROM Employee WHERE EmployeeId = @p0", evaluation.EmployeeId);
+            string employeeName = "Un employé";
+            if (employeeRows.Count > 0)
+            {
+                employeeName = $"{employeeRows[0]["FirstName"]} {employeeRows[0]["Name"]}";
+            }
+
+            // Récupérer le type d'évaluation
+            var evalType = await _evaluationTypeRepository.GetByIdAsync(evaluation.EvaluationTypeId);
+            string evaluationTypeName = evalType?.Designation ?? "Évaluation";
+
+            // Récupérer les superviseurs et envoyer des notifications
+            var supervisorRows = await _dataService.ExecuteReaderAsync(@"
+                SELECT u.Email, u.FirstName, u.LastName 
+                FROM EvaluationSupervisors es
+                INNER JOIN Users u ON es.SupervisorId = u.UserId
+                WHERE es.EvaluationId = @p0", evaluationId);
+
+            foreach (var supervisor in supervisorRows)
+            {
+                var email = supervisor["Email"]?.ToString();
+                if (!string.IsNullOrEmpty(email))
+                {
+                    try
+                    {
+                        await _emailService.SendEmailAsync(
+                            email,
+                            $"{evaluationTypeName} - Évaluation soumise",
+                            $"Bonjour {supervisor["FirstName"]} {supervisor["LastName"]},<br><br>" +
+                            $"Nous vous informons que {employeeName} a soumis son {evaluationTypeName.ToLower()}.<br><br>" +
+                            $"<strong>Date de soumission :</strong> {submission.CompletionDate.ToShortDateString()}<br>" +
+                            $"<strong>Période d'évaluation :</strong> Du {evaluation.StartDate.ToShortDateString()} au {evaluation.EndDate.ToShortDateString()}<br><br>" +
+                            $"En tant que superviseur désigné, vous êtes invité(e) à consulter et à valider cette évaluation.<br><br>" +
+                            $"<a href='http://localhost:5189/api/salary-list' class='button'>Accéder au système</a><br><br>" +
+                            $"Cordialement,<br>" +
+                            $"L'équipe Gestion des Carrières et Compétences"
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Erreur lors de l'envoi de l'email au superviseur: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        // Get selected questions and responses for EvaluationQuestionController
+        public async Task<IEnumerable<object>> GetSelectedQuestionsAndResponsesForQuestionControllerAsync(int evaluationId)
+        {
+            var selectedRows = await _dataService.ExecuteReaderAsync(@"
+                SELECT esq.QuestionId, eq.question, eq.CompetenceLineId, eq.ResponseTypeId,
+                       er.ResponseValue, er.ResponseId, er.IsCorrect
+                FROM evaluationSelectedQuestions esq
+                INNER JOIN Evaluation_questions eq ON esq.QuestionId = eq.Question_id
+                LEFT JOIN Evaluation_Responses er ON er.EvaluationId = @p0 AND er.QuestionId = eq.Question_id
+                WHERE esq.EvaluationId = @p0", evaluationId);
+
+            // Get response types
+            var responseTypes = await _dataService.GetAllResponseTypesAsync();
+            var responseTypeDict = responseTypes.ToDictionary(rt => rt.ResponseTypeId, rt => new { rt.TypeName });
+
+            // Get competence lines with skill/position info
+            var competenceLineIds = selectedRows
+                .Select(r => r["CompetenceLineId"] as int? ?? (r["CompetenceLineId"] != DBNull.Value ? Convert.ToInt32(r["CompetenceLineId"]) : (int?)null))
+                .Where(id => id.HasValue)
+                .Select(id => id.Value)
+                .Distinct()
+                .ToList();
+
+            var competenceData = new Dictionary<int, object>();
+            if (competenceLineIds.Count > 0)
+            {
+                var clPlaceholders = string.Join(",", competenceLineIds.Select((_, i) => $"@p{i}"));
+                var clRows = await _dataService.ExecuteReaderAsync(
+                    $"SELECT cl.CompetenceLineId, cl.Description, sp.Name AS SkillName " +
+                    $"FROM CompetenceLines cl " +
+                    $"LEFT JOIN SkillPosition sp ON cl.SkillPositionId = sp.SkillPositionId " +
+                    $"WHERE cl.CompetenceLineId IN ({clPlaceholders})",
+                    competenceLineIds.Cast<object>().ToArray());
+
+                competenceData = clRows.ToDictionary(
+                    r => Convert.ToInt32(r["CompetenceLineId"]),
+                    r => (object)new
+                    {
+                        CompetenceLineId = Convert.ToInt32(r["CompetenceLineId"]),
+                        CompetenceName = r["SkillName"]?.ToString() ?? r["Description"]?.ToString() ?? ""
+                    });
+            }
+
+            var result = new List<object>();
+            foreach (var row in selectedRows)
+            {
+                var questionId = Convert.ToInt32(row["QuestionId"]);
+                var responseTypeId = Convert.ToInt32(row["ResponseTypeId"]);
+                var responseTypeName = responseTypeDict.ContainsKey(responseTypeId) ? responseTypeDict[responseTypeId].TypeName : "TEXT";
+
+                var clIdObj = row["CompetenceLineId"];
+
+                result.Add(new
+                {
+                    QuestionId = questionId,
+                    QuestionText = row["question"]?.ToString() ?? "",
+                    CompetenceLineId = clIdObj != DBNull.Value ? Convert.ToInt32(clIdObj) : (int?)null,
+                    ResponseTypeId = responseTypeId,
+                    ResponseType = responseTypeName,
+                    CompetenceLine = clIdObj != DBNull.Value ? competenceData.GetValueOrDefault(Convert.ToInt32(clIdObj)) : null,
+                    Response = row.ContainsKey("ResponseValue") && row["ResponseValue"] != DBNull.Value
+                        ? new { ResponseValue = row["ResponseValue"]?.ToString() }
+                        : null
+                });
+            }
+
+            return result;
+        }
     }
 }

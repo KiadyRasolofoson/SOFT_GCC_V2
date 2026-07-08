@@ -378,5 +378,60 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
         }
 
+        // Get all roles
+        public async Task<IEnumerable<object>> GetRolesAsync()
+        {
+            var roles = await _dataService.GetAllRolesAsync();
+            return roles
+                .Where(r => r.state == null || r.state == 1)
+                .Select(r => new { roleId = r.Roleid, name = r.Title })
+                .ToList();
+        }
+
+        // Get paginated users with search
+        public async Task<(IEnumerable<object> Users, int TotalPages)> GetPaginatedUsersAsync(int pageNumber, int pageSize, string? search)
+        {
+            string whereClause = string.IsNullOrEmpty(search)
+                ? "1=1"
+                : $"u.FirstName LIKE @p2 OR u.LastName LIKE @p2 OR u.Username LIKE @p2 OR u.Email LIKE @p2";
+
+            string searchParam = string.IsNullOrEmpty(search) ? "" : $"%{search}%";
+            var parameters = new List<object> { pageSize, (pageNumber - 1) * pageSize };
+            if (!string.IsNullOrEmpty(search))
+            {
+                parameters.Add(searchParam);
+            }
+
+            var users = await _dataService.ExecuteReaderAsync($@"
+                SELECT u.UserId, u.last_name, u.first_name, u.username, u.Email, u.role_id,
+                       r.Title AS RoleTitle
+                FROM Users u
+                LEFT JOIN Roles r ON u.role_id = r.RoleId
+                WHERE {whereClause}
+                ORDER BY u.last_name, u.first_name
+                OFFSET @p1 ROWS
+                FETCH NEXT @p0 ROWS ONLY",
+                parameters.ToArray());
+
+            var totalItems = await _dataService.ExecuteScalarAsync($@"
+                SELECT COUNT(*) FROM Users u
+                WHERE {whereClause}",
+                parameters.Count > 2 ? new object[] { searchParam } : Array.Empty<object>());
+
+            var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+
+            var userList = users.Select(row => new
+            {
+                Id = Convert.ToInt32(row["UserId"]),
+                LastName = row["last_name"]?.ToString(),
+                FirstName = row["first_name"]?.ToString(),
+                Username = row["username"]?.ToString(),
+                Email = row["Email"]?.ToString(),
+                RoleId = row.ContainsKey("role_id") ? Convert.ToInt32(row["role_id"]) : 0,
+                Role = row.ContainsKey("RoleTitle") ? new { Title = row["RoleTitle"]?.ToString() ?? "" } : null
+            }).ToList();
+
+            return (userList, totalPages);
+        }
     }
 }
