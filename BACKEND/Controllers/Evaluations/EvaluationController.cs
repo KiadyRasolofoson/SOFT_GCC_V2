@@ -1,13 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Core.Entities.career_plan;
-using soft_carriere_competence.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
-using soft_carriere_competence.Core.Interface.AuthInterface;
 
 namespace soft_carriere_competence.Controllers.Evaluations
 {
@@ -22,15 +17,11 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		private readonly ResponseTypeService _responseTypeService;
 		private readonly TrainingSuggestionService _trainingSuggestionService;
 
-		private readonly ApplicationDbContext _context;
-
-
 		public EvaluationController(EvaluationService evaluationService,
-		ApplicationDbContext context, EvaluationResponseService responseService, EvaluationCompetenceService evaluationCompetenceService,
+		EvaluationResponseService responseService, EvaluationCompetenceService evaluationCompetenceService,
 		CompetenceLineService competenceLineService, ResponseTypeService responseTypeService, TrainingSuggestionService trainingSuggestionService)
 		{
 			_evaluationService = evaluationService;
-			_context = context;
 			_responseService = responseService;
 			_evaluationCompetenceService = evaluationCompetenceService;
 			_competenceLineService = competenceLineService;
@@ -60,9 +51,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
 					state = questionDto.State
 				};
 
-				// Ajouter et sauvegarder
-				_context.evaluationQuestions.Add(newQuestion);
-				await _context.SaveChangesAsync();
+				// Utiliser le service pour créer la question
+				await _evaluationService.CreateEvaluationQuestionAsync(newQuestion);
 
 				return CreatedAtAction(nameof(GetEvaluationQuestionById), new { id = newQuestion.questionId }, new
 				{
@@ -126,9 +116,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
 			try
 			{
-				// Récupérer la question existante sans ses relations
-				var existingQuestion = await _context.evaluationQuestions
-					.FirstOrDefaultAsync(q => q.questionId == id);
+				var existingQuestion = await _evaluationService.GetEvaluationQuestionByIdAsync(id);
 
 				if (existingQuestion == null)
 				{
@@ -143,9 +131,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
 				existingQuestion.ResponseTypeId = questionDto.ResponseTypeId;
 				existingQuestion.state = questionDto.State;
 
-				// Enregistrer les modifications
-				_context.Update(existingQuestion);
-				await _context.SaveChangesAsync();
+				// Utiliser le service pour mettre à jour la question
+				await _evaluationService.UpdateEvaluationQuestionAsync(existingQuestion);
 
 				return NoContent(); // 204 No Content
 			}
@@ -588,30 +575,12 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		{
 			try
 			{
-				var evaluation = await _context.Evaluations
-					.Include(e => e.Employee)
-					.Include(e => e.EvaluationType)
-					.FirstOrDefaultAsync(e => e.EvaluationId == id);
+				var result = await _evaluationService.GetEvaluationDetailsAsync(id);
 
-				if (evaluation == null)
+				if (result == null)
 				{
 					return NotFound("Évaluation non trouvée.");
 				}
-
-				// Récupérer les informations de position depuis la vue v_employee_position
-				var employeePosition = await _context.VEmployeePosition
-					.FirstOrDefaultAsync(ep => ep.EmployeeId == evaluation.EmployeeId);
-
-				var result = new
-				{
-					evaluationId = evaluation.EvaluationId,
-					title = evaluation.EvaluationType.Designation,
-					description = $"Évaluation du {evaluation.StartDate.ToShortDateString()} au {evaluation.EndDate.ToShortDateString()}",
-					employeeName = $"{evaluation.Employee.FirstName} {evaluation.Employee.Name}",
-					position = employeePosition?.PositionName ?? "Non défini",
-					department = employeePosition?.DepartmentName ?? "Non défini",
-					evaluationTypeId = evaluation.EvaluationTypeId
-				};
 
 				return Ok(result);
 			}
@@ -628,21 +597,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		{
 			try
 			{
-				// Récupérer les questions associées à l'évaluation
-				var questionIds = await _context.evaluationSelectedQuestions
-					.Where(esq => esq.EvaluationId == evaluationId)
-					.Select(esq => esq.QuestionId)
-					.ToListAsync();
-
-				// Récupérer toutes les options pour les questions, sans filtrer par type
-				var options = await _context.evaluationQuestionOptions
-					.Where(opt => questionIds.Contains(opt.QuestionId))
-					.ToListAsync();
-
-				// Grouper les options par questionId
-				var groupedOptions = options.GroupBy(opt => opt.QuestionId)
-					.ToDictionary(g => g.Key, g => g.ToList());
-
+				var groupedOptions = await _responseService.GetAllQuestionOptionsAsync(evaluationId);
 				return Ok(groupedOptions);
 			}
 			catch (Exception ex)
@@ -695,125 +650,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
 					return BadRequest("Aucune réponse fournie");
 				}
 
-				// Récupérer l'évaluation pour mettre à jour sa date de complétion
-				var evaluation = await _evaluationService.GetEvaluationByIdAsync(evaluationId);
-				if (evaluation == null)
-				{
-					return NotFound($"Évaluation avec ID {evaluationId} non trouvée");
-				}
-
-				// Mettre à jour la date de complétion
-				evaluation.completionDate = submission.CompletionDate;
-				evaluation.state = 20; // État terminé
-				await _evaluationService.UpdateEvaluationAsync(evaluation);
-
-				// Sauvegarder les réponses avec validation des dates
-				var minValidDate = new DateTime(1753, 1, 1);
-				foreach (var response in submission.Responses)
-				{
-					if (response.StartTime < minValidDate || response.EndTime < minValidDate)
-					{
-						return BadRequest("Les dates doivent être supérieures ou égales au 1er janvier 1753.");
-					}
-
-					// Vérifier si la réponse est correcte
-					bool isCorrect = false;
-					if (response.ResponseType == "QCM")
-					{
-						// Pour les questions QCM, vérifier si l'ID de l'option sélectionnée correspond à une option marquée comme correcte
-						int optionId;
-						if (int.TryParse(response.ResponseValue, out optionId))
-						{
-							isCorrect = await _context.evaluationQuestionOptions
-								.Where(o => o.QuestionId == response.QuestionId && o.OptionId == optionId && o.IsCorrect)
-								.AnyAsync();
-						}
-					}
-					// Pour les questions de type TEXT, on n'a pas de vérification automatique d'exactitude
-
-					var evaluationResponse = new EvaluationResponses
-					{
-						EvaluationId = evaluationId,
-						QuestionId = response.QuestionId,
-						ResponseType = response.ResponseType,
-						ResponseValue = response.ResponseValue, // Stocker directement la valeur sans JSON
-						TimeSpent = response.TimeSpent,
-						StartTime = response.StartTime,
-						EndTime = response.EndTime,
-						IsCorrect = isCorrect,
-						State = 1, // État par défaut
-						CreatedAt = DateTime.UtcNow
-					};
-
-					await _context.evaluationResponses.AddAsync(evaluationResponse);
-				}
-
-				// Marquer le compte temporaire comme utilisé pour empêcher toute réutilisation
-				var tempAccount = await _context.temporaryAccounts
-					.FirstOrDefaultAsync(ta => ta.Evaluations_id == evaluationId);
-					
-				if (tempAccount != null)
-				{
-					tempAccount.IsUsed = true;
-					Console.WriteLine($"Compte temporaire {tempAccount.TempAccountId} marqué comme utilisé après soumission de l'évaluation {evaluationId}");
-				}
-
-				await _context.SaveChangesAsync();
-
-				// Récupérer l'employé associé à l'évaluation
-				var employee = await _context.Employee.FindAsync(evaluation.EmployeeId);
-				string employeeName = employee != null ? $"{employee.FirstName} {employee.Name}" : "Un employé";
-
-				// Récupérer le type d'évaluation
-				var evaluationType = await _context.EvaluationTypes.FindAsync(evaluation.EvaluationTypeId);
-				string evaluationTypeName = evaluationType?.Designation ?? "Évaluation";
-
-				// Récupérer les superviseurs associés à cette évaluation
-				var supervisors = await _context.EvaluationSupervisors
-					.Where(es => es.EvaluationId == evaluationId)
-					.Join(_context.Users,
-						es => es.SupervisorId,
-						u => u.Id,
-						(es, u) => u)
-					.ToListAsync();
-
-				// Envoyer des notifications par email à tous les superviseurs
-				foreach (var supervisor in supervisors)
-				{
-					if (!string.IsNullOrEmpty(supervisor.Email))
-					{
-						try
-						{
-							// Récupérer l'IEmailService via HttpContext.RequestServices
-							var emailService = HttpContext.RequestServices.GetService<IEmailService>();
-							if (emailService != null)
-							{
-								await emailService.SendEmailAsync(
-									supervisor.Email,
-									$"{evaluationTypeName} - Évaluation soumise",
-									$"Bonjour {supervisor.FirstName} {supervisor.LastName},<br><br>" +
-									$"Nous vous informons que {employeeName} a soumis son {evaluationTypeName.ToLower()}.<br><br>" +
-									$"<strong>Date de soumission :</strong> {submission.CompletionDate.ToShortDateString()}<br>" +
-									$"<strong>Période d'évaluation :</strong> Du {evaluation.StartDate.ToShortDateString()} au {evaluation.EndDate.ToShortDateString()}<br><br>" +
-									$"En tant que superviseur désigné, vous êtes invité(e) à consulter et à valider cette évaluation.<br><br>" +
-									$"<a href='http://localhost:5189/api/salary-list' class='button'>Accéder au système</a><br><br>" +
-									$"Cordialement,<br>" +
-									$"L'équipe Gestion des Carrières et Compétences"
-								);
-								Console.WriteLine($"Email de notification envoyé au superviseur {supervisor.FirstName} {supervisor.LastName} ({supervisor.Email})");
-							}
-							else
-							{
-								Console.WriteLine("Service d'email non disponible");
-							}
-						}
-						catch (Exception ex)
-						{
-							// Log l'erreur mais continue sans échouer la soumission
-							Console.WriteLine($"Erreur lors de l'envoi de l'email au superviseur {supervisor.FirstName} {supervisor.LastName}: {ex.Message}");
-						}
-					}
-				}
+				// Déléguer toute la logique au service
+				await _evaluationService.SubmitEvaluationAsync(evaluationId, submission);
 
 				return Ok(new { success = true });
 			}
@@ -849,101 +687,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		{
 			try
 			{
-				// Récupérer les questions sélectionnées avec leurs données de base
-				var selectedQuestionsQuery = await _context.evaluationSelectedQuestions
-					.Where(esq => esq.EvaluationId == evaluationId)
-					.Join(_context.evaluationQuestions,
-						esq => esq.QuestionId,
-						eq => eq.questionId,
-						(esq, eq) => new
-						{
-							QuestionId = eq.questionId,
-							QuestionText = eq.question,
-							CompetenceLineId = eq.CompetenceLineId,
-							ResponseTypeId = eq.ResponseTypeId,
-							Response = _context.evaluationResponses
-								.FirstOrDefault(er => er.EvaluationId == evaluationId && er.QuestionId == eq.questionId)
-						})
-					.ToListAsync();
-
-				// Récupérer les configurations de temps
-				var questionIds = selectedQuestionsQuery.Select(q => q.QuestionId).ToList();
-				var timeConfigs = await _context.evaluationQuestionConfigs
-					.Where(c => questionIds.Contains(c.QuestionId))
-					.ToDictionaryAsync(c => c.QuestionId, c => c.MaxTimeInMinutes);
-
-				// Récupérer les types de réponse
-				var responseTypeIds = selectedQuestionsQuery.Select(q => q.ResponseTypeId).Distinct().ToList();
-				var responseTypes = await _context.ResponseTypes
-					.Where(rt => responseTypeIds.Contains(rt.ResponseTypeId))
-					.ToDictionaryAsync(rt => rt.ResponseTypeId, rt => rt.TypeName);
-
-				// Récupérer les lignes de compétences
-				var competenceLineIds = selectedQuestionsQuery.Select(q => q.CompetenceLineId).Where(id => id.HasValue).Select(id => id.Value).Distinct().ToList();
-				var competenceLines = await _context.competenceLines
-					.Where(cl => competenceLineIds.Contains(cl.CompetenceLineId))
-					.ToDictionaryAsync(cl => cl.CompetenceLineId, cl => cl.Description);
-
-				// Récupérer toutes les options pour les questions QCM
-				var optionIds = new List<int>();
-				foreach (var question in selectedQuestionsQuery)
-				{
-					if (question.Response != null && int.TryParse(question.Response.ResponseValue, out int optionId))
-					{
-						optionIds.Add(optionId);
-					}
-				}
-
-				var options = await _context.evaluationQuestionOptions
-					.Where(o => optionIds.Contains(o.OptionId))
-					.ToDictionaryAsync(o => o.OptionId, o => o.OptionText);
-
-				// Construire les résultats formatés
-				var formattedQuestions = new List<object>();
-				foreach (var question in selectedQuestionsQuery)
-				{
-					string responseType = responseTypes.ContainsKey(question.ResponseTypeId) ?
-						responseTypes[question.ResponseTypeId] : "TEXT";
-
-					string formattedResponse = question.Response?.ResponseValue;
-					bool isCorrect = question.Response?.IsCorrect ?? false;
-
-					// Récupérer le nom de la compétence
-					string competenceName = "Non spécifiée";
-					if (question.CompetenceLineId.HasValue && competenceLines.ContainsKey(question.CompetenceLineId.Value))
-					{
-						competenceName = competenceLines[question.CompetenceLineId.Value];
-					}
-
-					// Formater la réponse pour les questions QCM
-					if (responseType == "QCM" && question.Response != null &&
-						int.TryParse(question.Response.ResponseValue, out int optionId) &&
-						options.ContainsKey(optionId))
-					{
-						formattedResponse = options[optionId];
-					}
-
-					// Déterminer le temps maximum
-					int maxTime = 15; // Valeur par défaut
-					if (timeConfigs.ContainsKey(question.QuestionId))
-					{
-						maxTime = timeConfigs[question.QuestionId];
-					}
-
-					formattedQuestions.Add(new
-					{
-						QuestionId = question.QuestionId,
-						QuestionText = question.QuestionText,
-						CompetenceLineId = question.CompetenceLineId,
-						CompetenceName = competenceName, // Ajout du nom de la compétence
-						ResponseType = responseType,
-						ResponseValue = formattedResponse,
-						IsCorrect = isCorrect,
-						MaxTimeInMinutes = maxTime
-					});
-				}
-
-				return Ok(formattedQuestions);
+				var result = await _evaluationService.GetSelectedQuestionsAndResponsesAsync(evaluationId);
+				return Ok(result);
 			}
 			catch (Exception ex)
 			{
@@ -957,19 +702,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		{
 			try
 			{
-				var evaluationTypes = await _context.EvaluationTypes
-					.Where(et => et.state == 1)
-					.Select(et => new
-					{
-						id = et.EvaluationTypeId,
-						title = et.Designation,
-						description = et.Designation, // Vous pouvez ajouter une description plus détaillée si nécessaire
-						questionCount = _context.evaluationQuestions
-							.Count(q => q.evaluationTypeId == et.EvaluationTypeId && q.state == 1)
-					})
-					.ToListAsync();
-
-				return Ok(evaluationTypes);
+				var templates = await _evaluationService.GetEvaluationTemplatesAsync();
+				return Ok(templates);
 			}
 			catch (Exception ex)
 			{
@@ -983,39 +717,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		{
 			try
 			{
-				// Récupérer les questions
-				var questionsQuery = await _context.evaluationQuestions
-					.Where(q => q.evaluationTypeId == evaluationTypeId && q.state == 1)
-					.Select(q => new
-					{
-						questionId = q.questionId,
-						text = q.question,
-						positionId = q.positionId,
-						competenceLineId = q.CompetenceLineId,
-						responseType = _context.ResponseTypes
-							.Where(rt => rt.ResponseTypeId == q.ResponseTypeId)
-							.Select(rt => rt.TypeName)
-							.FirstOrDefault() ?? "TEXT",
-						questionIdForConfig = q.questionId // Utilisé pour joindre avec les configurations
-					})
-					.ToListAsync();
-
-				// Récupérer séparément toutes les configurations de temps
-				var timeConfigs = await _context.evaluationQuestionConfigs
-					.Where(c => questionsQuery.Select(q => q.questionId).Contains(c.QuestionId))
-					.ToDictionaryAsync(c => c.QuestionId, c => c.MaxTimeInMinutes);
-
-				// Créer une nouvelle liste avec les valeurs correctes
-				var result = questionsQuery.Select(q => new
-				{
-					questionId = q.questionId,
-					text = q.text,
-					positionId = q.positionId,
-					competenceLineId = q.competenceLineId,
-					responseType = q.responseType,
-					maxTimeInMinutes = timeConfigs.ContainsKey(q.questionId) ? timeConfigs[q.questionId] : 15
-				}).ToList();
-
+				var result = await _evaluationService.GetQuestionsByEvaluationTypeAsync(evaluationTypeId);
 				return Ok(result);
 			}
 			catch (Exception ex)
@@ -1035,31 +737,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 					return BadRequest("Aucune question à mettre à jour");
 				}
 
-				foreach (var questionUpdate in questions)
-				{
-					// Chercher si une configuration existe déjà pour cette question
-					var config = await _context.evaluationQuestionConfigs
-						.FirstOrDefaultAsync(c => c.QuestionId == questionUpdate.QuestionId);
-
-					if (config != null)
-					{
-						// Mettre à jour la configuration existante
-						config.MaxTimeInMinutes = questionUpdate.MaxTimeInMinutes;
-						config.UpdatedAt = DateTime.UtcNow;
-					}
-					else
-					{
-						// Créer une nouvelle configuration
-						var newConfig = new EvaluationQuestionConfig
-						{
-							QuestionId = questionUpdate.QuestionId,
-							MaxTimeInMinutes = questionUpdate.MaxTimeInMinutes
-						};
-						await _context.evaluationQuestionConfigs.AddAsync(newConfig);
-					}
-				}
-
-				await _context.SaveChangesAsync();
+				await _evaluationService.UpdateQuestionsTimeAsync(questions);
 				return Ok(new { success = true, message = "Temps des questions mis à jour avec succès" });
 			}
 			catch (Exception ex)

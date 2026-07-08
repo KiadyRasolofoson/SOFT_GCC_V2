@@ -307,5 +307,37 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 return false;
             }
         }
+
+        // Get all question options for an evaluation (not filtered by QCM type)
+        public async Task<Dictionary<int, List<EvaluationQuestionOptions>>> GetAllQuestionOptionsAsync(int evaluationId)
+        {
+            var questionIdsRows = await _dataService.ExecuteReaderAsync(@"
+                SELECT esq.QuestionId FROM evaluationSelectedQuestions esq
+                WHERE esq.EvaluationId = @p0", evaluationId);
+
+            var questionIds = questionIdsRows
+                .Select(r => Convert.ToInt32(r["QuestionId"]))
+                .ToList();
+
+            if (!questionIds.Any())
+                return new Dictionary<int, List<EvaluationQuestionOptions>>();
+
+            var placeholders = string.Join(",", questionIds.Select((_, i) => $"@p{i}"));
+            var optionsRows = await _dataService.ExecuteReaderAsync($@"
+                SELECT * FROM evaluation_question_options 
+                WHERE questionId IN ({placeholders})", questionIds.Cast<object>().ToArray());
+
+            var options = optionsRows.Select(row => new EvaluationQuestionOptions
+            {
+                OptionId = Convert.ToInt32(row["optionId"]),
+                QuestionId = Convert.ToInt32(row["questionId"]),
+                OptionText = row["optionText"]?.ToString(),
+                IsCorrect = row.ContainsKey("isCorrect") && row["isCorrect"] != DBNull.Value && Convert.ToBoolean(row["isCorrect"]),
+                State = row.ContainsKey("state") && row["state"] != DBNull.Value ? Convert.ToInt32(row["state"]) : 0
+            }).ToList();
+
+            return options.GroupBy(opt => opt.QuestionId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+        }
     }
 }

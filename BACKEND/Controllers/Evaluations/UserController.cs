@@ -1,20 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Application.Services.Evaluations;
-using soft_carriere_competence.Core.Interface.AuthInterface;
-using soft_carriere_competence.Infrastructure.Data;
 
 [Route("api/User")]
 [ApiController]
 public class UserController : ControllerBase
 {
 	private readonly UserService _employeeService;
-	private readonly ApplicationDbContext _context;
 
-	public UserController(UserService employeeService, ApplicationDbContext context)
+	public UserController(UserService employeeService)
 	{
 		_employeeService = employeeService;
-		_context = context;
 	}
 
 	// Endpoint GET : api/User pour récupérer tous les employés avec leurs détails
@@ -57,28 +52,7 @@ public class UserController : ControllerBase
 		// Afficher les paramètres reçus pour le débogage
 		Console.WriteLine($"Récupération des utilisateurs paginés: Page {pageNumber}, Taille {pageSize}, Recherche '{search}'");
 		
-		// Récupérer les utilisateurs en utilisant la méthode du service qui prend en compte la recherche
-		var users = await _context.Users
-			.Include(u => u.Role)
-			.Where(u => string.IsNullOrEmpty(search) || 
-				u.FirstName.Contains(search) || 
-				u.LastName.Contains(search) || 
-				(u.Username != null && u.Username.Contains(search)) ||
-				(u.Email != null && u.Email.Contains(search)))
-			.Skip((pageNumber - 1) * pageSize)
-			.Take(pageSize)
-			.ToListAsync();
-
-		// Calculer le nombre total d'utilisateurs pour la pagination
-		var totalItems = await _context.Users
-			.Where(u => string.IsNullOrEmpty(search) || 
-				u.FirstName.Contains(search) || 
-				u.LastName.Contains(search) || 
-				(u.Username != null && u.Username.Contains(search)) ||
-				(u.Email != null && u.Email.Contains(search)))
-			.CountAsync();
-		
-		var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+		var (users, totalPages) = await _employeeService.GetPaginatedUsersAsync(pageNumber, pageSize, search);
 
 		return Ok(new
 		{
@@ -121,11 +95,7 @@ public class UserController : ControllerBase
 	[HttpGet("roles")]
 	public async Task<ActionResult<IEnumerable<object>>> GetRoles()
 	{
-		var roles = await _context.Roles
-			.Where(r => r.state == null || r.state == 1)
-			.Select(r => new { roleId = r.Roleid, name = r.Title })
-			.ToListAsync();
-		
+		var roles = await _employeeService.GetRolesAsync();
 		return Ok(roles);
 	}
 

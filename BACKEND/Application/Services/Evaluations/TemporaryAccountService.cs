@@ -1,7 +1,12 @@
-﻿using soft_carriere_competence.Core.Entities.Evaluations;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.AuthInterface;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
@@ -10,17 +15,20 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         private readonly IGenericRepository<TemporaryAccount> _temporaryAccountRepository;
         private readonly IGenericRepository<Employee> _employeeRepository;
         private readonly IGenericRepository<Evaluation> _evaluationRepository;
+        private readonly IGenericRepository<LoginAttempt> _loginAttemptRepository;
         private readonly IEmailService _emailService;
 
         public TemporaryAccountService(
             IGenericRepository<TemporaryAccount> temporaryAccountRepository,
             IGenericRepository<Employee> employeeRepository,
             IGenericRepository<Evaluation> evaluationRepository,
+            IGenericRepository<LoginAttempt> loginAttemptRepository,
             IEmailService emailService)
         {
             _temporaryAccountRepository = temporaryAccountRepository;
             _employeeRepository = employeeRepository;
             _evaluationRepository = evaluationRepository;
+            _loginAttemptRepository = loginAttemptRepository;
             _emailService = emailService;
         }
 
@@ -126,6 +134,90 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             
             // Retourner le login temporaire
             return $"{baseName}{timestamp}";
+        }
+
+        // Login method for temporary accounts (moved from EvaluationLoginController)
+        public async Task<(bool Success, string? Message, string? Token, int? EvaluationId)> LoginAsync(
+            string tempLogin, string tempPassword, string ipAddress, IConfiguration configuration)
+        {
+            if (string.IsNullOrEmpty(tempLogin) || string.IsNullOrEmpty(tempPassword))
+            {
+                return (false, "Login et mot de passe requis", null, null);
+            }
+
+            // Créer une entrée dans la table LoginAttempts pour la traçabilité
+            var loginAttempt = new LoginAttempt
+            {
+                TempLogin = tempLogin,
+                IPAddress = ipAddress,
+                IsSuccess = false
+            };
+
+            await _loginAttemptRepository.CreateAsync(loginAttempt);
+
+            // Vérifier l'existence du compte temporaire
+            var tempAccount = await _temporaryAccountRepository.GetFirstOrDefaultAsync(ta =>
+                ta.TempLogin == tempLogin &&
+                ta.TempPassword == tempPassword &&
+                ta.ExpirationDate > DateTime.UtcNow &&
+                !ta.IsUsed);
+
+            if (tempAccount == null)
+            {
+                return (false, "Identifiants invalides ou expirés", null, null);
+            }
+
+            // Vérifier si l'évaluation est disponible (date de début atteinte)
+            var evaluation = await _evaluationRepository.GetByIdAsync(tempAccount.Evaluations_id);
+            if (evaluation == null)
+            {
+                return (false, "Évaluation non trouvée", null, null);
+            }
+
+            // Vérifier si la date actuelle est dans la période d'évaluation
+            var currentDate = DateTime.UtcNow.Date;
+            if (currentDate < evaluation.StartDate)
+            {
+                return (false,
+                    $"L'évaluation n'est pas encore disponible. Elle sera accessible à partir du {evaluation.StartDate:dd/MM/yyyy}",
+                    null, null);
+            }
+
+            if (currentDate > evaluation.EndDate)
+            {
+                return (false, "La période d'évaluation est terminée", null, null);
+            }
+
+            // Marquer la tentative comme réussie
+            loginAttempt.IsSuccess = true;
+            await _loginAttemptRepository.UpdateAsync(loginAttempt);
+
+            // Générer le token JWT
+            var token = GenerateJwtToken(tempAccount.EmployeeId, tempAccount.Evaluations_id, configuration);
+
+            return (true, null, token, tempAccount.Evaluations_id);
+        }
+
+        private string GenerateJwtToken(int userId, int evaluationId, IConfiguration configuration)
+        {
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new Claim("evaluationId", evaluationId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: configuration["Jwt:Issuer"],
+                audience: configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(30),
+                signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Infrastructure.Data;
 
 namespace soft_carriere_competence.Controllers.Evaluations
 {
@@ -13,15 +11,12 @@ namespace soft_carriere_competence.Controllers.Evaluations
     {
         private readonly EvaluationService _evaluationService;
         private readonly EvaluationResponseService _responseService;
-        private readonly ApplicationDbContext _context;
 
         public EvaluationQuestionController(
             EvaluationService evaluationService,
-            ApplicationDbContext context,
             EvaluationResponseService responseService)
         {
             _evaluationService = evaluationService;
-            _context = context;
             _responseService = responseService;
         }
 
@@ -112,51 +107,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
         {
             try
             {
-                var selectedQuestions = await _context.evaluationSelectedQuestions
-                    .Where(esq => esq.EvaluationId == evaluationId)
-                    .Join(_context.evaluationQuestions,
-                        esq => esq.QuestionId,
-                        eq => eq.questionId,
-                        (esq, eq) => new
-                        {
-                            QuestionId = eq.questionId,
-                            QuestionText = eq.question,
-                            CompetenceLineId = eq.CompetenceLineId,
-                            ResponseTypeId = eq.ResponseTypeId,
-                            Response = _context.evaluationResponses
-                                .FirstOrDefault(er => er.EvaluationId == evaluationId && er.QuestionId == eq.questionId)
-                        })
-                    .Join(_context.ResponseTypes,
-                        q => q.ResponseTypeId,
-                        rt => rt.ResponseTypeId,
-                        (q, rt) => new
-                        {
-                            q.QuestionId,
-                            q.QuestionText,
-                            q.CompetenceLineId,
-                            ResponseTypeId = q.ResponseTypeId,
-                            ResponseType = rt.TypeName,
-                            q.Response
-                        })
-                    .Join(_context.competenceLines.Include(cl => cl.SkillPosition).ThenInclude(sp => sp.Skill),
-                        q => q.CompetenceLineId,
-                        cl => cl.CompetenceLineId,
-                        (q, cl) => new
-                        {
-                            q.QuestionId,
-                            q.QuestionText,
-                            q.ResponseTypeId,
-                            q.ResponseType,
-                            CompetenceLine = new
-                            {
-                                cl.CompetenceLineId,
-                                CompetenceName = cl.SkillPosition.Skill.Name ?? cl.Description
-                            },
-                            q.Response
-                        })
-                    .ToListAsync();
-
-                return Ok(selectedQuestions);
+                var result = await _evaluationService.GetSelectedQuestionsAndResponsesForQuestionControllerAsync(evaluationId);
+                return Ok(result);
             }
             catch (Exception ex)
             {

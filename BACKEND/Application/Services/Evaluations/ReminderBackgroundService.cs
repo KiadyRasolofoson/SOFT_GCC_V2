@@ -1,8 +1,6 @@
-﻿using soft_carriere_competence.Application.Services.Evaluations;
-
-namespace soft_carriere_competence.Core.Entities.Evaluations
+namespace soft_carriere_competence.Application.Services.Evaluations
 {
-    public class ReminderBackgroundService: BackgroundService
+    public class ReminderBackgroundService : BackgroundService
     {
         private readonly EvaluationService _evaluationService;
 
