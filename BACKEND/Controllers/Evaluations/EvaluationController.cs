@@ -168,11 +168,33 @@ namespace soft_carriere_competence.Controllers.Evaluations
 			}
 		}
 		[HttpGet("questions")]
-		public async Task<IActionResult> GetEvaluationQuestions([FromQuery] int evaluationTypeId, [FromQuery] int positionId)
+		public async Task<IActionResult> GetEvaluationQuestions(
+			[FromQuery] int evaluationTypeId, 
+			[FromQuery] int positionId,
+			[FromQuery] int? competenceLineId = null)
 		{
 			try
 			{
-				var questions = await _evaluationService.GetEvaluationQuestionsAsync(evaluationTypeId, positionId);
+				IEnumerable<EvaluationQuestion> questions;
+
+				if (competenceLineId.HasValue && positionId > 0)
+				{
+					// Filtrer par type d'évaluation, poste ET ligne de compétence
+					questions = await _evaluationService.GetEvaluationQuestionsByTypePositionAndCompetenceAsync(
+						evaluationTypeId, positionId, competenceLineId.Value);
+				}
+				else if (competenceLineId.HasValue && positionId == 0)
+				{
+					// Filtrer par type d'évaluation ET ligne de compétence uniquement (sans poste)
+					questions = await _evaluationService.GetEvaluationQuestionsByTypeAndCompetenceAsync(
+						evaluationTypeId, competenceLineId.Value);
+				}
+				else
+				{
+					// Comportement d'origine : filtrer par type d'évaluation ET poste
+					questions = await _evaluationService.GetEvaluationQuestionsAsync(evaluationTypeId, positionId);
+				}
+
 				return Ok(questions);
 			}
 			catch (Exception ex)

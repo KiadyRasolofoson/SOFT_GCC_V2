@@ -1,6 +1,4 @@
-﻿using soft_carriere_competence.Application.Dtos.LoginDto;
-
-namespace soft_carriere_competence.Core.Interface.AuthInterface
+﻿namespace soft_carriere_competence.Core.Interface.AuthInterface
 {
     public class IUserService
     {

@@ -872,6 +872,11 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return await _questionRepository.GetQuestionsByEvaluationTypePositionAndCompetenceAsync(evaluationTypeId, positionId, competenceLineId);
         }
 
+        public async Task<IEnumerable<EvaluationQuestion>> GetEvaluationQuestionsByTypeAndCompetenceAsync(int evaluationTypeId, int competenceLineId)
+        {
+            return await _questionRepository.GetQuestionsByEvaluationTypeAndCompetenceAsync(evaluationTypeId, competenceLineId);
+        }
+
         // Méthode pour récupérer une évaluation par son ID
         public async Task<Evaluation> GetEvaluationByIdAsync(int evaluationId)
         {
