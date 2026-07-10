@@ -65,15 +65,15 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public async Task<IEnumerable<User>> GetManagerAndDirector()
         {
             var rows = await _dataService.ExecuteReaderAsync(
-                "SELECT * FROM Users WHERE RoleId = 2 OR RoleId = 4");
+                "SELECT * FROM Users WHERE role_id = 2 OR role_id = 4");
             return rows.Select(row => new User
             {
-                Id = Convert.ToInt32(row["Id"]),
-                LastName = row["LastName"]?.ToString(),
-                FirstName = row["FirstName"]?.ToString(),
-                Email = row["Email"]?.ToString(),
-                Username = row["Username"]?.ToString(),
-                RoleId = row.ContainsKey("RoleId") ? Convert.ToInt32(row["RoleId"]) : 0
+                Id = Convert.ToInt32(row["UserId"]),
+                LastName = row["last_name"]?.ToString(),
+                FirstName = row["first_name"]?.ToString(),
+                Email = row["email"]?.ToString(),
+                Username = row.ContainsKey("username") ? row["username"]?.ToString() : null,
+                RoleId = Convert.ToInt32(row["role_id"])
             }).ToList();
         }
 
@@ -393,7 +393,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             string whereClause = string.IsNullOrEmpty(search)
                 ? "1=1"
-                : $"u.FirstName LIKE @p2 OR u.LastName LIKE @p2 OR u.Username LIKE @p2 OR u.Email LIKE @p2";
+                : $"u.first_name LIKE @p2 OR u.last_name LIKE @p2 OR u.username LIKE @p2 OR u.Email LIKE @p2";
 
             string searchParam = string.IsNullOrEmpty(search) ? "" : $"%{search}%";
             var parameters = new List<object> { pageSize, (pageNumber - 1) * pageSize };
@@ -404,19 +404,19 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             var users = await _dataService.ExecuteReaderAsync($@"
                 SELECT u.UserId, u.last_name, u.first_name, u.username, u.Email, u.role_id,
-                       r.Title AS RoleTitle
+                       r.Title AS RoleTitle,
+                       COUNT(*) OVER() AS TotalCount
                 FROM Users u
-                LEFT JOIN Roles r ON u.role_id = r.RoleId
+                LEFT JOIN Roles r ON u.role_id = r.Role_id
                 WHERE {whereClause}
                 ORDER BY u.last_name, u.first_name
                 OFFSET @p1 ROWS
                 FETCH NEXT @p0 ROWS ONLY",
                 parameters.ToArray());
 
-            var totalItems = await _dataService.ExecuteScalarAsync($@"
-                SELECT COUNT(*) FROM Users u
-                WHERE {whereClause}",
-                parameters.Count > 2 ? new object[] { searchParam } : Array.Empty<object>());
+            var totalItems = users.FirstOrDefault()?.ContainsKey("TotalCount") == true
+                ? Convert.ToInt32(users.First()["TotalCount"])
+                : 0;
 
             var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 

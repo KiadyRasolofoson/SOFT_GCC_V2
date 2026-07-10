@@ -128,6 +128,33 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
             _transaction = await _context.Database.BeginTransactionAsync();
         }
 
+        /// <summary>
+        /// Récupère la transaction ADO.NET sous-jacente depuis l'IDbContextTransaction
+        /// via reflection, car GetDbTransaction() (extension method EF Core Relational)
+        /// n'est pas résolue dans ce projet.
+        /// </summary>
+        private System.Data.Common.DbTransaction? GetUnderlyingTransaction()
+        {
+            if (_transaction == null) return null;
+
+            // Tentative 1: via le champ _dbTransaction (EF Core < 7, implémentation interne)
+            var type = _transaction.GetType();
+            var field = type.GetField("_dbTransaction",
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Instance);
+            if (field?.GetValue(_transaction) is System.Data.Common.DbTransaction dbTx)
+                return dbTx;
+
+            // Tentative 2: via le champ _transaction (EF Core >= 7, implémentation interne)
+            field = type.GetField("_transaction",
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Instance);
+            if (field?.GetValue(_transaction) is System.Data.Common.DbTransaction dbTx2)
+                return dbTx2;
+
+            return null;
+        }
+
         public async Task CommitTransactionAsync()
         {
             if (_transaction != null)
@@ -334,45 +361,87 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
         public async Task<int> ExecuteScalarAsync(string sql, params object[] parameters)
         {
             var connection = _context.Database.GetDbConnection();
-            await connection.OpenAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = sql;
+            var connectionWasClosed = connection.State == System.Data.ConnectionState.Closed;
+            
+            if (connectionWasClosed)
+                await connection.OpenAsync();
 
-            for (int i = 0; i < parameters.Length; i++)
+            try
             {
-                command.Parameters.Add(new SqlParameter($"@p{i}", parameters[i]));
-            }
+                await using var command = connection.CreateCommand();
+                command.CommandText = sql;
 
-            var result = await command.ExecuteScalarAsync();
-            return result != null ? Convert.ToInt32(result) : 0;
+                // Si une transaction EF Core est active, associer la transaction ADO.NET à la commande
+                if (_transaction != null)
+                {
+                    // Accès à la transaction ADO.NET sous-jacente via reflection
+                    var dbTransaction = GetUnderlyingTransaction();
+                    if (dbTransaction != null)
+                        command.Transaction = dbTransaction;
+                }
+
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    command.Parameters.Add(new SqlParameter($"@p{i}", parameters[i]));
+                }
+
+                var result = await command.ExecuteScalarAsync();
+                return result != null ? Convert.ToInt32(result) : 0;
+            }
+            finally
+            {
+                if (connectionWasClosed && connection.State == System.Data.ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
         }
 
         public async Task<List<Dictionary<string, object>>> ExecuteReaderAsync(string sql, params object[] parameters)
         {
             var connection = _context.Database.GetDbConnection();
-            await connection.OpenAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = sql;
+            var connectionWasClosed = connection.State == System.Data.ConnectionState.Closed;
+            
+            if (connectionWasClosed)
+                await connection.OpenAsync();
 
-            for (int i = 0; i < parameters.Length; i++)
+            try
             {
-                command.Parameters.Add(new SqlParameter($"@p{i}", parameters[i]));
-            }
+                await using var command = connection.CreateCommand();
+                command.CommandText = sql;
 
-            var result = new List<Dictionary<string, object>>();
-            await using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                var row = new Dictionary<string, object>();
-                for (int i = 0; i < reader.FieldCount; i++)
+                // Si une transaction EF Core est active, associer la transaction ADO.NET à la commande
+                if (_transaction != null)
                 {
-                    row[reader.GetName(i)] = reader.GetValue(i);
+                    // Accès à la transaction ADO.NET sous-jacente via reflection
+                    var dbTransaction = GetUnderlyingTransaction();
+                    if (dbTransaction != null)
+                        command.Transaction = dbTransaction;
                 }
-                result.Add(row);
-            }
 
-            return result;
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    command.Parameters.Add(new SqlParameter($"@p{i}", parameters[i]));
+                }
+
+                var result = new List<Dictionary<string, object>>();
+                await using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    var row = new Dictionary<string, object>();
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        row[reader.GetName(i)] = reader.GetValue(i);
+                    }
+                    result.Add(row);
+                }
+
+                return result;
+            }
+            finally
+            {
+                if (connectionWasClosed && connection.State == System.Data.ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
         }
 
         public async Task<int> ExecuteNonQueryAsync(string sql, params object[] parameters)

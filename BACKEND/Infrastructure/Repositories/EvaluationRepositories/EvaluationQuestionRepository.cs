@@ -58,5 +58,22 @@ namespace soft_carriere_competence.Infrastructure.Repositories.EvaluationReposit
             // Ne pas renvoyer de questions si aucune ne correspond exactement à la ligne de compétence
             return questions;
         }
+
+        public async Task<IEnumerable<EvaluationQuestion>> GetQuestionsByEvaluationTypeAndCompetenceAsync(int evaluationTypeId, int competenceLineId)
+        {
+            Console.WriteLine($"Recherche des questions par type d'évaluation et compétence : evaluationTypeId={evaluationTypeId}, competenceLineId={competenceLineId}");
+
+            var questions = await _context.evaluationQuestions
+                .Where(q => q.evaluationTypeId == evaluationTypeId
+                    && q.CompetenceLineId == competenceLineId
+                    && q.state == 1)
+                .Include(u => u.Position)
+                .Include(u => u.EvaluationType)
+                .Include(u => u.CompetenceLine)
+                .ToListAsync();
+
+            Console.WriteLine($"Nombre de questions trouvées : {questions.Count}");
+            return questions;
+        }
     }
 }

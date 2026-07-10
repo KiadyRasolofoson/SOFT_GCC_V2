@@ -8,5 +8,6 @@ namespace soft_carriere_competence.Core.Interface.EvaluationInterface
         Task<bool> ExistsAsync(int questionId);
         Task<IEnumerable<EvaluationQuestion>> GetQuestionsByPositionAsync(int positionId);
         Task<IEnumerable<EvaluationQuestion>> GetQuestionsByEvaluationTypePositionAndCompetenceAsync(int evaluationTypeId, int positionId, int competenceLineId);
+        Task<IEnumerable<EvaluationQuestion>> GetQuestionsByEvaluationTypeAndCompetenceAsync(int evaluationTypeId, int competenceLineId);
     }
 }
