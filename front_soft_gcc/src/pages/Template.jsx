@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 // Template des pages
 function Template({children}) {
   return (
-    <div className='container-scroller'>
+    <div className='container-scroller sidebar-fixed'>
       <NavigationBar />
       <div className="container-fluid page-body-wrapper">
         <MenuBar />

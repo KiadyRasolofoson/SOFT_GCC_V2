@@ -72,7 +72,7 @@ function UsersList() {
             });
             
             // Inclure tous les paramètres dans la requête API
-            const response = await axios.get('https://localhost:7082/api/User/paginated', {
+            const response = await axios.get('http://localhost:5189/api/User/paginated', {
                 params: {
                     pageNumber: currentPage,
                     pageSize: pageSize,
@@ -93,7 +93,7 @@ function UsersList() {
 
     const fetchRoles = async () => {
         try {
-            const response = await axios.get('https://localhost:7082/api/User/roles');
+            const response = await axios.get('http://localhost:5189/api/User/roles');
             setRoles(response.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des rôles:', error);
@@ -108,7 +108,7 @@ function UsersList() {
                 console.log("ID utilisateur pour mise à jour:", userId);
                 console.log("Données envoyées pour mise à jour:", formData);
                 
-                await axios.post(`https://localhost:7082/api/Authentification/update`, {
+                await axios.post(`http://localhost:5189/api/Authentification/update`, {
                     userId: userId,
                     firstName: formData.firstName,
                     lastName: formData.lastName,
@@ -117,7 +117,7 @@ function UsersList() {
                     roleId: parseInt(formData.roleId)
                 });
             } else {
-                await axios.post('https://localhost:7082/api/Authentification/register', {
+                await axios.post('http://localhost:5189/api/Authentification/register', {
                     lastName: formData.lastName,
                     firstName: formData.firstName,
                     username: formData.username,
@@ -171,7 +171,7 @@ function UsersList() {
     const handleDelete = async (userId) => {
         if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
             try {
-                await axios.delete(`https://localhost:7082/api/User/${userId}`);
+                await axios.delete(`http://localhost:5189/api/User/${userId}`);
                 fetchUsers();
             } catch (error) {
                 console.error('Erreur lors de la suppression:', error);

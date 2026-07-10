@@ -13088,9 +13088,9 @@ dl {
     -webkit-transition: width 0.25s ease, background 0.25s ease;
     -moz-transition: width 0.25s ease, background 0.25s ease;
     -ms-transition: width 0.25s ease, background 0.25s ease;
-    /*background: #181824;*/
+    background: #181824;
     width: 258px;
-    height: 94px; }
+    height: 64px; }
     @media (max-width: 991px) {
       .navbar .navbar-brand-wrapper {
         width: 55px; } }
@@ -13492,8 +13492,7 @@ dl {
   min-height: calc(100vh - 64px);
   background: #181824;
   font-family: "nunito-medium", sans-serif;
-  padding-top: 50px !important;
-  position: fixed;
+  padding: 0;
   width: 258px;
   z-index: 11;
   transition: width 0.25s ease, background 0.25s ease;
@@ -14137,9 +14136,8 @@ dl {
       width: 100%; } }
 
 .content-wrapper {
-  margin-left: 258px;
   background: #f0f1f6;
-  padding: 40px;
+  padding: 20px;
   width: 100%;
   -webkit-box-flex: 1;
   -ms-flex-positive: 1;

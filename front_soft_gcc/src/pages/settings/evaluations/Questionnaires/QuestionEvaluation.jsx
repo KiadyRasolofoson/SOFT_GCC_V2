@@ -105,7 +105,7 @@ function QuestionEvaluation() {
         try {
             setError(null);
             // Récupérer toutes les questions
-            const response = await axios.get('https://localhost:7082/api/Evaluation/questionsAll');
+            const response = await axios.get('http://localhost:5189/api/Evaluation/questionsAll');
             if (response.data && Array.isArray(response.data)) {
                 setAllQuestions(response.data);
                 console.log("Toutes les questions chargées:", response.data);
@@ -172,7 +172,7 @@ function QuestionEvaluation() {
 
     const fetchEvaluationTypes = async () => {
         try {
-            const response = await axios.get('https://localhost:7082/api/Evaluation/types');
+            const response = await axios.get('http://localhost:5189/api/Evaluation/types');
             setEvaluationTypes(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error("Error fetching evaluation types:", error);
@@ -182,7 +182,7 @@ function QuestionEvaluation() {
 
     const fetchPositions = async () => {
         try {
-            const response = await axios.get('https://localhost:7082/api/Evaluation/postes');
+            const response = await axios.get('http://localhost:5189/api/Evaluation/postes');
             setPositions(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error("Error fetching positions:", error);
@@ -193,7 +193,7 @@ function QuestionEvaluation() {
     const fetchCompetenceLines = async () => {
         try {
             // Essayer d'abord l'endpoint standard
-            const response = await axios.get('https://localhost:7082/api/Evaluation/competence-lines');
+            const response = await axios.get('http://localhost:5189/api/Evaluation/competence-lines');
             console.log("Competence lines loaded:", response.data);
             setCompetenceLines(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
@@ -203,7 +203,7 @@ function QuestionEvaluation() {
 
             // Essayer un autre format d'URL
             try {
-                const altResponse = await axios.get('https://localhost:7082/api/CompetenceLine');
+                const altResponse = await axios.get('http://localhost:5189/api/CompetenceLine');
                 if (altResponse.data && Array.isArray(altResponse.data)) {
                     setCompetenceLines(altResponse.data);
                 }
@@ -216,7 +216,7 @@ function QuestionEvaluation() {
     const fetchResponseTypes = async () => {
         try {
             // Essayer d'abord l'endpoint standard
-            const response = await axios.get('https://localhost:7082/api/Evaluation/response-types');
+            const response = await axios.get('http://localhost:5189/api/Evaluation/response-types');
             console.log("Response types loaded:", response.data);
             if (response.data && Array.isArray(response.data)) {
                 setResponseTypes(response.data);
@@ -234,7 +234,7 @@ function QuestionEvaluation() {
 
             // Essayer un autre format d'URL
             try {
-                const altResponse = await axios.get('https://localhost:7082/api/ResponseType');
+                const altResponse = await axios.get('http://localhost:5189/api/ResponseType');
                 if (altResponse.data && Array.isArray(altResponse.data) && altResponse.data.length > 0) {
                     setResponseTypes(altResponse.data);
                 }
@@ -303,13 +303,13 @@ function QuestionEvaluation() {
                 const questionId = currentQuestion.id || currentQuestion.questionId || currentQuestion.questiondId;
                 console.log(`Mise à jour de la question avec ID: ${questionId}`);
 
-                const response = await axios.put(`https://localhost:7082/api/Evaluation/questions/${questionId}`, requestData);
+                const response = await axios.put(`http://localhost:5189/api/Evaluation/questions/${questionId}`, requestData);
                 console.log("Réponse de mise à jour:", response);
 
                 // Fermer la modale après mise à jour
                 setShowEditModal(false);
             } else {
-                const response = await axios.post('https://localhost:7082/api/Evaluation/questions', requestData);
+                const response = await axios.post('http://localhost:5189/api/Evaluation/questions', requestData);
                 console.log("Réponse de création:", response);
             }
 
@@ -396,7 +396,7 @@ function QuestionEvaluation() {
             console.log('Envoi des données au format DTO:', requestData);
 
             setError(null);
-            const response = await axios.put(`https://localhost:7082/api/Evaluation/questions/${questionId}`, requestData);
+            const response = await axios.put(`http://localhost:5189/api/Evaluation/questions/${questionId}`, requestData);
             console.log("Réponse de mise à jour:", response);
 
             // Fermer la modale après mise à jour
@@ -414,7 +414,7 @@ function QuestionEvaluation() {
 
     const handleDelete = async (id) => {
         try {
-            await axios.delete(`https://localhost:7082/api/Evaluation/questions/${id}`);
+            await axios.delete(`http://localhost:5189/api/Evaluation/questions/${id}`);
             fetchAllQuestions();
             // Après suppression, nettoyer la liste des éléments sélectionnés
             setSelectedItems(selectedItems.filter(itemId => itemId !== id));
@@ -431,7 +431,7 @@ function QuestionEvaluation() {
             try {
                 // Utiliser Promise.all pour gérer les suppressions en parallèle
                 await Promise.all(selectedItems.map(id => 
-                    axios.delete(`https://localhost:7082/api/Evaluation/questions/${id}`)
+                    axios.delete(`http://localhost:5189/api/Evaluation/questions/${id}`)
                 ));
                 
                 // Rafraîchir les données et réinitialiser les sélections

@@ -28,7 +28,7 @@ function PermissionsManagement() {
     const fetchPermissions = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('https://localhost:7082/api/Permission');
+            const response = await axios.get('http://localhost:5189/api/Permission');
             setPermissions(response.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des permissions:', error);
@@ -40,7 +40,7 @@ function PermissionsManagement() {
 
     const fetchRoles = async () => {
         try {
-            const response = await axios.get('https://localhost:7082/api/Role');
+            const response = await axios.get('http://localhost:5189/api/Role');
             const normalizedRoles = response.data.map(role => ({
                 roleId: role.roleid,
                 title: role.title,
@@ -113,7 +113,7 @@ function PermissionsManagement() {
 
     const fetchRolePermissions = async (roleId) => {
         try {
-            const response = await axios.get(`https://localhost:7082/api/Permission/role/${roleId}`);
+            const response = await axios.get(`http://localhost:5189/api/Permission/role/${roleId}`);
             if (response.data && Array.isArray(response.data)) {
             setRolePermissions(response.data);
             setTempPermissions(response.data);
@@ -214,7 +214,7 @@ function PermissionsManagement() {
         try {
             const permissionIds = tempPermissions.map(p => p.permissionId);
             await axios.put(
-                `https://localhost:7082/api/Permission/role/${selectedRole.roleId}`,
+                `http://localhost:5189/api/Permission/role/${selectedRole.roleId}`,
                 { permissionIds },
                 { headers: { 'Content-Type': 'application/json' } }
             );
@@ -501,11 +501,11 @@ function PermissionsManagement() {
                                     try {
                                         if (currentPermission) {
                                             await axios.put(
-                                                `https://localhost:7082/api/Permission/${currentPermission.permissionId}`,
+                                                `http://localhost:5189/api/Permission/${currentPermission.permissionId}`,
                                                 { ...currentPermission, ...formData }
                                             );
                                         } else {
-                                            await axios.post('https://localhost:7082/api/Permission', formData);
+                                            await axios.post('http://localhost:5189/api/Permission', formData);
                                         }
                                         setShowModal(false);
                                         fetchPermissions();
