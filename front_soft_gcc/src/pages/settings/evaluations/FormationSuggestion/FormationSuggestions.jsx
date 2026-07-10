@@ -101,7 +101,7 @@ function FormationSuggestions() {
         try {
             setError(null);
             // Récupérer toutes les suggestions sans pagination
-            const response = await axios.get('https://localhost:7082/api/Evaluation/training-suggestions');
+            const response = await axios.get('http://localhost:5189/api/Evaluation/training-suggestions');
             console.log("Toutes les suggestions reçues:", response.data);
             setAllSuggestions(response.data);
             return response;
@@ -151,7 +151,7 @@ function FormationSuggestions() {
 
     const fetchEvaluationTypes = async () => {
         try {
-            const response = await axios.get('https://localhost:7082/api/Evaluation/types');
+            const response = await axios.get('http://localhost:5189/api/Evaluation/types');
             setEvaluationTypes(response.data);
             return response;
         } catch (error) {
@@ -163,7 +163,7 @@ function FormationSuggestions() {
 
     const fetchQuestions = async () => {
         try {
-            const response = await axios.get('https://localhost:7082/api/Evaluation/questionsAll');
+            const response = await axios.get('http://localhost:5189/api/Evaluation/questionsAll');
             console.log("Structure des questions:", response.data && response.data.length > 0 ? response.data[0] : "Aucune question disponible");
             setQuestions(response.data);
             return response;
@@ -213,7 +213,7 @@ function FormationSuggestions() {
             console.log("Données envoyées pour création:", requestData);
 
             // Create
-            await axios.post('https://localhost:7082/api/Evaluation/create-training-suggestion', requestData);
+            await axios.post('http://localhost:5189/api/Evaluation/create-training-suggestion', requestData);
 
             fetchAllData();
             resetForm();
@@ -269,7 +269,7 @@ function FormationSuggestions() {
             console.log("Données envoyées pour mise à jour:", requestData);
 
             // Update
-            await axios.put(`https://localhost:7082/api/Evaluation/training-suggestions/${id}`, requestData);
+            await axios.put(`http://localhost:5189/api/Evaluation/training-suggestions/${id}`, requestData);
 
             fetchAllData();
             resetForm();
@@ -327,7 +327,7 @@ function FormationSuggestions() {
             }
 
             if (window.confirm('Êtes-vous sûr de vouloir supprimer cette suggestion de formation ?')) {
-                await axios.delete(`https://localhost:7082/api/Evaluation/training-suggestions/${suggestionId}`);
+                await axios.delete(`http://localhost:5189/api/Evaluation/training-suggestions/${suggestionId}`);
                 fetchAllData();
                 // Après suppression, nettoyer la liste des éléments sélectionnés
                 setSelectedItems(selectedItems.filter(itemId => itemId !== suggestionId));
@@ -346,7 +346,7 @@ function FormationSuggestions() {
             try {
                 // Utiliser Promise.all pour gérer les suppressions en parallèle
                 await Promise.all(selectedItems.map(id => 
-                    axios.delete(`https://localhost:7082/api/Evaluation/training-suggestions/${id}`)
+                    axios.delete(`http://localhost:5189/api/Evaluation/training-suggestions/${id}`)
                 ));
                 
                 // Rafraîchir les données et réinitialiser les sélections

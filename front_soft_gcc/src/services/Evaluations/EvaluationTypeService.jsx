@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://localhost:7082/api/EvaluationType'; // Adaptez si votre URL d'API est différente
+const API_URL = 'http://localhost:5189/api/EvaluationType'; // Adaptez si votre URL d'API est différente
 
 const EvaluationTypeService = {
     getEvaluationTypes: () => {
