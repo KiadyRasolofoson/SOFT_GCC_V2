@@ -53,5 +53,3 @@ Thumbs.db
 .DS_Store
 .idea/
 *.sln.docstates
-
-keys/private.key

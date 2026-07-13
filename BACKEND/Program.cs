@@ -8,6 +8,8 @@ using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Application.Services.salary_skills;
 using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Application.Services.career_plan;
+using soft_carriere_competence.Application.Services.license;
+using soft_carriere_competence.Middleware;
 using soft_carriere_competence.Core.Entities.career_plan;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Application.Services.crud_career;
@@ -185,6 +187,11 @@ builder.Services.AddScoped<IHistoryDataService, HistoryDataService>();
 builder.Services.AddScoped<IWishEvolutionDataService, WishEvolutionDataService>();
 builder.Services.AddScoped<IEvaluationDataService, EvaluationDataService>();
 
+// License system
+builder.Services.AddSingleton<RsaPublicKeyProvider>();
+builder.Services.AddScoped<LicenseService>();
+builder.Services.AddMemoryCache();
+
 #endregion
 
 #region Cors configuration
@@ -284,6 +291,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
+
+// Middleware de vérification de licence
+// Les chemins exclus sont configurés dans LicenseCheckMiddlewareOptions
+// (par défaut : /api/auth, /api/license, /swagger, /health)
+app.UseMiddleware<LicenseCheckMiddleware>();
 
 app.UseAuthorization();
 

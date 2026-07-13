@@ -84,3 +84,5 @@ node_modules/
 packages/
 *.nupkg
 *.snupkg
+
+/rapport
