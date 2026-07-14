@@ -12,6 +12,7 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
     {
         private readonly ApplicationDbContext _context;
         private Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? _transaction;
+        private System.Data.Common.DbTransaction? _activeTransaction;
 
         public EvaluationDataService(ApplicationDbContext context)
         {
@@ -126,32 +127,38 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
         public async Task BeginTransactionAsync()
         {
             _transaction = await _context.Database.BeginTransactionAsync();
+            // Capture la transaction ADO.NET sous-jacente en cherchant dans tous les champs
+            _activeTransaction = ExtractDbTransaction(_transaction);
         }
 
         /// <summary>
-        /// Récupère la transaction ADO.NET sous-jacente depuis l'IDbContextTransaction
-        /// via reflection, car GetDbTransaction() (extension method EF Core Relational)
-        /// n'est pas résolue dans ce projet.
+        /// Extrait le DbTransaction sous-jacent d'un IDbContextTransaction par reflection.
+        /// Parcourt TOUS les champs (publics, privés, hérités) pour trouver le premier DbTransaction.
         /// </summary>
-        private System.Data.Common.DbTransaction? GetUnderlyingTransaction()
+        private static System.Data.Common.DbTransaction? ExtractDbTransaction(
+            Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction)
         {
-            if (_transaction == null) return null;
+            if (transaction == null) return null;
 
-            // Tentative 1: via le champ _dbTransaction (EF Core < 7, implémentation interne)
-            var type = _transaction.GetType();
-            var field = type.GetField("_dbTransaction",
-                System.Reflection.BindingFlags.NonPublic |
-                System.Reflection.BindingFlags.Instance);
-            if (field?.GetValue(_transaction) is System.Data.Common.DbTransaction dbTx)
-                return dbTx;
-
-            // Tentative 2: via le champ _transaction (EF Core >= 7, implémentation interne)
-            field = type.GetField("_transaction",
-                System.Reflection.BindingFlags.NonPublic |
-                System.Reflection.BindingFlags.Instance);
-            if (field?.GetValue(_transaction) is System.Data.Common.DbTransaction dbTx2)
-                return dbTx2;
-
+            var type = transaction.GetType();
+            // Parcourir toute la hiérarchie de types
+            while (type != null)
+            {
+                var fields = type.GetFields(
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.DeclaredOnly);
+                foreach (var field in fields)
+                {
+                    if (typeof(System.Data.Common.DbTransaction).IsAssignableFrom(field.FieldType))
+                    {
+                        if (field.GetValue(transaction) is System.Data.Common.DbTransaction dbTx)
+                            return dbTx;
+                    }
+                }
+                type = type.BaseType;
+            }
             return null;
         }
 
@@ -162,6 +169,7 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                 await _transaction.CommitAsync();
                 await _transaction.DisposeAsync();
                 _transaction = null;
+                _activeTransaction = null;
             }
         }
 
@@ -172,6 +180,7 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                 await _transaction.RollbackAsync();
                 await _transaction.DisposeAsync();
                 _transaction = null;
+                _activeTransaction = null;
             }
         }
 
@@ -371,14 +380,9 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                 await using var command = connection.CreateCommand();
                 command.CommandText = sql;
 
-                // Si une transaction EF Core est active, associer la transaction ADO.NET à la commande
-                if (_transaction != null)
-                {
-                    // Accès à la transaction ADO.NET sous-jacente via reflection
-                    var dbTransaction = GetUnderlyingTransaction();
-                    if (dbTransaction != null)
-                        command.Transaction = dbTransaction;
-                }
+                // Si une transaction ADO.NET est active, l'associer à la commande
+                if (_activeTransaction != null)
+                    command.Transaction = _activeTransaction;
 
                 for (int i = 0; i < parameters.Length; i++)
                 {
@@ -408,14 +412,9 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                 await using var command = connection.CreateCommand();
                 command.CommandText = sql;
 
-                // Si une transaction EF Core est active, associer la transaction ADO.NET à la commande
-                if (_transaction != null)
-                {
-                    // Accès à la transaction ADO.NET sous-jacente via reflection
-                    var dbTransaction = GetUnderlyingTransaction();
-                    if (dbTransaction != null)
-                        command.Transaction = dbTransaction;
-                }
+                // Si une transaction ADO.NET est active, l'associer à la commande
+                if (_activeTransaction != null)
+                    command.Transaction = _activeTransaction;
 
                 for (int i = 0; i < parameters.Length; i++)
                 {

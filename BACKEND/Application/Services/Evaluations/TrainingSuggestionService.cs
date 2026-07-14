@@ -102,7 +102,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         // Récupérer CompetenceLineId de la question si possible
                         int? competenceLineId = null;
                         var questionData = await _dataService.ExecuteReaderAsync(
-                            "SELECT CompetenceLineId FROM evaluationQuestions WHERE questionId = @p0", questionId);
+                            "SELECT CompetenceLineId FROM Evaluation_questions WHERE questionId = @p0", questionId);
                             
                         if (questionData.Count > 0 && questionData[0].ContainsKey("CompetenceLineId"))
                         {

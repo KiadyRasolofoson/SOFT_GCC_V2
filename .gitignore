@@ -12,6 +12,14 @@ test/
 BACKEND/bin/
 BACKEND/obj/
 
+# === License / configuration files ===
+LicenseGenerator/bin/
+LicenseGenerator/obj/
+
+# === Tests - Build artifacts ===
+soft_carriere_competence.Tests/bin/
+soft_carriere_competence.Tests/obj/
+
 # === BACKEND - Fichiers temporaires éditeur ===
 BACKEND/**/*.tmp
 BACKEND/**/*.~
