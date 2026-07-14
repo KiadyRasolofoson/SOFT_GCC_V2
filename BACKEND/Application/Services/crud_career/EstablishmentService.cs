@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class EstablishmentService
 	{
-		private readonly ICrudRepository<Establishment> _repository;
+		private readonly IGenericRepository<Establishment> _repository;
 
-		public EstablishmentService(ICrudRepository<Establishment> repository)
+		public EstablishmentService(IGenericRepository<Establishment> repository)
 		{
 			_repository = repository;
 		}

@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class SocioCategoryProfessionalService
 	{
-		private readonly ICrudRepository<SocioCategoryProfessional> _repository;
+		private readonly IGenericRepository<SocioCategoryProfessional> _repository;
 
-		public SocioCategoryProfessionalService(ICrudRepository<SocioCategoryProfessional> repository)
+		public SocioCategoryProfessionalService(IGenericRepository<SocioCategoryProfessional> repository)
 		{
 			_repository = repository;
 		}

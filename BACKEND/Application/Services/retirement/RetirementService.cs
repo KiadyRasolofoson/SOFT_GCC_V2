@@ -6,10 +6,10 @@ namespace soft_carriere_competence.Application.Services.retirement
 {
 	public class RetirementService
 	{
-		private readonly ICrudRepository<RetirementParameter> _repository;
+		private readonly IGenericRepository<RetirementParameter> _repository;
 		private readonly IRetirementDataService _dataService;
 
-		public RetirementService(ICrudRepository<RetirementParameter> repository, IRetirementDataService dataService)
+		public RetirementService(IGenericRepository<RetirementParameter> repository, IRetirementDataService dataService)
 		{
 			_repository = repository;
 			_dataService = dataService;

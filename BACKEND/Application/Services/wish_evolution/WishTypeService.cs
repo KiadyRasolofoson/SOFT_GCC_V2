@@ -6,9 +6,9 @@ namespace soft_carriere_competence.Application.Services.wish_evolution
 {
 	public class WishTypeService
 	{
-		private readonly ICrudRepository<WishType> _repository;
+		private readonly IGenericRepository<WishType> _repository;
 
-		public WishTypeService(ICrudRepository<WishType> repository)
+		public WishTypeService(IGenericRepository<WishType> repository)
 		{
 			_repository = repository;
 		}

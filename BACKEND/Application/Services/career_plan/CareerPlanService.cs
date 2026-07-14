@@ -12,10 +12,10 @@ namespace soft_carriere_competence.Application.Services.career_plan
 {
 	public class CareerPlanService
 	{
-		private readonly ICrudRepository<CareerPlan> _repository;
+		private readonly IGenericRepository<CareerPlan> _repository;
 		private readonly ICareerPlanDataService _dataService;
 
-		public CareerPlanService(ICrudRepository<CareerPlan> repository, ICareerPlanDataService dataService)
+		public CareerPlanService(IGenericRepository<CareerPlan> repository, ICareerPlanDataService dataService)
 		{
 			_repository = repository;
 			_dataService = dataService;
