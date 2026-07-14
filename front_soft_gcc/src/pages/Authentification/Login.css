@@ -252,11 +252,129 @@ body {
   text-decoration: underline;
 }
 
-.error-message {
-  color: var(--error-color);
-  background: rgba(245, 101, 101, 0.1);
-  padding: 12px;
-  border-radius: 8px;
+/* ===== Bannière d'erreur ===== */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
   margin-bottom: 24px;
   font-size: 0.9rem;
+  position: relative;
+  animation: errorSlideIn 0.35s cubic-bezier(0.68, -0.55, 0.27, 1.15);
+  border-left: 4px solid transparent;
+}
+
+@keyframes errorSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Auth error (wrong credentials) */
+.error-banner--auth {
+  background: linear-gradient(135deg, #FEF2F2, #FFE4E4);
+  border-left-color: #DC2626;
+  color: #991B1B;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.12);
+}
+
+.error-banner--auth .error-banner__icon {
+  color: #DC2626;
+}
+
+/* Network error (server unreachable, 5xx) */
+.error-banner--network {
+  background: linear-gradient(135deg, #FFF7ED, #FFEDD5);
+  border-left-color: #EA580C;
+  color: #7C2D12;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.12);
+}
+
+.error-banner--network .error-banner__icon {
+  color: #EA580C;
+}
+
+/* Validation error (empty fields) */
+.error-banner--validation {
+  background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
+  border-left-color: #CA8A04;
+  color: #713F12;
+  box-shadow: 0 2px 8px rgba(202, 138, 4, 0.12);
+}
+
+.error-banner--validation .error-banner__icon {
+  color: #CA8A04;
+}
+
+.error-banner__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.error-banner__content {
+  flex: 1;
+}
+
+.error-banner__text {
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.error-banner__close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.5;
+  padding: 0 4px;
+  line-height: 1;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.error-banner__close:hover {
+  opacity: 1;
+}
+
+/* ===== Field-level validation ===== */
+.form-group--error .input-with-icon {
+  border-color: #DC2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  background-color: #FEF2F2;
+}
+
+.field-error {
+  display: block;
+  color: #DC2626;
+  font-size: 0.8rem;
+  margin-top: 6px;
+  margin-left: 4px;
+  font-weight: 500;
+  animation: fieldErrorIn 0.25s ease-out;
+}
+
+@keyframes fieldErrorIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

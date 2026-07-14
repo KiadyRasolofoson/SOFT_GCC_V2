@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "./UserContext";
 import './Login.css';
-import { FaUser, FaLock, FaEye, FaEyeSlash, FaUserTie } from 'react-icons/fa'; // Modifier les icônes
+import { FaUser, FaLock, FaEye, FaEyeSlash, FaUserTie, FaExclamationCircle, FaWifi, FaInfoCircle } from 'react-icons/fa';
 import { urlApi } from "../../helpers/utils";
 
 const Login = () => {
@@ -13,10 +13,26 @@ const Login = () => {
   });
 
   const [error, setError] = useState("");
+  const [errorType, setErrorType] = useState("auth"); // "auth", "network", "validation"
+  const [dismissed, setDismissed] = useState(false);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const { initializeUser } = useUser();
-  const [showPassword, setShowPassword] = useState(false); // État pour afficher/masquer le mot de passe
+  const [showPassword, setShowPassword] = useState(false);
+  const [emptyFields, setEmptyFields] = useState({ identifier: false, password: false });
+  const errorTimerRef = useRef(null);
+
+  // Auto-dismiss error after 8 seconds
+  useEffect(() => {
+    if (error) {
+      setDismissed(false);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setDismissed(true), 8000);
+    }
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, [error]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,11 +40,59 @@ const Login = () => {
       ...formData,
       [name]: value,
     });
+    // Clear field-level error on input
+    setEmptyFields((prev) => ({ ...prev, [name]: false }));
+    // Clear global error when user starts typing
+    if (error) setError("");
+  };
+
+  const validateForm = () => {
+    const empty = {
+      identifier: !formData.identifier.trim(),
+      password: !formData.password.trim(),
+    };
+    setEmptyFields(empty);
+    return !empty.identifier && !empty.password;
+  };
+
+  const getErrorMessage = (err) => {
+    if (!err.response) {
+      return {
+        message: "Impossible de se connecter au serveur. Vérifiez votre connexion réseau.",
+        type: "network",
+      };
+    }
+    const status = err.response.status;
+    if (status === 401) {
+      return {
+        message: err.response.data?.message || "Identifiant ou mot de passe incorrect.",
+        type: "auth",
+      };
+    }
+    if (status >= 500) {
+      return {
+        message: "Le serveur rencontre une erreur. Veuillez réessayer plus tard.",
+        type: "network",
+      };
+    }
+    return {
+      message: err.response.data?.message || "Une erreur inattendue est survenue.",
+      type: "auth",
+    };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setDismissed(false);
+
+    // Field-level validation
+    if (!validateForm()) {
+      setError("Veuillez remplir tous les champs.");
+      setErrorType("validation");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -42,26 +106,15 @@ const Login = () => {
 
       if (response.status === 200) {
         localStorage.setItem("token", response.data.token);
-        // Initialiser le contexte utilisateur avec les nouvelles données
         await initializeUser();
         navigate("/softGcc/tableauBord");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Identifiants invalides.");
+      const { message, type } = getErrorMessage(err);
+      setError(message);
+      setErrorType(type);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchUserDetails = async (token) => {
-    try {
-      const response = await axios.get(urlApi("/Authentification/current-user"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Erreur lors de la récupération des détails de l'utilisateur:", error);
-      throw error;
     }
   };
 
@@ -78,10 +131,20 @@ const Login = () => {
               <p className="app-subtitle">Gestion de Carrière et Compétences</p>
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            {error && !dismissed && (
+              <div className={`error-banner error-banner--${errorType}`}>
+                <div className="error-banner__icon">
+                  {errorType === "network" ? <FaWifi /> : errorType === "validation" ? <FaInfoCircle /> : <FaExclamationCircle />}
+                </div>
+                <div className="error-banner__content">
+                  <span className="error-banner__text">{error}</span>
+                </div>
+                <button className="error-banner__close" onClick={() => setDismissed(true)} aria-label="Fermer">&times;</button>
+              </div>
+            )}
 
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
+            <form onSubmit={handleSubmit} noValidate>
+              <div className={`form-group ${emptyFields.identifier ? "form-group--error" : ""}`}>
                 <div className="input-with-icon">
                   <div className="input-icon">
                     <FaUser />
@@ -95,9 +158,10 @@ const Login = () => {
                     required
                   />
                 </div>
+                {emptyFields.identifier && <span className="field-error">Ce champ est requis</span>}
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${emptyFields.password ? "form-group--error" : ""}`}>
                 <div className="input-with-icon">
                   <div className="input-icon">
                     <FaLock />
@@ -114,6 +178,7 @@ const Login = () => {
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </span>
                 </div>
+                {emptyFields.password && <span className="field-error">Ce champ est requis</span>}
               </div>
 
               {/* <div className="form-options">

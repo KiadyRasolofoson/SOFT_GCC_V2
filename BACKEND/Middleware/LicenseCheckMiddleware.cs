@@ -89,8 +89,8 @@ namespace soft_carriere_competence.Middleware
 
                 var response = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    error = "license_check_failed",
-                    message = "Une erreur interne est survenue lors de la vérification de la licence.",
+                    error = "internal_server_error",
+                    message = "Une erreur interne est survenue. Veuillez réessayer ou contacter l'administrateur.",
                     detail = ex.Message
                 });
 

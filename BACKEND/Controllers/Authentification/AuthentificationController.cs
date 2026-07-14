@@ -19,15 +19,29 @@ namespace soft_carriere_competence.Controllers.Authentification
 		[HttpPost("register")]
 		public async Task<IActionResult> Register([FromBody] RegisterDto dto)
 		{
-			var result = await _userService.RegisterAsync(dto);
-			return Ok(new { message = result });
+			try
+			{
+				var result = await _userService.RegisterAsync(dto);
+				return Ok(new { message = result });
+			}
+			catch (Exception ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
 		}
 
 		[HttpPost("login")]
 		public async Task<IActionResult> Login([FromBody] LoginDto dto)
 		{
-			var token = await _userService.LoginAsync(dto);
-			return Ok(new { token });
+			try
+			{
+				var token = await _userService.LoginAsync(dto);
+				return Ok(new { token });
+			}
+			catch (Exception ex)
+			{
+				return Unauthorized(new { message = ex.Message });
+			}
 		}
 
 		[HttpPost("update")]
@@ -69,15 +83,29 @@ namespace soft_carriere_competence.Controllers.Authentification
 		[HttpPost("forgotpassword")]
 		public async Task<IActionResult> ForgotPassword([FromBody] string email)
 		{
-			var result = await _userService.ForgotPasswordAsync(email);
-			return Ok(new { message = result });
+			try
+			{
+				var result = await _userService.ForgotPasswordAsync(email);
+				return Ok(new { message = result });
+			}
+			catch (Exception ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
 		}
 
 		[HttpPost("resetpassword")]
 		public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
 		{
-			var result = await _userService.ResetPasswordAsync(dto);
-			return Ok(new { message = result });
+			try
+			{
+				var result = await _userService.ResetPasswordAsync(dto);
+				return Ok(new { message = result });
+			}
+			catch (Exception ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
 		}
 
 		// Dans AuthentificationController.cs
