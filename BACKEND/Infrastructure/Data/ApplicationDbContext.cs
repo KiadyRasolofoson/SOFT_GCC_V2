@@ -5,8 +5,7 @@ using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.dashboard;
 using soft_carriere_competence.Core.Entities.entrepriseOrg;
 using soft_carriere_competence.Core.Entities.Evaluations;
-
-using soft_carriere_competence.Core.Entities.Evaluations;
+using soft_carriere_competence.Core.Entities.license;
 using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Core.Entities.salary_skills;
@@ -128,6 +127,9 @@ namespace soft_carriere_competence.Infrastructure.Data
 
 		// Historique d'activite
 		public DbSet<ActivityLog> ActivityLog { get; set; }
+
+		// Licence
+		public DbSet<License> Licenses { get; set; }
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
