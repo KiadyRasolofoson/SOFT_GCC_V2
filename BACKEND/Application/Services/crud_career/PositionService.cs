@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class PositionService
 	{
-		private readonly ICrudRepository<Position> _repository;
+		private readonly IGenericRepository<Position> _repository;
 
-		public PositionService(ICrudRepository<Position> repository)
+		public PositionService(IGenericRepository<Position> repository)
 		{
 			_repository = repository;
 		}

@@ -6,9 +6,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class AssignmentTypeService
 	{
-		private readonly ICrudRepository<AssignmentType> _repository;
+		private readonly IGenericRepository<AssignmentType> _repository;
 
-		public AssignmentTypeService(ICrudRepository<AssignmentType> repository)
+		public AssignmentTypeService(IGenericRepository<AssignmentType> repository)
 		{
 			_repository = repository;
 		}

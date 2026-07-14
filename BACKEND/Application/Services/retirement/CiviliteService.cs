@@ -6,9 +6,9 @@ namespace soft_carriere_competence.Application.Services.retirement
 {
 	public class CiviliteService
 	{
-		private readonly ICrudRepository<Civilite> _repository;
+		private readonly IGenericRepository<Civilite> _repository;
 
-		public CiviliteService(ICrudRepository<Civilite> repository)
+		public CiviliteService(IGenericRepository<Civilite> repository)
 		{
 			_repository = repository;
 		}

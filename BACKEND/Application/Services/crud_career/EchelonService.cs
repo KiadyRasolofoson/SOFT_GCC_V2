@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class EchelonService
 	{
-		private readonly ICrudRepository<Echelon> _repository;
+		private readonly IGenericRepository<Echelon> _repository;
 
-		public EchelonService(ICrudRepository<Echelon> repository)
+		public EchelonService(IGenericRepository<Echelon> repository)
 		{
 			_repository = repository;
 		}

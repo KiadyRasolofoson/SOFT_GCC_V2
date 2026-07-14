@@ -6,10 +6,10 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 {
 	public class EmployeeSkillService
 	{
-		private readonly ICrudRepository<EmployeeSkill> _repository;
+		private readonly IGenericRepository<EmployeeSkill> _repository;
 		private readonly ISalarySkillDataService _dataService;
 
-		public EmployeeSkillService(ICrudRepository<EmployeeSkill> repository, ISalarySkillDataService dataService)
+		public EmployeeSkillService(IGenericRepository<EmployeeSkill> repository, ISalarySkillDataService dataService)
 		{
 			_repository = repository;
 			_dataService = dataService;

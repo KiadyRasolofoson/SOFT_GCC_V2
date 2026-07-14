@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class PaymentMethodService
 	{
-		private readonly ICrudRepository<PaymentMethod> _repository;
+		private readonly IGenericRepository<PaymentMethod> _repository;
 
-		public PaymentMethodService(ICrudRepository<PaymentMethod> repository)
+		public PaymentMethodService(IGenericRepository<PaymentMethod> repository)
 		{
 			_repository = repository;
 		}

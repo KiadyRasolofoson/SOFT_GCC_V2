@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class NewsLetterTemplateService
 	{
-		private readonly ICrudRepository<NewsLetterTemplate> _repository;
+		private readonly IGenericRepository<NewsLetterTemplate> _repository;
 
-		public NewsLetterTemplateService(ICrudRepository<NewsLetterTemplate> repository)
+		public NewsLetterTemplateService(IGenericRepository<NewsLetterTemplate> repository)
 		{
 			_repository = repository;
 		}

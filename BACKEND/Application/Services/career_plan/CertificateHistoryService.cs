@@ -7,10 +7,10 @@ namespace soft_carriere_competence.Application.Services.career_plan
 {
     public class CertificateHistoryService
     {
-        private readonly ICrudRepository<CertificateHistory> _repository;
+        private readonly IGenericRepository<CertificateHistory> _repository;
         private readonly ICareerPlanDataService _dataService;
 
-        public CertificateHistoryService(ICrudRepository<CertificateHistory> repository, ICareerPlanDataService dataService)
+        public CertificateHistoryService(IGenericRepository<CertificateHistory> repository, ICareerPlanDataService dataService)
         {
             _repository = repository;
             _dataService = dataService;

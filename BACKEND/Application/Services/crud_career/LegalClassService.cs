@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class LegalClassService
 	{
-		private readonly ICrudRepository<LegalClass> _repository;
+		private readonly IGenericRepository<LegalClass> _repository;
 
-		public LegalClassService(ICrudRepository<LegalClass> repository)
+		public LegalClassService(IGenericRepository<LegalClass> repository)
 		{
 			_repository = repository;
 		}
