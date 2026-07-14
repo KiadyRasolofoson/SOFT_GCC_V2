@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class IndicationService
 	{
-		private readonly ICrudRepository<Indication> _repository;
+		private readonly IGenericRepository<Indication> _repository;
 
-		public IndicationService(ICrudRepository<Indication> repository)
+		public IndicationService(IGenericRepository<Indication> repository)
 		{
 			_repository = repository;
 		}

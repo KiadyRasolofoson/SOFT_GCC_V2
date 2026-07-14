@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class CertificateTypeService
 	{
-		private readonly ICrudRepository<CertificateType> _repository;
+		private readonly IGenericRepository<CertificateType> _repository;
 
-		public CertificateTypeService(ICrudRepository<CertificateType> repository)
+		public CertificateTypeService(IGenericRepository<CertificateType> repository)
 		{
 			_repository = repository;
 		}

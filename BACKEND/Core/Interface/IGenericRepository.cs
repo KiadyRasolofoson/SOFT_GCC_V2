@@ -39,5 +39,12 @@ namespace soft_carriere_competence.Core.Interface
         Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
 
         Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null);
+
+        // === Méthodes de compatibilité (alias sans Async pour remplacer ICrudRepository) ===
+        Task<IEnumerable<T>> GetAll();
+        Task<T> GetById(int id);
+        Task Add(T entity);
+        Task Update(T entity);
+        Task Delete(int id);
     }
 }

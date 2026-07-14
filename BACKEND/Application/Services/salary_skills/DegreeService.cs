@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 {
 	public class DegreeService
 	{
-		private readonly ICrudRepository<Degree> _repository;
+		private readonly IGenericRepository<Degree> _repository;
 
-		public DegreeService(ICrudRepository<Degree> repository)
+		public DegreeService(IGenericRepository<Degree> repository)
 		{
 			_repository = repository;
 		}

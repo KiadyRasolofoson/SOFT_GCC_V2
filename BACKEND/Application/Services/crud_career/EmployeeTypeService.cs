@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class EmployeeTypeService
 	{
-		private readonly ICrudRepository<EmployeeType> _repository;
+		private readonly IGenericRepository<EmployeeType> _repository;
 
-		public EmployeeTypeService(ICrudRepository<EmployeeType> repository)
+		public EmployeeTypeService(IGenericRepository<EmployeeType> repository)
 		{
 			_repository = repository;
 		}
