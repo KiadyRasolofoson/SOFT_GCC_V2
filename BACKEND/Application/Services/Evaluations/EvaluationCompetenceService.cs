@@ -41,7 +41,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
                 // 2. Récupérer les questions sélectionnées pour cette évaluation et leurs compétences associées
                 var selectedQuestionsData = await _dataService.ExecuteReaderAsync(
-                    "SELECT * FROM evaluationSelectedQuestions WHERE EvaluationId = @p0", evaluationId);
+                    "SELECT * FROM Evaluation_Selected_Questions WHERE EvaluationId = @p0", evaluationId);
 
                 var selectedQuestions = selectedQuestionsData.Select(row => new EvaluationSelectedQuestions
                 {
