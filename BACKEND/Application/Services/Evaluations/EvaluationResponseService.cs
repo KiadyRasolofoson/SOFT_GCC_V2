@@ -61,7 +61,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public async Task<List<EvaluationResponses>> GetResponsesAsync(int evaluationId)
         {
             var rows = await _dataService.ExecuteReaderAsync(
-                "SELECT * FROM evaluationResponses WHERE EvaluationId = @p0", evaluationId);
+                "SELECT * FROM Evaluation_Responses WHERE EvaluationId = @p0", evaluationId);
             return rows.Select(row => new EvaluationResponses
             {
                 ResponseId = Convert.ToInt32(row["ResponseId"]),
@@ -76,7 +76,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public async Task<EvaluationResponses> GetResponseAsync(int evaluationId, int questionId)
         {
             var rows = await _dataService.ExecuteReaderAsync(
-                "SELECT TOP 1 * FROM evaluationResponses WHERE EvaluationId = @p0 AND QuestionId = @p1",
+                "SELECT TOP 1 * FROM Evaluation_Responses WHERE EvaluationId = @p0 AND QuestionId = @p1",
                 evaluationId, questionId);
             if (rows.Count == 0) return null;
             var row = rows[0];
@@ -126,8 +126,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             // Récupérer les IDs de questions associées à l'évaluation (type QCM uniquement)
             var questionIdsRows = await _dataService.ExecuteReaderAsync(@"
-                SELECT esq.QuestionId FROM evaluationSelectedQuestions esq
-                INNER JOIN evaluationQuestions q ON esq.QuestionId = q.questionId
+                SELECT esq.QuestionId FROM Evaluation_Selected_Questions esq
+                INNER JOIN Evaluation_questions q ON esq.QuestionId = q.questionId
                 WHERE esq.EvaluationId = @p0 AND q.ResponseTypeId = 2", evaluationId);
 
             var questionIds = questionIdsRows
@@ -140,7 +140,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             // Récupérer les options pour ces questions
             var placeholders = string.Join(",", questionIds.Select((_, i) => $"@p{i}"));
             var optionsRows = await _dataService.ExecuteReaderAsync($@"
-                SELECT * FROM evaluationQuestionOptions 
+                SELECT * FROM Evaluation_Question_Options 
                 WHERE QuestionId IN ({placeholders})", questionIds.Cast<object>().ToArray());
 
             var options = optionsRows.Select(row => new EvaluationQuestionOptions
@@ -160,7 +160,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public async Task SaveProgressAsync(int evaluationId, EvaluationProgressDto progress)
         {
             var progressRows = await _dataService.ExecuteReaderAsync(
-                "SELECT * FROM evaluationProgresses WHERE evaluationId = @p0", evaluationId);
+                "SELECT * FROM Evaluation_progress WHERE evaluationId = @p0", evaluationId);
 
             if (progressRows.Count == 0)
             {
@@ -184,7 +184,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             {
                 var progressId = Convert.ToInt32(progressRows[0]["progressId"]);
                 await _dataService.ExecuteNonQueryAsync(@"
-                    UPDATE evaluationProgresses 
+                    UPDATE Evaluation_progress 
                     SET answeredQuestions = @p0, progressPercentage = @p1, lastUpdate = @p2 
                     WHERE progressId = @p3",
                     progress.AnsweredQuestions, progress.ProgressPercentage, DateTime.UtcNow, progressId);
@@ -204,7 +204,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public async Task<EvaluationResponses> UpdateProgressAsync(int evaluationId, int questionId, int timeSpent)
         {
             var existingRows = await _dataService.ExecuteReaderAsync(
-                "SELECT * FROM evaluationResponses WHERE EvaluationId = @p0 AND QuestionId = @p1",
+                "SELECT * FROM Evaluation_Responses WHERE EvaluationId = @p0 AND QuestionId = @p1",
                 evaluationId, questionId);
 
             EvaluationResponses response;
@@ -250,7 +250,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 {
                     // Vérifier si l'option sélectionnée est marquée comme correcte
                     var count = await _dataService.ExecuteScalarAsync(@"
-                        SELECT COUNT(1) FROM evaluationQuestionOptions 
+                        SELECT COUNT(1) FROM Evaluation_Question_Options 
                         WHERE QuestionId = @p0 AND OptionId = @p1 AND IsCorrect = 1",
                         questionId, optionId);
                     return count > 0;
@@ -268,7 +268,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             {
                 // Récupérer toutes les réponses de l'évaluation
                 var responsesData = await _dataService.ExecuteReaderAsync(
-                    "SELECT * FROM evaluationResponses WHERE EvaluationId = @p0", evaluationId);
+                    "SELECT * FROM Evaluation_Responses WHERE EvaluationId = @p0", evaluationId);
 
                 foreach (var row in responsesData)
                 {
@@ -284,7 +284,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         if (int.TryParse(responseValue, out int optionId))
                         {
                             var count = await _dataService.ExecuteScalarAsync(@"
-                                SELECT COUNT(1) FROM evaluationQuestionOptions 
+                                SELECT COUNT(1) FROM Evaluation_Question_Options 
                                 WHERE QuestionId = @p0 AND OptionId = @p1 AND IsCorrect = 1",
                                 questionId, optionId);
                             isCorrect = count > 0;
@@ -293,7 +293,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
                     // Mettre à jour le statut de la réponse
                     await _dataService.ExecuteNonQueryAsync(@"
-                        UPDATE evaluationResponses 
+                        UPDATE Evaluation_Responses 
                         SET IsCorrect = @p0, State = 10 
                         WHERE ResponseId = @p1",
                         isCorrect ? 1 : 0, responseId);
@@ -312,7 +312,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public async Task<Dictionary<int, List<EvaluationQuestionOptions>>> GetAllQuestionOptionsAsync(int evaluationId)
         {
             var questionIdsRows = await _dataService.ExecuteReaderAsync(@"
-                SELECT esq.QuestionId FROM evaluationSelectedQuestions esq
+                SELECT esq.QuestionId FROM Evaluation_Selected_Questions esq
                 WHERE esq.EvaluationId = @p0", evaluationId);
 
             var questionIds = questionIdsRows

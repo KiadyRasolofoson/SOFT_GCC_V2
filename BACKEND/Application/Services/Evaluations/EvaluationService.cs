@@ -276,7 +276,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             // Récupérer les IDs des réponses existantes
             var existingRows = await _dataService.ExecuteReaderAsync(
-                "SELECT ResponseId, QuestionId FROM evaluationResponses WHERE EvaluationId = @p0", evaluationId);
+                "SELECT ResponseId, QuestionId FROM Evaluation_Responses WHERE EvaluationId = @p0", evaluationId);
             var existingResponseIds = existingRows
                 .Select(r => new { QuestionId = Convert.ToInt32(r["QuestionId"]), ResponseId = Convert.ToInt32(r["ResponseId"]) })
                 .ToDictionary(r => r.QuestionId, r => r.ResponseId);
@@ -410,7 +410,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             try
             {
                 var employeeData = await _dataService.ExecuteReaderAsync(
-                    "SELECT * FROM Employee WHERE EmployeeId = @p0", employeeId);
+                    "SELECT * FROM Employee WHERE Employee_id = @p0", employeeId);
 
                 if (employeeData.Count == 0)
                 {
@@ -1019,7 +1019,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             var selectedRows = await _dataService.ExecuteReaderAsync(@"
                 SELECT esq.QuestionId, eq.question, eq.CompetenceLineId, eq.ResponseTypeId,
                        er.ResponseValue, er.IsCorrect, er.ResponseId
-                FROM evaluationSelectedQuestions esq
+                FROM Evaluation_Selected_Questions esq
                 INNER JOIN Evaluation_questions eq ON esq.QuestionId = eq.Question_id
                 LEFT JOIN Evaluation_Responses er ON er.EvaluationId = @p0 AND er.QuestionId = eq.Question_id
                 WHERE esq.EvaluationId = @p0", evaluationId);
@@ -1063,7 +1063,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             {
                 var clPlaceholders = string.Join(",", competenceLineIds.Select((_, i) => $"@p{i}"));
                 var clRows = await _dataService.ExecuteReaderAsync(
-                    $"SELECT CompetenceLineId, Description FROM CompetenceLines WHERE CompetenceLineId IN ({clPlaceholders})",
+                    $"SELECT CompetenceLineId, Description FROM Competence_Lines WHERE CompetenceLineId IN ({clPlaceholders})",
                     competenceLineIds.Cast<object>().ToArray());
                 competenceLines = clRows
                     .GroupBy(r => Convert.ToInt32(r["CompetenceLineId"]))
@@ -1260,7 +1260,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             var selectedRows = await _dataService.ExecuteReaderAsync(@"
                 SELECT esq.QuestionId, eq.question, eq.CompetenceLineId, eq.ResponseTypeId,
                        er.ResponseValue, er.ResponseId, er.IsCorrect
-                FROM evaluationSelectedQuestions esq
+                FROM Evaluation_Selected_Questions esq
                 INNER JOIN Evaluation_questions eq ON esq.QuestionId = eq.Question_id
                 LEFT JOIN Evaluation_Responses er ON er.EvaluationId = @p0 AND er.QuestionId = eq.Question_id
                 WHERE esq.EvaluationId = @p0", evaluationId);
@@ -1283,7 +1283,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 var clPlaceholders = string.Join(",", competenceLineIds.Select((_, i) => $"@p{i}"));
                 var clRows = await _dataService.ExecuteReaderAsync(
                     $"SELECT cl.CompetenceLineId, cl.Description, sp.Name AS SkillName " +
-                    $"FROM CompetenceLines cl " +
+                    $"FROM Competence_Lines cl " +
                     $"LEFT JOIN SkillPosition sp ON cl.SkillPositionId = sp.SkillPositionId " +
                     $"WHERE cl.CompetenceLineId IN ({clPlaceholders})",
                     competenceLineIds.Cast<object>().ToArray());
