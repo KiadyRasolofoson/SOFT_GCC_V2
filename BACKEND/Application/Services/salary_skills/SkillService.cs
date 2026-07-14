@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 {
 	public class SkillService
 	{
-		private readonly ICrudRepository<Skill> _repository;
+		private readonly IGenericRepository<Skill> _repository;
 
-		public SkillService(ICrudRepository<Skill> repository)
+		public SkillService(IGenericRepository<Skill> repository)
 		{
 			_repository = repository;
 		}

@@ -6,10 +6,10 @@ namespace soft_carriere_competence.Application.Services.history
 {
 	public class HistoryService
 	{
-		private readonly ICrudRepository<ActivityLog> _repository;
+		private readonly IGenericRepository<ActivityLog> _repository;
 		private readonly IHistoryDataService _dataService;
 
-		public HistoryService(ICrudRepository<ActivityLog> repository, IHistoryDataService dataService)
+		public HistoryService(IGenericRepository<ActivityLog> repository, IHistoryDataService dataService)
 		{
 			_repository = repository;
 			_dataService = dataService;

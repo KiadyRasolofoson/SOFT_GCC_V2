@@ -39,107 +39,107 @@ var builder = WebApplication.CreateBuilder(args);
 
 #region Injection independance
 builder.Services.AddScoped<EmployeeEducationService>();
-builder.Services.AddScoped<ICrudRepository<EmployeeEducation>, CrudRepository<EmployeeEducation>>();
+builder.Services.AddScoped<IGenericRepository<EmployeeEducation>, GenericRepository<EmployeeEducation>>();
 
 builder.Services.AddScoped<SchoolService>();
-builder.Services.AddScoped<ICrudRepository<School>, CrudRepository<School>>();
+builder.Services.AddScoped<IGenericRepository<School>, GenericRepository<School>>();
 
 builder.Services.AddScoped<DegreeService>();
-builder.Services.AddScoped<ICrudRepository<Degree>, CrudRepository<Degree>>();
+builder.Services.AddScoped<IGenericRepository<Degree>, GenericRepository<Degree>>();
 
 builder.Services.AddScoped<StudyPathService>();
-builder.Services.AddScoped<ICrudRepository<StudyPath>, CrudRepository<StudyPath>>();
+builder.Services.AddScoped<IGenericRepository<StudyPath>, GenericRepository<StudyPath>>();
 
 builder.Services.AddScoped<SkillService>();
-builder.Services.AddScoped<ICrudRepository<Skill>, CrudRepository<Skill>>();
+builder.Services.AddScoped<IGenericRepository<Skill>, GenericRepository<Skill>>();
 
 builder.Services.AddScoped<DomainSkillService>();
-builder.Services.AddScoped<ICrudRepository<DomainSkill>, CrudRepository<DomainSkill>>();
+builder.Services.AddScoped<IGenericRepository<DomainSkill>, GenericRepository<DomainSkill>>();
 
 builder.Services.AddScoped<EmployeeSkillService>();
-builder.Services.AddScoped<ICrudRepository<EmployeeSkill>, CrudRepository<EmployeeSkill>>();
+builder.Services.AddScoped<IGenericRepository<EmployeeSkill>, GenericRepository<EmployeeSkill>>();
 
 builder.Services.AddScoped<LanguageService>();
-builder.Services.AddScoped<ICrudRepository<Language>, CrudRepository<Language>>();
+builder.Services.AddScoped<IGenericRepository<Language>, GenericRepository<Language>>();
 
 builder.Services.AddScoped<EmployeeLanguageService>();
-builder.Services.AddScoped<ICrudRepository<EmployeeLanguage>, CrudRepository<EmployeeLanguage>>();
+builder.Services.AddScoped<IGenericRepository<EmployeeLanguage>, GenericRepository<EmployeeLanguage>>();
 
 builder.Services.AddScoped<EmployeeOtherFormationService>();
-builder.Services.AddScoped<ICrudRepository<EmployeeOtherFormation>, CrudRepository<EmployeeOtherFormation>>();
+builder.Services.AddScoped<IGenericRepository<EmployeeOtherFormation>, GenericRepository<EmployeeOtherFormation>>();
 
 builder.Services.AddScoped<EmployeeService>();
-builder.Services.AddScoped<ICrudRepository<Employee>, CrudRepository<Employee>>();
+builder.Services.AddScoped<IGenericRepository<Employee>, GenericRepository<Employee>>();
 
 builder.Services.AddScoped<DepartmentService>();
-builder.Services.AddScoped<ICrudRepository<Department>, CrudRepository<Department>>();
+builder.Services.AddScoped<IGenericRepository<Department>, GenericRepository<Department>>();
 
 builder.Services.AddScoped<CareerPlanService>();
-builder.Services.AddScoped<ICrudRepository<CareerPlan>, CrudRepository<CareerPlan>>();
+builder.Services.AddScoped<IGenericRepository<CareerPlan>, GenericRepository<CareerPlan>>();
 
 builder.Services.AddScoped<AssignmentTypeService>();
-builder.Services.AddScoped<ICrudRepository<AssignmentType>, CrudRepository<AssignmentType>>();
+builder.Services.AddScoped<IGenericRepository<AssignmentType>, GenericRepository<AssignmentType>>();
 
 builder.Services.AddScoped<EchelonService>();
-builder.Services.AddScoped<ICrudRepository<Echelon>, CrudRepository<Echelon>>();
+builder.Services.AddScoped<IGenericRepository<Echelon>, GenericRepository<Echelon>>();
 
 builder.Services.AddScoped<EmployeeTypeService>();
-builder.Services.AddScoped<ICrudRepository<EmployeeType>, CrudRepository<EmployeeType>>();
+builder.Services.AddScoped<IGenericRepository<EmployeeType>, GenericRepository<EmployeeType>>();
 
 builder.Services.AddScoped<EstablishmentService>();
-builder.Services.AddScoped<ICrudRepository<Establishment>, CrudRepository<Establishment>>();
+builder.Services.AddScoped<IGenericRepository<Establishment>, GenericRepository<Establishment>>();
 
 builder.Services.AddScoped<FonctionService>();
-builder.Services.AddScoped<ICrudRepository<Fonction>, CrudRepository<Fonction>>();
+builder.Services.AddScoped<IGenericRepository<Fonction>, GenericRepository<Fonction>>();
 
 builder.Services.AddScoped<IndicationService>();
-builder.Services.AddScoped<ICrudRepository<Indication>, CrudRepository<Indication>>();
+builder.Services.AddScoped<IGenericRepository<Indication>, GenericRepository<Indication>>();
 
 builder.Services.AddScoped<LegalClassService>();
-builder.Services.AddScoped<ICrudRepository<LegalClass>, CrudRepository<LegalClass>>();
+builder.Services.AddScoped<IGenericRepository<LegalClass>, GenericRepository<LegalClass>>();
 
 builder.Services.AddScoped<NewsLetterTemplateService>();
-builder.Services.AddScoped<ICrudRepository<NewsLetterTemplate>, CrudRepository<NewsLetterTemplate>>();
+builder.Services.AddScoped<IGenericRepository<NewsLetterTemplate>, GenericRepository<NewsLetterTemplate>>();
 
 builder.Services.AddScoped<PaymentMethodService>();
-builder.Services.AddScoped<ICrudRepository<PaymentMethod>, CrudRepository<PaymentMethod>>();
+builder.Services.AddScoped<IGenericRepository<PaymentMethod>, GenericRepository<PaymentMethod>>();
 
 builder.Services.AddScoped<PositionService>();
-builder.Services.AddScoped<ICrudRepository<Position>, CrudRepository<Position>>();
+builder.Services.AddScoped<IGenericRepository<Position>, GenericRepository<Position>>();
 
 builder.Services.AddScoped<CertificateTypeService>();
-builder.Services.AddScoped<ICrudRepository<CertificateType>, CrudRepository<CertificateType>>();
+builder.Services.AddScoped<IGenericRepository<CertificateType>, GenericRepository<CertificateType>>();
 
 builder.Services.AddScoped<CertificateHistoryService>();
-builder.Services.AddScoped<ICrudRepository<CertificateHistory>, CrudRepository<CertificateHistory>>();
+builder.Services.AddScoped<IGenericRepository<CertificateHistory>, GenericRepository<CertificateHistory>>();
 
 builder.Services.AddScoped<ProfessionalCategoryService>();
-builder.Services.AddScoped<ICrudRepository<ProfessionalCategory>, CrudRepository<ProfessionalCategory>>();
+builder.Services.AddScoped<IGenericRepository<ProfessionalCategory>, GenericRepository<ProfessionalCategory>>();
 
 builder.Services.AddScoped<SocioCategoryProfessionalService>();
-builder.Services.AddScoped<ICrudRepository<SocioCategoryProfessional>, CrudRepository<SocioCategoryProfessional>>();
+builder.Services.AddScoped<IGenericRepository<SocioCategoryProfessional>, GenericRepository<SocioCategoryProfessional>>();
 
 builder.Services.AddScoped<RetirementService>();
-builder.Services.AddScoped<ICrudRepository<RetirementParameter>, CrudRepository<RetirementParameter>>();
+builder.Services.AddScoped<IGenericRepository<RetirementParameter>, GenericRepository<RetirementParameter>>();
 
 builder.Services.AddScoped<CiviliteService>();
-builder.Services.AddScoped<ICrudRepository<Civilite>, CrudRepository<Civilite>>();
+builder.Services.AddScoped<IGenericRepository<Civilite>, GenericRepository<Civilite>>();
 
 builder.Services.AddScoped<WishEvolutionService>();
-builder.Services.AddScoped<ICrudRepository<WishEvolutionCareer>, CrudRepository<WishEvolutionCareer>>();
+builder.Services.AddScoped<IGenericRepository<WishEvolutionCareer>, GenericRepository<WishEvolutionCareer>>();
 
 builder.Services.AddScoped<WishTypeService>();
-builder.Services.AddScoped<ICrudRepository<WishType>, CrudRepository<WishType>>();
+builder.Services.AddScoped<IGenericRepository<WishType>, GenericRepository<WishType>>();
 
 builder.Services.AddScoped<HistoryService>();
-builder.Services.AddScoped<ICrudRepository<ActivityLog>, CrudRepository<ActivityLog>>();
+builder.Services.AddScoped<IGenericRepository<ActivityLog>, GenericRepository<ActivityLog>>();
 
 builder.Services.AddScoped<DashboardService>();
 
 builder.Services.AddScoped<OrgService>();
 
 builder.Services.AddScoped<WorkCertificatesService>();
-builder.Services.AddScoped<ICrudRepository<WorkCertificates>, CrudRepository<WorkCertificates>>();
+builder.Services.AddScoped<IGenericRepository<WorkCertificates>, GenericRepository<WorkCertificates>>();
 
 // EVALUATIONS
 builder.Services.AddScoped<IGenericRepository<User>, GenericRepository<User>>();

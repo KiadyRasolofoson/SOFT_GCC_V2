@@ -130,5 +130,39 @@ namespace soft_carriere_competence.Infrastructure.Repositories
                 return await _dbSet.CountAsync();
             return await _dbSet.CountAsync(predicate);
         }
+
+        // === Méthodes de compatibilité (alias pour remplacer IGenericRepository) ===
+
+        public async Task<IEnumerable<T>> GetAll()
+        {
+            return await _dbSet.ToListAsync();
+        }
+
+        public async Task<T> GetById(int id)
+        {
+            return await _dbSet.FindAsync(id);
+        }
+
+        public async Task Add(T entity)
+        {
+            await _dbSet.AddAsync(entity);
+            await context.SaveChangesAsync();
+        }
+
+        public async Task Update(T entity)
+        {
+            _dbSet.Update(entity);
+            await context.SaveChangesAsync();
+        }
+
+        public async Task Delete(int id)
+        {
+            var entity = await _dbSet.FindAsync(id);
+            if (entity != null)
+            {
+                _dbSet.Remove(entity);
+                await context.SaveChangesAsync();
+            }
+        }
     }
 }

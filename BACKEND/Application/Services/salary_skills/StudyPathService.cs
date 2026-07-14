@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 {
 	public class StudyPathService
 	{
-		private readonly ICrudRepository<StudyPath> _repository;
+		private readonly IGenericRepository<StudyPath> _repository;
 
-		public StudyPathService(ICrudRepository<StudyPath> repository)
+		public StudyPathService(IGenericRepository<StudyPath> repository)
 		{
 			_repository = repository;
 		}

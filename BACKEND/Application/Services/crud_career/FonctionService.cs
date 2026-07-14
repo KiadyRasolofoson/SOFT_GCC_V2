@@ -5,9 +5,9 @@ namespace soft_carriere_competence.Application.Services.crud_career
 {
 	public class FonctionService
 	{
-		private readonly ICrudRepository<Fonction> _repository;
+		private readonly IGenericRepository<Fonction> _repository;
 
-		public FonctionService(ICrudRepository<Fonction> repository)
+		public FonctionService(IGenericRepository<Fonction> repository)
 		{
 			_repository = repository;
 		}
