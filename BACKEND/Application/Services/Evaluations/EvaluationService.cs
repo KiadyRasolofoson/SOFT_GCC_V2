@@ -5,11 +5,12 @@ using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.EvaluationInterface;
 using soft_carriere_competence.Core.Interface.DataService;
 using soft_carriere_competence.Core.Interface.AuthInterface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 using Microsoft.Extensions.Options;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
-    public class EvaluationService
+    public class EvaluationService : IEvaluationService
     {
         private readonly IEvaluationQuestionRepository _questionRepository;
         private readonly IGenericRepository<EvaluationType> _evaluationTypeRepository;

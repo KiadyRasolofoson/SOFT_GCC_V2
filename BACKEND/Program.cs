@@ -19,6 +19,7 @@ using soft_carriere_competence.Core.Interface.EvaluationInterface;
 using soft_carriere_competence.Infrastructure.Repositories.EvaluationRepositories;
 using soft_carriere_competence.Core.Interface.DataService;
 using soft_carriere_competence.Infrastructure.Repositories.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Application.Services.retirement;
 using soft_carriere_competence.Application.Services.wish_evolution;
@@ -68,7 +69,7 @@ builder.Services.AddScoped<IGenericRepository<EmployeeLanguage>, GenericReposito
 builder.Services.AddScoped<EmployeeOtherFormationService>();
 builder.Services.AddScoped<IGenericRepository<EmployeeOtherFormation>, GenericRepository<EmployeeOtherFormation>>();
 
-builder.Services.AddScoped<EmployeeService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IGenericRepository<Employee>, GenericRepository<Employee>>();
 
 builder.Services.AddScoped<DepartmentService>();
@@ -166,7 +167,6 @@ builder.Services.AddScoped<IEvaluationQuestionRepository, EvaluationQuestionRepo
 
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<EvaluationHistoryService>();
 builder.Services.AddScoped<EvaluationPortalService>();
 builder.Services.AddScoped<ReminderBackgroundService>();
@@ -211,7 +211,7 @@ builder.Services.AddCors(options =>
 #endregion
 
 #region dbContext
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration["ConnectionStrings:DefaultConnection"]), ServiceLifetime.Transient);
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration["ConnectionStrings:DefaultConnection"]), ServiceLifetime.Scoped);
 
 #endregion
 
