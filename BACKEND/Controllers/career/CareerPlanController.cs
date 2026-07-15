@@ -15,6 +15,7 @@ using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.career
 {
@@ -22,13 +23,13 @@ namespace soft_carriere_competence.Controllers.career
 	[ApiController]
 	public class CareerPlanController : ControllerBase
 	{
-		private readonly CareerPlanService _careerPlanService;
-		private readonly HistoryService _historyService;
-		private readonly AssignmentTypeService _assignmentTypeService;
-		private readonly CertificateHistoryService _certificateHistoryService;
+		private readonly ICareerPlanService _careerPlanService;
+		private readonly IHistoryService _historyService;
+		private readonly IAssignmentTypeService _assignmentTypeService;
+		private readonly ICertificateHistoryService _certificateHistoryService;
 		private readonly WorkCertificatesService _workCertificatesService;
 
-		public CareerPlanController(CareerPlanService service, HistoryService historyService, AssignmentTypeService assignmentTypeService, CertificateHistoryService certificateHistoryService, WorkCertificatesService workCertificatesService)
+		public CareerPlanController(ICareerPlanService service, IHistoryService historyService, IAssignmentTypeService assignmentTypeService, ICertificateHistoryService certificateHistoryService, WorkCertificatesService workCertificatesService)
 		{
 			_careerPlanService = service;
 			_historyService = historyService;

@@ -1,11 +1,12 @@
 ﻿using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
-	public class DepartmentService
+	public class DepartmentService : IDepartmentService
 	{
 		private readonly IGenericRepository<Department> _repository;
 

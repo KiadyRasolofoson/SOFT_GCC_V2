@@ -879,7 +879,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
         // Méthode pour récupérer une évaluation par son ID
-        public async Task<Evaluation> GetEvaluationByIdAsync(int evaluationId)
+        public async Task<Evaluation?> GetEvaluationByIdAsync(int evaluationId)
         {
             return await _evaluationRepository.GetByIdAsync(evaluationId);
         }

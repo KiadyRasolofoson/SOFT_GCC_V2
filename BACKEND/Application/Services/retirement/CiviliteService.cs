@@ -1,10 +1,11 @@
 ﻿using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Core.Interface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.retirement
 {
-	public class CiviliteService
+	public class CiviliteService : ICiviliteService
 	{
 		private readonly IGenericRepository<Civilite> _repository;
 

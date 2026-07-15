@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.salary_skills
 {
@@ -9,9 +10,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 	[ApiController]
 	public class LanguageController : ControllerBase
 	{
-			private readonly LanguageService _languageService;
+			private readonly ILanguageService _languageService;
 
-			public LanguageController(LanguageService service)
+			public LanguageController(ILanguageService service)
 			{
 				_languageService = service;
 			}

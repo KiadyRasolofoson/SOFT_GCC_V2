@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Core.Entities.crud_career;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.crud_career
 {
@@ -9,9 +10,9 @@ namespace soft_carriere_competence.Controllers.crud_career
 	[ApiController]
 	public class IndicationController : ControllerBase
 	{
-		private readonly IndicationService _indicationService;
+		private readonly IIndicationService _indicationService;
 
-		public IndicationController(IndicationService service)
+		public IndicationController(IIndicationService service)
 		{
 			_indicationService = service;
 		}

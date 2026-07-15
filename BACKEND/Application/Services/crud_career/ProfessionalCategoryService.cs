@@ -1,9 +1,10 @@
 ﻿using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Interface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.crud_career
 {
-	public class ProfessionalCategoryService
+	public class ProfessionalCategoryService : IProfessionalCategoryService
 	{
 		private readonly IGenericRepository<ProfessionalCategory> _repository;
 

@@ -2,10 +2,11 @@
 using soft_carriere_competence.Core.Entities.entrepriseOrg;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.entrepriseOrg
 {
-	public class OrgService
+	public class OrgService : IOrgService
 	{
 		private readonly IOrgDataService _dataService;
 

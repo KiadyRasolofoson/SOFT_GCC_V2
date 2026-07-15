@@ -9,7 +9,7 @@ using soft_carriere_competence.Application.Services.history;
 using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Core.Entities.salary_skills;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.salary_skills
 {
@@ -18,12 +18,12 @@ namespace soft_carriere_competence.Controllers.salary_skills
 	[Authorize]
 	public class EmployeeSkillsController : ControllerBase
 	{
-		private readonly EmployeeSkillService _employeeSkillService;
-		private readonly HistoryService _historyService;
-		private readonly SkillService _skillService;
+		private readonly IEmployeeSkillService _employeeSkillService;
+		private readonly IHistoryService _historyService;
+		private readonly ISkillService _skillService;
 		private readonly UserService _userService;
 
-		public EmployeeSkillsController(EmployeeSkillService service, HistoryService historyService, SkillService skillService, UserService userService)
+		public EmployeeSkillsController(IEmployeeSkillService service, IHistoryService historyService, ISkillService skillService, UserService userService)
 		{
 			_employeeSkillService = service;
 			_historyService = historyService;

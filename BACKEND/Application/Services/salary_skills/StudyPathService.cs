@@ -1,9 +1,10 @@
 ﻿using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
-	public class StudyPathService
+	public class StudyPathService : IStudyPathService
 	{
 		private readonly IGenericRepository<StudyPath> _repository;
 

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Core.Entities.crud_career;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.crud_career
 {
@@ -9,9 +10,9 @@ namespace soft_carriere_competence.Controllers.crud_career
 	[ApiController]
 	public class NewsLetterTemplateController : ControllerBase
 	{
-		private readonly NewsLetterTemplateService _newsLetterTemplateService;
+		private readonly INewsLetterTemplateService _newsLetterTemplateService;
 
-		public NewsLetterTemplateController(NewsLetterTemplateService service)
+		public NewsLetterTemplateController(INewsLetterTemplateService service)
 		{
 			_newsLetterTemplateService = service;
 		}

@@ -1,4 +1,5 @@
 using soft_carriere_competence.Application.Services.license;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Middleware
 {
@@ -44,7 +45,7 @@ namespace soft_carriere_competence.Middleware
             _options = options ?? new LicenseCheckMiddlewareOptions();
         }
 
-        public async Task InvokeAsync(HttpContext context, LicenseService licenseService)
+        public async Task InvokeAsync(HttpContext context, ILicenseService licenseService)
         {
             try
             {

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Core.Entities.crud_career;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.salary_skills
 {
@@ -9,9 +10,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 	[ApiController]
 	public class CertificateTypeController : ControllerBase
 	{
-		private readonly CertificateTypeService _certificateTypeService;
+		private readonly ICertificateTypeService _certificateTypeService;
 
-		public CertificateTypeController(CertificateTypeService service)
+		public CertificateTypeController(ICertificateTypeService service)
 		{
 			_certificateTypeService = service;
 		}

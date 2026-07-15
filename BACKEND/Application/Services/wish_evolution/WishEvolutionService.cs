@@ -1,10 +1,11 @@
 ﻿using soft_carriere_competence.Core.Entities.wish_evolution;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.wish_evolution
 {
-	public class WishEvolutionService
+	public class WishEvolutionService : IWishEvolutionService
 	{
 		private readonly IGenericRepository<WishEvolutionCareer> _repository;
 		private readonly IWishEvolutionDataService _dataService;
@@ -13,6 +14,11 @@ namespace soft_carriere_competence.Application.Services.wish_evolution
 		{
 			_repository = repository;
 			_dataService = dataService;
+		}
+
+		public async Task<IEnumerable<WishEvolutionCareer>> GetAll()
+		{
+			return await _repository.GetAll();
 		}
 
 		public async Task<WishEvolutionCareer> GetById(int id)
@@ -33,6 +39,22 @@ namespace soft_carriere_competence.Application.Services.wish_evolution
 		public async Task<List<PcdSuggestionPosition>> GetSuggestionPosition(int idEmployee)
 		{
 			return await _dataService.GetSuggestionPosition(idEmployee);
+		}
+
+		public async Task<object?> GetWishEvolution(int page, int pageSize, string? keyWord)
+		{
+			return await _dataService.GetAllWishEvolution(page, pageSize);
+		}
+
+		public async Task<List<VWishEvolution>> GetEmployeeWishEvolution(int idEmployee)
+		{
+			return await _dataService.GetWishEvolutionById(idEmployee);
+		}
+
+		public async Task<List<WishEvolutionCareer>> GetWishesByEmployeeAsync(int employeeId)
+		{
+			var wishes = await _repository.GetAll();
+			return wishes.Where(w => w.EmployeeId == employeeId).ToList();
 		}
 
 		public async Task<object> GetAllWishEvolution(int pageNumber = 1, int pageSize = 10)
