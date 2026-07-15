@@ -6,6 +6,7 @@ using soft_carriere_competence.Application.Services.retirement;
 using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.salary_skills
 {
@@ -14,9 +15,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 	[Authorize]
 	public class EmployeeController : ControllerBase
 	{
-		private readonly EmployeeService _employeeService;
+		private readonly IEmployeeService _employeeService;
 
-		public EmployeeController(EmployeeService service)
+		public EmployeeController(IEmployeeService service)
 		{
 			_employeeService = service;
 		}
@@ -165,8 +166,7 @@ namespace soft_carriere_competence.Controllers.salary_skills
 			}
 			catch (ArgumentException ex)
 			{
-				// Exception de validation des paramètres (message personnalisé)
-				return Ok(new
+				return BadRequest(new
 				{
 					Success = false,
 					Message = ex.Message,
@@ -179,8 +179,7 @@ namespace soft_carriere_competence.Controllers.salary_skills
 			}
 			catch (Exception ex)
 			{
-				// Exception générique (message standard)
-				return Ok(new
+				return StatusCode(500, new
 				{
 					Success = false,
 					Message = "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
