@@ -13,8 +13,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             using (var wordDoc = WordprocessingDocument.Open(fileStream, false))
             {
-                var body = wordDoc.MainDocumentPart.Document.Body;
-                return body.InnerText; // Retourne le contenu brut du fichier Word
+                var body = wordDoc.MainDocumentPart?.Document?.Body;
+                return body?.InnerText ?? string.Empty; // Retourne le contenu brut du fichier Word
             }
         }
 

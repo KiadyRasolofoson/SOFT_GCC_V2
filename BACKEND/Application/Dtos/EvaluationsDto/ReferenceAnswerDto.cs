@@ -21,26 +21,26 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
         /// <summary>
         /// Texte de référence (réponse modèle)
         /// </summary>
-        public string ReferenceText { get; set; }
+        public string ReferenceText { get; set; } = string.Empty;
 
         /// <summary>
         /// Lignes directrices pour l'évaluation
         /// </summary>
-        public string EvaluationGuidelines { get; set; }
+        public string EvaluationGuidelines { get; set; } = string.Empty;
 
         /// <summary>
         /// Points clés attendus dans la réponse
         /// </summary>
-        public string ExpectedKeyPoints { get; set; }
+        public string ExpectedKeyPoints { get; set; } = string.Empty;
 
         /// <summary>
         /// Descriptions des niveaux de réponse (1-5)
         /// </summary>
-        public string ScoreDescription1 { get; set; }
-        public string ScoreDescription2 { get; set; }
-        public string ScoreDescription3 { get; set; }
-        public string ScoreDescription4 { get; set; }
-        public string ScoreDescription5 { get; set; }
+        public string ScoreDescription1 { get; set; } = string.Empty;
+        public string ScoreDescription2 { get; set; } = string.Empty;
+        public string ScoreDescription3 { get; set; } = string.Empty;
+        public string ScoreDescription4 { get; set; } = string.Empty;
+        public string ScoreDescription5 { get; set; } = string.Empty;
 
         /// <summary>
         /// Méthode utilitaire pour obtenir la description d'un score particulier

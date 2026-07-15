@@ -16,10 +16,10 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public int Evaluations_id { get; set; }
 
         [StringLength(255)]
-        public string TempLogin { get; set; }
+        public string TempLogin { get; set; } = string.Empty;
 
         [StringLength(255)]
-        public string TempPassword { get; set; }
+        public string TempPassword { get; set; } = string.Empty;
 
         public DateTime ExpirationDate { get; set; }
 
@@ -30,9 +30,9 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         // Relations
 
         [ForeignKey("EmployeeId")]
-        public virtual Employee Employee { get; set; }
+        public virtual Employee Employee { get; set; } = null!;
 
         [ForeignKey("Evaluations_id")]
-        public virtual Evaluation Evaluation { get; set; }
+        public virtual Evaluation Evaluation { get; set; } = null!;
     }
 }

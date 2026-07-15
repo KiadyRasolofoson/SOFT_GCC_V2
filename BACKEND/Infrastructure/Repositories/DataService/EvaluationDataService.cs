@@ -607,9 +607,10 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
         {
             return await _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.Role.Title.Contains("Manager")
-                         || u.Role.Title.Contains("Director")
-                         || u.Role.Title.Contains("Directeur"))
+                .Where(u => u.Role != null && u.Role.Title != null &&
+                    (u.Role.Title.Contains("Manager")
+                     || u.Role.Title.Contains("Director")
+                     || u.Role.Title.Contains("Directeur")))
                 .ToListAsync();
         }
 

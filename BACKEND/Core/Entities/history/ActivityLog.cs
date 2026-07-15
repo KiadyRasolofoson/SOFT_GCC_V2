@@ -17,15 +17,15 @@ namespace soft_carriere_competence.Core.Entities.history
 		public int Module { get; set; }
 
 		[Column("Action")]
-		public string Action { get; set; }
+public string Action { get; set; } = string.Empty;
 
-		[Column("Description")]
-		public string Description { get; set; }
+        [Column("Description")]
+        public string Description { get; set; } = string.Empty;
 
 		[Column("Creation_date")]
 		public DateTime Timestamp { get; set; }
 
 		[Column("Metadata")]
-		public string Metadata { get; set; }
+		public string Metadata { get; set; } = string.Empty;
 	}
 }

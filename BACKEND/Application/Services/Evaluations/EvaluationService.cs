@@ -23,7 +23,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         private readonly TemporaryAccountService _temporaryAccountService;
         private readonly IEmailService _emailService;
         private readonly ReminderSettings _reminderSettings;
-        private readonly EvaluationCompetenceService _competenceService;
+        private readonly EvaluationCompetenceService? _competenceService;
 
         public EvaluationService(IEvaluationQuestionRepository questionRepository, IGenericRepository<EvaluationType> evaluationType,
             IGenericRepository<EvaluationQuestion> EvaluationQuestion, IGenericRepository<Evaluation> _evaluation,
@@ -34,7 +34,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             IGenericRepository<Position> poste,
             IEvaluationDataService dataService,
             TemporaryAccountService temporaryAccountService,
-            EvaluationCompetenceService competenceService = null)
+            EvaluationCompetenceService? competenceService = null)
         {
             _questionRepository = questionRepository;
             _evaluationTypeRepository = evaluationType;

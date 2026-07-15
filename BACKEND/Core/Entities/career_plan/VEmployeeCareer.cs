@@ -9,7 +9,7 @@ namespace soft_carriere_competence.Core.Entities.career_plan
 		public string? RegistrationNumber { get; set; }
 
         [Column("civilite_name")]
-        public string CiviliteName { get; set; }
+        public string CiviliteName { get; set; } = string.Empty;
 
         [Column("Name")]
 		public string? Name { get; set; }

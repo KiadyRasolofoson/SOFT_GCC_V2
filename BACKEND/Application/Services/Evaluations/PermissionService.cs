@@ -21,7 +21,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return permissions.Where(p => p.State == 1);
         }
 
-        public async Task<Permission> GetByIdAsync(int id)
+        public async Task<Permission?> GetByIdAsync(int id)
         {
             return await _dataService.GetPermissionByIdAsync(id);
         }

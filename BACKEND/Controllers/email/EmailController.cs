@@ -22,16 +22,22 @@ namespace soft_carriere_competence.Controllers.email
 		{
 			try
 			{
-				var smtpClient = new SmtpClient(_configuration["Smtp:Host"])
+				var smtpHost = _configuration["Smtp:Host"] ?? "";
+				var smtpPort = _configuration["Smtp:Port"] ?? "587";
+				var smtpUsername = _configuration["Smtp:Username"] ?? "";
+				var smtpPassword = _configuration["Smtp:Password"] ?? "";
+				var senderEmail = _configuration["Smtp:SenderEmail"] ?? "";
+
+				var smtpClient = new SmtpClient(smtpHost)
 				{
-					Port = int.Parse(_configuration["Smtp:Port"]),
-					Credentials = new NetworkCredential(_configuration["Smtp:Username"], _configuration["Smtp:Password"]),
+					Port = int.Parse(smtpPort),
+					Credentials = new NetworkCredential(smtpUsername, smtpPassword),
 					EnableSsl = true,
 				};
 
 				var mailMessage = new MailMessage
 				{
-					From = new MailAddress(_configuration["Smtp:SenderEmail"]),
+					From = new MailAddress(senderEmail),
 					Subject = request.Subject,
 					Body = request.Body,
 					IsBodyHtml = true,

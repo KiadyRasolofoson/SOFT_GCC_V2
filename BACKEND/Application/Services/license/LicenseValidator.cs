@@ -77,7 +77,7 @@ namespace soft_carriere_competence.Application.Services.license
             }
 
             // Étape 2 : Parsing JSON du payload
-            LicensePayload payload;
+            LicensePayload? payload;
             try
             {
                 payload = JsonSerializer.Deserialize<LicensePayload>(payloadJson);

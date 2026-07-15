@@ -15,9 +15,9 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public int SupervisorId { get; set; }
 
         [ForeignKey("EvaluationId")]
-        public virtual Evaluation Evaluation { get; set; }
+        public virtual Evaluation Evaluation { get; set; } = null!;
 
         [ForeignKey("SupervisorId")]
-        public virtual User Supervisor { get; set; }
+        public virtual User Supervisor { get; set; } = null!;
     }
 }

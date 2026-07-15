@@ -18,17 +18,17 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public int SkillPositionId { get; set; }
 
         [Column("Description")]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [Column("state")]
         public int State { get; set; } = 1;
 
         [ForeignKey("SkillPositionId")]
-        public SkillPosition SkillPosition { get; set; }
+        public SkillPosition SkillPosition { get; set; } = null!;
 
         // Navigation properties
-        public virtual ICollection<EvaluationQuestion> EvaluationQuestions { get; set; }
-        public virtual ICollection<TrainingSuggestion> TrainingSuggestions { get; set; }
-        public virtual ICollection<CompetenceTraining> CompetenceTrainings { get; set; }
+        public virtual ICollection<EvaluationQuestion> EvaluationQuestions { get; set; } = new List<EvaluationQuestion>();
+        public virtual ICollection<TrainingSuggestion> TrainingSuggestions { get; set; } = new List<TrainingSuggestion>();
+        public virtual ICollection<CompetenceTraining> CompetenceTrainings { get; set; } = new List<CompetenceTraining>();
     }
 } 

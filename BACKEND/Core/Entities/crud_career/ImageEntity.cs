@@ -11,15 +11,15 @@ namespace soft_carriere_competence.Core.Entities.crud_career
 		public int Id { get; set; }
 
 		[Column("file_name")]
-		public string FileName { get; set; }
+public string FileName { get; set; } = string.Empty;
 
-		[Column("content_type")]
-		public string ContentType { get; set; }
+        [Column("content_type")]
+        public string ContentType { get; set; } = string.Empty;
 
 		[Column("size")]
 		public long Size { get; set; }
 
 		[Column("image_data")]
-		public byte[] ImageData { get; set; } // Stocker l'image en base
+		public byte[] ImageData { get; set; } = Array.Empty<byte>(); // Stocker l'image en base
 	}
 }

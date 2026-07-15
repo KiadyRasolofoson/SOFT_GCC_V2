@@ -17,9 +17,9 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public int? CompetenceLineId { get; set; }
         [MaxLength(255)]
         [Column("training")]
-        public string Training { get; set; }
+        public string Training { get; set; } = string.Empty;
         [Column("details")]
-        public string Details { get; set; }
+        public string Details { get; set; } = string.Empty;
         [Column("state")]
         public int state {  get; set; }
         [Column("TrainingId")]
@@ -28,12 +28,12 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         [Column("scoreThreshold")]
         public int scoreThreshold {  get; set; }
         [ForeignKey("evaluationTypeId")]
-        public EvaluationType evaluationType { get; set; }
+public EvaluationType evaluationType { get; set; } = null!;
         [ForeignKey("questionId")]
-        public EvaluationQuestion evaluationQuestion {  get; set; }
+        public EvaluationQuestion evaluationQuestion { get; set; } = null!;
         [ForeignKey("CompetenceLineId")]
-        public CompetenceLine competenceLine { get; set; }
+        public CompetenceLine competenceLine { get; set; } = null!;
         [ForeignKey("TrainingId")]
-        public CompetenceTraining competenceTraining { get; set; }
+        public CompetenceTraining competenceTraining { get; set; } = null!;
     }
 }

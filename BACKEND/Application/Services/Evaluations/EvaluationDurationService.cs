@@ -230,8 +230,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             var evaluations = await _evaluationRepository.FindAsync(e =>
                 e.EvaluationTypeId == evaluationTypeId &&
                 e.state == 20 &&
-                e.completionDate != null &&
-                e.StartDate != null);
+                e.completionDate != null);
 
             var completedEvaluations = evaluations
                 .Select(e => new
