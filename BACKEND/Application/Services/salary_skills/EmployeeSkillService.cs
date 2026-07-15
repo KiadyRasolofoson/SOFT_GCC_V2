@@ -1,10 +1,11 @@
 ﻿using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
-	public class EmployeeSkillService
+	public class EmployeeSkillService : IEmployeeSkillService
 	{
 		private readonly IGenericRepository<EmployeeSkill> _repository;
 		private readonly ISalarySkillDataService _dataService;

@@ -1,10 +1,11 @@
 ﻿using soft_carriere_competence.Core.Entities.dashboard;
 using soft_carriere_competence.Core.Entities.Dtos.Dashboard;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.dashboard
 {
-	public class DashboardService
+	public class DashboardService : IDashboardService
 	{
 		private readonly IDashboardDataService _dataService;
 

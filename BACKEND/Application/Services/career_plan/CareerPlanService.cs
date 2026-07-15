@@ -7,10 +7,11 @@ using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.career_plan
 {
-	public class CareerPlanService
+	public class CareerPlanService : ICareerPlanService
 	{
 		private readonly IGenericRepository<CareerPlan> _repository;
 		private readonly ICareerPlanDataService _dataService;

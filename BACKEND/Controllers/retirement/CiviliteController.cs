@@ -4,6 +4,7 @@ using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Application.Services.retirement;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.retirement;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.retirement
 {
@@ -11,9 +12,9 @@ namespace soft_carriere_competence.Controllers.retirement
 	[ApiController]
 	public class CiviliteController : ControllerBase
 	{
-		private readonly CiviliteService _civiliteService;
+		private readonly ICiviliteService _civiliteService;
 
-		public CiviliteController(CiviliteService service)
+		public CiviliteController(ICiviliteService service)
 		{
 			_civiliteService = service;
 		}

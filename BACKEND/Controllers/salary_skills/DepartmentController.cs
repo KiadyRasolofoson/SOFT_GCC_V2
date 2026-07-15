@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -11,9 +12,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 	[ApiController]
 	public class DepartmentController : ControllerBase
 	{
-		private readonly DepartmentService _departmentService;
+		private readonly IDepartmentService _departmentService;
 
-		public DepartmentController(DepartmentService service)
+		public DepartmentController(IDepartmentService service)
 		{
 			_departmentService = service;
 		}

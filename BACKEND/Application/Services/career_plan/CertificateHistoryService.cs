@@ -2,10 +2,11 @@
 using soft_carriere_competence.Core.Entities.career_plan;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.career_plan
 {
-    public class CertificateHistoryService
+    public class CertificateHistoryService : ICertificateHistoryService
     {
         private readonly IGenericRepository<CertificateHistory> _repository;
         private readonly ICareerPlanDataService _dataService;

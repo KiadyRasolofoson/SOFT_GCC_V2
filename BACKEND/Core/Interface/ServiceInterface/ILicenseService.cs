@@ -1,3 +1,5 @@
+using soft_carriere_competence.Application.Dtos.LicenseDto;
+
 namespace soft_carriere_competence.Core.Interface.ServiceInterface
 {
     /// <summary>
@@ -5,8 +7,7 @@ namespace soft_carriere_competence.Core.Interface.ServiceInterface
     /// </summary>
     public interface ILicenseService
     {
-        Task<bool> ValidateLicense(string licenseKey);
-        Task<string> GenerateLicense(string clientName, string? macAddress = null);
-        Task<bool> RevokeLicense(string licenseKey);
+        Task<LicenseValidationResult> Activate(LicenseActivateDto dto);
+        Task<LicenseValidationResult> GetStatus();
     }
 }

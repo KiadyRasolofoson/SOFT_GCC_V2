@@ -1,10 +1,11 @@
 ﻿using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.history
 {
-	public class HistoryService
+	public class HistoryService : IHistoryService
 	{
 		private readonly IGenericRepository<ActivityLog> _repository;
 		private readonly IHistoryDataService _dataService;

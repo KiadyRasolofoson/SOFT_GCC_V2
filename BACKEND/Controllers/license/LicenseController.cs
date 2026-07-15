@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Dtos.LicenseDto;
 using soft_carriere_competence.Application.Services.license;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.license
 {
@@ -12,9 +13,9 @@ namespace soft_carriere_competence.Controllers.license
     [ApiController]
     public class LicenseController : ControllerBase
     {
-        private readonly LicenseService _licenseService;
+        private readonly ILicenseService _licenseService;
 
-        public LicenseController(LicenseService licenseService)
+        public LicenseController(ILicenseService licenseService)
         {
             _licenseService = licenseService;
         }

@@ -39,105 +39,105 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 #region Injection independance
-builder.Services.AddScoped<EmployeeEducationService>();
+builder.Services.AddScoped<IEmployeeEducationService, EmployeeEducationService>();
 builder.Services.AddScoped<IGenericRepository<EmployeeEducation>, GenericRepository<EmployeeEducation>>();
 
-builder.Services.AddScoped<SchoolService>();
+builder.Services.AddScoped<ISchoolService, SchoolService>();
 builder.Services.AddScoped<IGenericRepository<School>, GenericRepository<School>>();
 
-builder.Services.AddScoped<DegreeService>();
+builder.Services.AddScoped<IDegreeService, DegreeService>();
 builder.Services.AddScoped<IGenericRepository<Degree>, GenericRepository<Degree>>();
 
-builder.Services.AddScoped<StudyPathService>();
+builder.Services.AddScoped<IStudyPathService, StudyPathService>();
 builder.Services.AddScoped<IGenericRepository<StudyPath>, GenericRepository<StudyPath>>();
 
-builder.Services.AddScoped<SkillService>();
+builder.Services.AddScoped<ISkillService, SkillService>();
 builder.Services.AddScoped<IGenericRepository<Skill>, GenericRepository<Skill>>();
 
-builder.Services.AddScoped<DomainSkillService>();
+builder.Services.AddScoped<IDomainSkillService, DomainSkillService>();
 builder.Services.AddScoped<IGenericRepository<DomainSkill>, GenericRepository<DomainSkill>>();
 
-builder.Services.AddScoped<EmployeeSkillService>();
+builder.Services.AddScoped<IEmployeeSkillService, EmployeeSkillService>();
 builder.Services.AddScoped<IGenericRepository<EmployeeSkill>, GenericRepository<EmployeeSkill>>();
 
-builder.Services.AddScoped<LanguageService>();
+builder.Services.AddScoped<ILanguageService, LanguageService>();
 builder.Services.AddScoped<IGenericRepository<Language>, GenericRepository<Language>>();
 
-builder.Services.AddScoped<EmployeeLanguageService>();
+builder.Services.AddScoped<IEmployeeLanguageService, EmployeeLanguageService>();
 builder.Services.AddScoped<IGenericRepository<EmployeeLanguage>, GenericRepository<EmployeeLanguage>>();
 
-builder.Services.AddScoped<EmployeeOtherFormationService>();
+builder.Services.AddScoped<IEmployeeOtherFormationService, EmployeeOtherFormationService>();
 builder.Services.AddScoped<IGenericRepository<EmployeeOtherFormation>, GenericRepository<EmployeeOtherFormation>>();
 
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IGenericRepository<Employee>, GenericRepository<Employee>>();
 
-builder.Services.AddScoped<DepartmentService>();
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IGenericRepository<Department>, GenericRepository<Department>>();
 
-builder.Services.AddScoped<CareerPlanService>();
+builder.Services.AddScoped<ICareerPlanService, CareerPlanService>();
 builder.Services.AddScoped<IGenericRepository<CareerPlan>, GenericRepository<CareerPlan>>();
 
-builder.Services.AddScoped<AssignmentTypeService>();
+builder.Services.AddScoped<IAssignmentTypeService, AssignmentTypeService>();
 builder.Services.AddScoped<IGenericRepository<AssignmentType>, GenericRepository<AssignmentType>>();
 
-builder.Services.AddScoped<EchelonService>();
+builder.Services.AddScoped<IEchelonService, EchelonService>();
 builder.Services.AddScoped<IGenericRepository<Echelon>, GenericRepository<Echelon>>();
 
-builder.Services.AddScoped<EmployeeTypeService>();
+builder.Services.AddScoped<IEmployeeTypeService, EmployeeTypeService>();
 builder.Services.AddScoped<IGenericRepository<EmployeeType>, GenericRepository<EmployeeType>>();
 
-builder.Services.AddScoped<EstablishmentService>();
+builder.Services.AddScoped<IEstablishmentService, EstablishmentService>();
 builder.Services.AddScoped<IGenericRepository<Establishment>, GenericRepository<Establishment>>();
 
-builder.Services.AddScoped<FonctionService>();
+builder.Services.AddScoped<IFonctionService, FonctionService>();
 builder.Services.AddScoped<IGenericRepository<Fonction>, GenericRepository<Fonction>>();
 
-builder.Services.AddScoped<IndicationService>();
+builder.Services.AddScoped<IIndicationService, IndicationService>();
 builder.Services.AddScoped<IGenericRepository<Indication>, GenericRepository<Indication>>();
 
-builder.Services.AddScoped<LegalClassService>();
+builder.Services.AddScoped<ILegalClassService, LegalClassService>();
 builder.Services.AddScoped<IGenericRepository<LegalClass>, GenericRepository<LegalClass>>();
 
-builder.Services.AddScoped<NewsLetterTemplateService>();
+builder.Services.AddScoped<INewsLetterTemplateService, NewsLetterTemplateService>();
 builder.Services.AddScoped<IGenericRepository<NewsLetterTemplate>, GenericRepository<NewsLetterTemplate>>();
 
-builder.Services.AddScoped<PaymentMethodService>();
+builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
 builder.Services.AddScoped<IGenericRepository<PaymentMethod>, GenericRepository<PaymentMethod>>();
 
-builder.Services.AddScoped<PositionService>();
+builder.Services.AddScoped<IPositionService, PositionService>();
 builder.Services.AddScoped<IGenericRepository<Position>, GenericRepository<Position>>();
 
-builder.Services.AddScoped<CertificateTypeService>();
+builder.Services.AddScoped<ICertificateTypeService, CertificateTypeService>();
 builder.Services.AddScoped<IGenericRepository<CertificateType>, GenericRepository<CertificateType>>();
 
-builder.Services.AddScoped<CertificateHistoryService>();
+builder.Services.AddScoped<ICertificateHistoryService, CertificateHistoryService>();
 builder.Services.AddScoped<IGenericRepository<CertificateHistory>, GenericRepository<CertificateHistory>>();
 
-builder.Services.AddScoped<ProfessionalCategoryService>();
+builder.Services.AddScoped<IProfessionalCategoryService, ProfessionalCategoryService>();
 builder.Services.AddScoped<IGenericRepository<ProfessionalCategory>, GenericRepository<ProfessionalCategory>>();
 
-builder.Services.AddScoped<SocioCategoryProfessionalService>();
+builder.Services.AddScoped<ISocioCategoryProfessionalService, SocioCategoryProfessionalService>();
 builder.Services.AddScoped<IGenericRepository<SocioCategoryProfessional>, GenericRepository<SocioCategoryProfessional>>();
 
-builder.Services.AddScoped<RetirementService>();
+builder.Services.AddScoped<IRetirementService, RetirementService>();
 builder.Services.AddScoped<IGenericRepository<RetirementParameter>, GenericRepository<RetirementParameter>>();
 
-builder.Services.AddScoped<CiviliteService>();
+builder.Services.AddScoped<ICiviliteService, CiviliteService>();
 builder.Services.AddScoped<IGenericRepository<Civilite>, GenericRepository<Civilite>>();
 
-builder.Services.AddScoped<WishEvolutionService>();
+builder.Services.AddScoped<IWishEvolutionService, WishEvolutionService>();
 builder.Services.AddScoped<IGenericRepository<WishEvolutionCareer>, GenericRepository<WishEvolutionCareer>>();
 
-builder.Services.AddScoped<WishTypeService>();
+builder.Services.AddScoped<IWishTypeService, WishTypeService>();
 builder.Services.AddScoped<IGenericRepository<WishType>, GenericRepository<WishType>>();
 
-builder.Services.AddScoped<HistoryService>();
+builder.Services.AddScoped<IHistoryService, HistoryService>();
 builder.Services.AddScoped<IGenericRepository<ActivityLog>, GenericRepository<ActivityLog>>();
 
-builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
-builder.Services.AddScoped<OrgService>();
+builder.Services.AddScoped<IOrgService, OrgService>();
 
 builder.Services.AddScoped<WorkCertificatesService>();
 builder.Services.AddScoped<IGenericRepository<WorkCertificates>, GenericRepository<WorkCertificates>>();
@@ -189,7 +189,7 @@ builder.Services.AddScoped<IEvaluationDataService, EvaluationDataService>();
 
 // License system
 builder.Services.AddSingleton<RsaPublicKeyProvider>();
-builder.Services.AddScoped<LicenseService>();
+builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddMemoryCache();
 
 #endregion

@@ -6,6 +6,7 @@ using soft_carriere_competence.Application.Services.history;
 using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.salary_skills
 {
@@ -14,11 +15,11 @@ namespace soft_carriere_competence.Controllers.salary_skills
 	[Authorize]
 	public class EmployeeLanguageController : ControllerBase
 	{
-		private readonly EmployeeLanguageService _employeeLanguageService;
-		private readonly HistoryService _historyService;
+		private readonly IEmployeeLanguageService _employeeLanguageService;
+		private readonly IHistoryService _historyService;
 		private readonly UserService _userService;
 
-		public EmployeeLanguageController(EmployeeLanguageService service, HistoryService historyService, UserService userService)
+		public EmployeeLanguageController(IEmployeeLanguageService service, IHistoryService historyService, UserService userService)
 		{
 			_employeeLanguageService = service;
 			_historyService = historyService;

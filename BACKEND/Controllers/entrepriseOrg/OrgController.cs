@@ -7,6 +7,7 @@ using soft_carriere_competence.Application.Services.wish_evolution;
 using soft_carriere_competence.Core.Entities.entrepriseOrg;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Entities.wish_evolution;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.entrepriseOrg
 {
@@ -14,9 +15,9 @@ namespace soft_carriere_competence.Controllers.entrepriseOrg
 	[ApiController]
 	public class OrgController : ControllerBase
 	{
-		private readonly OrgService _orgService;
+		private readonly IOrgService _orgService;
 
-		public OrgController(OrgService service)
+		public OrgController(IOrgService service)
 		{
 			_orgService = service;
 		}
