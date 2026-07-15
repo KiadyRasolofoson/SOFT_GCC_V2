@@ -3,10 +3,10 @@
     public class VEmployeeDetails
     {
         public int EmployeeId { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string Position { get; set; }
-        public string Department { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Position { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
         public int? EvaluationId { get; set; }
         public DateTime? EvaluationDate { get; set; }
         public decimal? OverallScore { get; set; }

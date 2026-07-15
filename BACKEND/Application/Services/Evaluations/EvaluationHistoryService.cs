@@ -1,6 +1,7 @@
 ﻿using ClosedXML.Excel;
-using iTextSharp.text;
-using iTextSharp.text.pdf;
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
 using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Core.Entities.crud_career;
@@ -217,7 +218,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             var evaluationTypeDistribution = query
                 .GroupBy(e => e.EvaluationType)
                 .Select(g => new { Type = g.Key, Count = g.Count() })
-                .ToDictionary(x => x.Type, x => x.Count);
+                .ToDictionary(x => x.Type ?? "", x => x.Count);
 
             return new StatisticsDto
             {
@@ -408,7 +409,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     var allEvals = await _evaluationRepository.GetAllAsync();
                     completeEvaluations = allEvals
                         .Where(e => filteredEvaluationIds.Contains(e.EvaluationId))
-                        .Where(e => e.EmployeeId != 0 && e.state != null)
+                        .Where(e => e.EmployeeId != 0)
                         .ToList();
                     
                     Console.WriteLine($"Requête d'évaluations réussie: {completeEvaluations.Count} évaluations récupérées");
@@ -536,8 +537,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                                 (!endDate.HasValue || e.EndDate <= endDate))
                     .Select(e =>
                     {
-                        e.EvaluationType = allTypes.FirstOrDefault(t => t.EvaluationTypeId == e.EvaluationTypeId);
-                        e.Employee = allEmps.FirstOrDefault(emp => emp.EmployeeId == e.EmployeeId);
+                        e.EvaluationType = allTypes.FirstOrDefault(t => t.EvaluationTypeId == e.EvaluationTypeId) ?? null!;
+                        e.Employee = allEmps.FirstOrDefault(emp => emp.EmployeeId == e.EmployeeId) ?? null!;
                         return e;
                     })
                     .ToList();
@@ -622,30 +623,29 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             using var stream = new MemoryStream();
 
-            // Création du document PDF
-            var document = new iTextSharp.text.Document();
-            var writer = iTextSharp.text.pdf.PdfWriter.GetInstance(document, stream);
-            document.Open();
-
-            // Titre du document
-            var titleFont = iTextSharp.text.FontFactory.GetFont(iTextSharp.text.FontFactory.HELVETICA_BOLD, 16);
-            var bodyFont = iTextSharp.text.FontFactory.GetFont(iTextSharp.text.FontFactory.HELVETICA, 12);
-
-            document.Add(new iTextSharp.text.Paragraph("Historique des Évaluations", titleFont));
-            document.Add(new iTextSharp.text.Paragraph("\n")); // Ligne vide
-
-            // Ajout des données d'évaluation
-            foreach (var eval in evaluations)
+            // Création du document PDF avec iText7
+            using (var writer = new PdfWriter(stream))
+            using (var pdfDoc = new PdfDocument(writer))
+            using (var document = new Document(pdfDoc))
             {
-                document.Add(new iTextSharp.text.Paragraph($"Date : {eval.StartDate:yyyy-MM-dd}", bodyFont));
-                document.Add(new iTextSharp.text.Paragraph($"Type d'évaluation : {eval.EvaluationType.Designation}", bodyFont));
-                document.Add(new iTextSharp.text.Paragraph($"Employé : {eval.Employee.FirstName} {eval.Employee.Name}", bodyFont));
-                document.Add(new iTextSharp.text.Paragraph($"Score Global : {eval.OverallScore}", bodyFont));
-                document.Add(new iTextSharp.text.Paragraph($"Statut : {eval.state}", bodyFont));
-                document.Add(new iTextSharp.text.Paragraph("\n")); // Ligne vide
-            }
+                // Titre du document
+                document.Add(new Paragraph("Historique des Évaluations")
+                    .SetFontSize(16)
+                    .SetBold());
 
-            document.Close();
+                document.Add(new Paragraph("\n")); // Ligne vide
+
+                // Ajout des données d'évaluation
+                foreach (var eval in evaluations)
+                {
+                    document.Add(new Paragraph($"Date : {eval.StartDate:yyyy-MM-dd}"));
+                    document.Add(new Paragraph($"Type d'évaluation : {eval.EvaluationType?.Designation ?? ""}"));
+                    document.Add(new Paragraph($"Employé : {eval.Employee?.FirstName ?? ""} {eval.Employee?.Name ?? ""}"));
+                    document.Add(new Paragraph($"Score Global : {eval.OverallScore}"));
+                    document.Add(new Paragraph($"Statut : {eval.state}"));
+                    document.Add(new Paragraph("\n")); // Ligne vide
+                }
+            }
 
             // Retourner le contenu du PDF en tant que tableau d'octets
             return stream.ToArray();
@@ -904,6 +904,6 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public int Year { get; set; }
         public decimal AverageScore { get; set; }
         public int EvaluationCount { get; set; }
-        public string Department { get; set; }
+        public string Department { get; set; } = string.Empty;
     }
 }

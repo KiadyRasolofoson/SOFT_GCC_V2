@@ -56,9 +56,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e =>
-                    (e.FirstName + " " + e.LastName).Contains(search) ||
-                    e.FirstName.Contains(search) ||
-                    e.LastName.Contains(search));
+                    ((e.FirstName ?? "") + " " + (e.LastName ?? "")).Contains(search) ||
+                    (e.FirstName ?? "").Contains(search) ||
+                    (e.LastName ?? "").Contains(search));
 
             return query.ToList();
         }
@@ -84,9 +84,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e =>
-                    (e.FirstName + " " + e.LastName).Contains(search) ||
-                    e.FirstName.Contains(search) ||
-                    e.LastName.Contains(search));
+                    ((e.FirstName ?? "") + " " + (e.LastName ?? "")).Contains(search) ||
+                    (e.FirstName ?? "").Contains(search) ||
+                    (e.LastName ?? "").Contains(search));
 
             // Appliquer le tri
             if (!string.IsNullOrEmpty(sortBy))

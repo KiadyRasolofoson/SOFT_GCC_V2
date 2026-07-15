@@ -50,14 +50,14 @@ namespace soft_carriere_competence.Controllers.salary_skills
 		public async Task<IActionResult> Create(EmployeeSkill employeeSkill)
 		{
 			await _employeeSkillService.Add(employeeSkill);
-			VEmployeeSkill vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(employeeSkill.EmployeeSkillId);
+			VEmployeeSkill? vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(employeeSkill.EmployeeSkillId);
 			var userIdClaim = User.FindFirst("userId")?.Value;
 			if (string.IsNullOrEmpty(userIdClaim))
 			{
 				return Unauthorized("Utilisateur non authentifié.");
 			}
 
-			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim));
+			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim!));
 			if (user == null) return NotFound("Utilisateur introuvable.");
 
 			var activityLog = new ActivityLog
@@ -65,9 +65,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				UserId = user.Id,
 				Module = 1,
 				Action = "Création",
-				Description = "L'user "+ user.Username +" a crée une nouvelle compétence "+vEmployeeSkill.SkillName+ " pour l'employé matricule "+vEmployeeSkill.RegistrationNumber,
+				Description = "L'user "+ user.Username +" a crée une nouvelle compétence "+vEmployeeSkill?.SkillName ?? ""+ " pour l'employé matricule "+vEmployeeSkill?.RegistrationNumber ?? "",
 				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 			};
 
 			await _historyService.Add(activityLog);
@@ -78,14 +78,14 @@ namespace soft_carriere_competence.Controllers.salary_skills
 		public async Task<IActionResult> Update(int id, EmployeeSkill employeeSkill)
 		{
 			if (id != employeeSkill.EmployeeSkillId) return BadRequest();
-			VEmployeeSkill vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(id);
+			VEmployeeSkill? vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(id);
 			var userIdClaim = User.FindFirst("userId")?.Value;
 			if (string.IsNullOrEmpty(userIdClaim))
 			{
 				return Unauthorized("Utilisateur non authentifié.");
 			}
 
-			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim));
+			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim!));
 			if (user == null) return NotFound("Utilisateur introuvable.");
 
 			var activityLog = new ActivityLog
@@ -93,9 +93,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				UserId = user.Id,
 				Module = 1,
 				Action = "Modification",
-				Description = "L'user "+user.Username+" a modifié la compétence " + vEmployeeSkill.SkillName + " de l'employé matricule " + vEmployeeSkill.RegistrationNumber,
+				Description = "L'user "+user.Username+" a modifié la compétence " + vEmployeeSkill?.SkillName ?? "" + " de l'employé matricule " + vEmployeeSkill?.RegistrationNumber ?? "",
 				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 			};
 			await _employeeSkillService.Update(employeeSkill);
 			await _historyService.Add(activityLog);
@@ -105,14 +105,14 @@ namespace soft_carriere_competence.Controllers.salary_skills
 		[HttpDelete("{id}")]
 		public async Task<IActionResult> Delete(int id)
 		{
-			VEmployeeSkill vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(id);
+			VEmployeeSkill? vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(id);
 			var userIdClaim = User.FindFirst("userId")?.Value;
 			if (string.IsNullOrEmpty(userIdClaim))
 			{
 				return Unauthorized("Utilisateur non authentifié.");
 			}
 
-			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim));
+			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim!));
 			if (user == null) return NotFound("Utilisateur introuvable.");
 			
 			var activityLog = new ActivityLog
@@ -120,9 +120,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				UserId = user.Id,
 				Module = 1,
 				Action = "Suppression",
-				Description = "L'user "+user.Username+" a supprimé la compétence " + vEmployeeSkill.SkillName + " de l'employé matricule " + vEmployeeSkill.RegistrationNumber,
+				Description = "L'user "+user.Username+" a supprimé la compétence " + vEmployeeSkill?.SkillName ?? "" + " de l'employé matricule " + vEmployeeSkill?.RegistrationNumber ?? "",
 				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 			};
 
 			await _employeeSkillService.Delete(id);

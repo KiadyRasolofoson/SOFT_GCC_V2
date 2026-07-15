@@ -12,12 +12,12 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
 
         [Required]
         [StringLength(255)]
-        public string TempLogin { get; set; }
+        public string TempLogin { get; set; } = string.Empty;
 
         public DateTime AttemptDate { get; set; } = DateTime.UtcNow;
 
         [StringLength(45)]
-        public string IPAddress { get; set; }
+        public string IPAddress { get; set; } = string.Empty;
 
         public bool IsSuccess { get; set; } = false;
     }

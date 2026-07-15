@@ -44,14 +44,14 @@ namespace soft_carriere_competence.Controllers.salary_skills
 		public async Task<IActionResult> Create(EmployeeOtherFormation employeeOtherFormation)
 		{
 			await _employeeOtherFormationService.Add(employeeOtherFormation);
-			VEmployeeOtherSkill vEmployeeOtherFormation = await _employeeOtherFormationService.GetEmployeeOtherFormationById(employeeOtherFormation.EmployeeOtherFormationId);
+			VEmployeeOtherSkill? vEmployeeOtherFormation = await _employeeOtherFormationService.GetEmployeeOtherFormationById(employeeOtherFormation.EmployeeOtherFormationId);
 			var userIdClaim = User.FindFirst("userId")?.Value;
 			if (string.IsNullOrEmpty(userIdClaim))
 			{
 				return Unauthorized("Utilisateur non authentifié.");
 			}
 
-			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim));
+			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim!));
 			if (user == null) return NotFound("Utilisateur introuvable.");
 
 			var activityLog = new ActivityLog
@@ -61,9 +61,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				Action = "Création",
 				Description = $"L'utilisateur {user.Username} a créé une nouvelle autre formation  ID {employeeOtherFormation.EmployeeOtherFormationId} " +
 						  $"({employeeOtherFormation.Description}) " +
-						  $"pour l'employé matricule {vEmployeeOtherFormation.RegistrationNumber}",
+						  $"pour l'employé matricule {vEmployeeOtherFormation?.RegistrationNumber ?? ""}",
 				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 			};
 
 			await _historyService.Add(activityLog);
@@ -75,14 +75,14 @@ namespace soft_carriere_competence.Controllers.salary_skills
 		{
 			if (id != employeeOtherFormation.EmployeeOtherFormationId) return BadRequest();
 
-			VEmployeeOtherSkill vEmployeeOtherFormation = await _employeeOtherFormationService.GetEmployeeOtherFormationById(employeeOtherFormation.EmployeeOtherFormationId);
+			VEmployeeOtherSkill? vEmployeeOtherFormation = await _employeeOtherFormationService.GetEmployeeOtherFormationById(employeeOtherFormation.EmployeeOtherFormationId);
 			var userIdClaim = User.FindFirst("userId")?.Value;
 			if (string.IsNullOrEmpty(userIdClaim))
 			{
 				return Unauthorized("Utilisateur non authentifié.");
 			}
 
-			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim));
+			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim!));
 			if (user == null) return NotFound("Utilisateur introuvable.");
 
 			var activityLog = new ActivityLog
@@ -92,9 +92,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				Action = "Modification",
 				Description = $"L'utilisateur {user.Username} a modifié une autre formation existante ID {employeeOtherFormation.EmployeeOtherFormationId} " +
 						  $"({employeeOtherFormation.Description}) " +
-						  $"de l'employé matricule {vEmployeeOtherFormation.RegistrationNumber}",
+						  $"de l'employé matricule {vEmployeeOtherFormation?.RegistrationNumber ?? ""}",
 				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 			};
 
 			await _employeeOtherFormationService.Update(employeeOtherFormation);
@@ -105,14 +105,14 @@ namespace soft_carriere_competence.Controllers.salary_skills
 		[HttpDelete("{id}")]
 		public async Task<IActionResult> Delete(int id)
 		{
-			VEmployeeOtherSkill vEmployeeOtherFormation = await _employeeOtherFormationService.GetEmployeeOtherFormationById(id);
+			VEmployeeOtherSkill? vEmployeeOtherFormation = await _employeeOtherFormationService.GetEmployeeOtherFormationById(id);
 			var userIdClaim = User.FindFirst("userId")?.Value;
 			if (string.IsNullOrEmpty(userIdClaim))
 			{
 				return Unauthorized("Utilisateur non authentifié.");
 			}
 
-			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim));
+			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim!));
 			if (user == null) return NotFound("Utilisateur introuvable.");
 
 			var activityLog = new ActivityLog
@@ -121,10 +121,10 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				Module = 1,
 				Action = "Suppression",
 				Description = $"L'utilisateur {user.Username} a supprimé une autre formation existante ID {vEmployeeOtherFormation.EmployeeOtherFormationId} " +
-						  $"({vEmployeeOtherFormation.Description}) " +
-						  $"de l'employé matricule {vEmployeeOtherFormation.RegistrationNumber}",
+						  $"({vEmployeeOtherFormation?.Description ?? ""}) " +
+						  $"de l'employé matricule {vEmployeeOtherFormation?.RegistrationNumber ?? ""}",
 				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 			};
 			await _employeeOtherFormationService.Delete(id);
 			await _historyService.Add(activityLog);

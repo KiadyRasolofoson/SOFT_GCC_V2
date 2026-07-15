@@ -18,10 +18,10 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
 
         
         [ForeignKey("EvaluationId")]
-        public Evaluation SelectedEvaluation { get; set; }
+        public Evaluation SelectedEvaluation { get; set; } = null!;
         [ForeignKey("QuestionId")]
-        public EvaluationQuestion SelectedQuestion { get; set; }
+        public EvaluationQuestion SelectedQuestion { get; set; } = null!;
         [ForeignKey("CompetenceLineId")]
-        public CompetenceLine SelectedCompetenceLine { get; set; }
+        public CompetenceLine SelectedCompetenceLine { get; set; } = null!;
     }
 }

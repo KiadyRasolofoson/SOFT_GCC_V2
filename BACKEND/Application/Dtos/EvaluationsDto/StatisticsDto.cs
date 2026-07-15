@@ -5,6 +5,6 @@
         public int TotalEvaluations { get; set; }
         public int CompletedEvaluations { get; set; }
         public decimal CompletionRate { get; set; }
-        public Dictionary<string, int> EvaluationTypeDistribution { get; set; }
+        public Dictionary<string, int> EvaluationTypeDistribution { get; set; } = new();
     }
 }

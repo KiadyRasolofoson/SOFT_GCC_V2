@@ -13,11 +13,11 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         [MaxLength(100)]
         [Required]
         [Column("name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [MaxLength(255)]
         [Column("description")]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [Column("state")]
         public int State { get; set; } = 1;

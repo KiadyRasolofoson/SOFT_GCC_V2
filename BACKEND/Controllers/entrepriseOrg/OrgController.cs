@@ -48,8 +48,6 @@ namespace soft_carriere_competence.Controllers.entrepriseOrg
 			return Ok(listEmployees);
 		}
 
-		private readonly string _connectionString = "VotreChaineDeConnexionSQLServer";
-
 		[HttpPost]
 		[Route("employee/import")]
 		public async Task<IActionResult> UploadEmployeeCsv([FromBody] List<Employee> csvData)

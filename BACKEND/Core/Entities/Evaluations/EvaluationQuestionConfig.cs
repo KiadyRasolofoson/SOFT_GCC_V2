@@ -19,6 +19,6 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         
         [ForeignKey("QuestionId")]
-        public virtual EvaluationQuestion Question { get; set; }
+        public virtual EvaluationQuestion Question { get; set; } = null!;
     }
 }

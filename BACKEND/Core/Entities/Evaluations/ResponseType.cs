@@ -11,9 +11,9 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public int ResponseTypeId { get; set; }
         
         [Column("TypeName")]
-        public string TypeName { get; set; }
+        public string TypeName { get; set; } = string.Empty;
         
         [Column("Description")]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
     }
 } 

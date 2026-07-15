@@ -13,7 +13,7 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         [Column("questionId")]
         public int QuestionId { get; set; }
         [Column("optionText")]
-        public string OptionText { get; set; }
+        public string OptionText { get; set; } = string.Empty;
         [Column("isCorrect")]
         public bool IsCorrect { get; set; }
         [Column("state")]

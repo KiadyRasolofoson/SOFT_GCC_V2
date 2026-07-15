@@ -2,8 +2,8 @@
 {
     public class TrainingSuggestionResultDto
     {
-        public string Training { get; set; }     // Nom de la formation
-        public string Details { get; set; }      // Détails de la formation
-        public string Question { get; set; }
+        public string Training { get; set; } = string.Empty;     // Nom de la formation
+        public string Details { get; set; } = string.Empty;      // Détails de la formation
+        public string Question { get; set; } = string.Empty;
     }
 }

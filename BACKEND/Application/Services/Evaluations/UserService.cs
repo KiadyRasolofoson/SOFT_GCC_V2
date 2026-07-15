@@ -118,7 +118,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             Console.WriteLine("Tentative de connexion");
 
-            User user = null;
+            User? user = null;
 
             // Compatibilité avec l'ancienne API:
             // Dans la version précédente, le DTO pouvait avoir une propriété Email 
@@ -164,7 +164,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             // Ce token peut être sauvegardé en base de données pour validation ultérieure.
 
             // Envoi de l'email contenant le token de réinitialisation.
-            await _emailService.SendEmailAsync(user.Email, "Réinitialisation du mot de passe",
+            await _emailService.SendEmailAsync(user.Email ?? "", "Réinitialisation du mot de passe",
                 $"Votre token de réinitialisation est : {resetToken}");
 
             return "Email de réinitialisation envoyé.";
@@ -201,9 +201,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             var claims = new List<Claim>
     {
         new Claim("userId", user.Id.ToString()), // ID de l'utilisateur
-        new Claim("email", user.Email), // Email de l'utilisateur
-        new Claim("firstName", user.FirstName), // Prénom
-        new Claim("lastName", user.LastName), // Nom
+        new Claim("email", user.Email ?? ""), // Email de l'utilisateur
+        new Claim("firstName", user.FirstName ?? ""), // Prénom
+        new Claim("lastName", user.LastName ?? ""), // Nom
         new Claim("roleId", user.RoleId.ToString()), // ID du rôle
         new Claim("roleTitle", user.Role?.Title ?? "Unknown"), // Titre du rôle
     };
@@ -334,7 +334,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return (employees, totalPages);
         }
 
-        public async Task<User> GetUserByEmailAsync(string email)
+        public async Task<User?> GetUserByEmailAsync(string email)
         {
             return await _dataService.GetUserByEmailAsync(email);
         }

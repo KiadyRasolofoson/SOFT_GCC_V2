@@ -8,7 +8,7 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
         public int? QuestionId { get; set; }  // Nullable pour la création
         
         [Required(ErrorMessage = "La question est requise.")]
-        public string Question { get; set; }
+        public string Question { get; set; } = string.Empty;
         
         [Required(ErrorMessage = "Le type d'évaluation est requis.")]
         public int EvaluationTypeId { get; set; }

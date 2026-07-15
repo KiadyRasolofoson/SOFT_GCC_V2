@@ -17,28 +17,28 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         [Required]
         [MaxLength(255)]
         [Column("TrainingName")]
-        public string TrainingName { get; set; }
+        public string TrainingName { get; set; } = string.Empty;
 
         [Column("Description")]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [MaxLength(50)]
         [Column("Duration")]
-        public string Duration { get; set; }
+        public string Duration { get; set; } = string.Empty;
 
         [MaxLength(100)]
         [Column("Provider")]
-        public string Provider { get; set; }
+        public string Provider { get; set; } = string.Empty;
 
         [MaxLength(50)]
         [Column("Level")]
-        public string Level { get; set; }
+        public string Level { get; set; } = string.Empty;
 
         [Column("state")]
         public int State { get; set; } = 1;
 
         // Navigation properties
-        public virtual CompetenceLine CompetenceLine { get; set; }
-        public virtual ICollection<TrainingSuggestion> TrainingSuggestions { get; set; }
+        public virtual CompetenceLine CompetenceLine { get; set; } = null!;
+        public virtual ICollection<TrainingSuggestion> TrainingSuggestions { get; set; } = new List<TrainingSuggestion>();
     }
 } 

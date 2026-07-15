@@ -18,8 +18,8 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
 
         // Navigation properties
         [ForeignKey("RoleId")]
-        public Role Role { get; set; }
+        public Role Role { get; set; } = null!;
         [ForeignKey("PermissionId")]
-        public Permission Permission { get; set; }
+        public Permission Permission { get; set; } = null!;
     }
 } 
