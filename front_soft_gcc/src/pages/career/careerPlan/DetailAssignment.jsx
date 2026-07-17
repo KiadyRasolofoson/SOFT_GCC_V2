@@ -20,7 +20,7 @@ function DetailAssignment() {
     const url = "/carriere";
 
     // Initialisation des variables états
-    const { CareerPlanId } = useParams();
+    const { careerPlanId: CareerPlanId } = useParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [assignmentToEdit, setAssignmentToEdit] = useState({});
