@@ -3,6 +3,7 @@ using soft_carriere_competence.Application.Dtos.LoginDto;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Interface.AuthInterface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.Authentification
 {
@@ -11,10 +12,12 @@ namespace soft_carriere_competence.Controllers.Authentification
 	public class AuthentificationController : ControllerBase
 	{
 		private readonly UserService _userService;
+		private readonly ILicenseService _licenseService;
 
-		public AuthentificationController(UserService userService)
+		public AuthentificationController(UserService userService, ILicenseService licenseService)
 		{
 			_userService = userService;
+			_licenseService = licenseService;
 		}
 		[HttpPost("register")]
 		public async Task<IActionResult> Register([FromBody] RegisterDto dto)
@@ -35,6 +38,18 @@ namespace soft_carriere_competence.Controllers.Authentification
 		{
 			try
 			{
+				var licenseStatus = await _licenseService.GetStatus();
+				if (!licenseStatus.IsValid)
+				{
+					return StatusCode(403, new
+					{
+						error = "license_invalid",
+						reason = licenseStatus.ErrorReason.ToString(),
+						message = "Licence invalide : " + (licenseStatus.ErrorMessage ?? "Veuillez contacter l'administrateur."),
+						isLicenseValid = false
+					});
+				}
+
 				var token = await _userService.LoginAsync(dto);
 				return Ok(new { token });
 			}

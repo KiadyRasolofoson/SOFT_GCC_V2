@@ -313,6 +313,18 @@ body {
   color: #CA8A04;
 }
 
+/* License error (invalid/expired license) */
+.error-banner--license {
+  background: linear-gradient(135deg, #FEF2F2, #FFE4E4);
+  border-left-color: #991B1B;
+  color: #7F1D1D;
+  box-shadow: 0 2px 8px rgba(153, 27, 27, 0.15);
+}
+
+.error-banner--license .error-banner__icon {
+  color: #991B1B;
+}
+
 .error-banner__icon {
   display: flex;
   align-items: center;

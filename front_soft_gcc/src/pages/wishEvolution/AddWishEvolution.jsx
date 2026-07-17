@@ -124,14 +124,14 @@ function AddWishEvolution({ onSearch }) {
                 </div>
 
                 <div className="col-lg-2">
-                    <CancelButton to="souhaitEvolution/suivi" />
+                    <CancelButton to="souhaits-evolution/suivi" />
                 </div>  
             </div>
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'Souhait évolution', path: '/softGcc/souhaitEvolution/suivi' },
-                    { label: 'Ajout', path: '/softGcc/souhaitEvolution/ajouter' },
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'Souhait évolution', path: '/soft-gcc/souhaits-evolution/suivi' },
+                    { label: 'Ajout', path: '/soft-gcc/souhaits-evolution/ajouter' },
                 ]}
             />
             {error && <div className="alert alert-danger">{error}</div>}

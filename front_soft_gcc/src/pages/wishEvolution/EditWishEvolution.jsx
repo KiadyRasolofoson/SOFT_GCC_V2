@@ -138,15 +138,15 @@ function EditWishEvolution({ onSearch }) {
                 <p className="skill-title">MODIFICATION DU SOUHAIT D'ÉVALUATION ID {WishEvolutionId}</p>
                 </div>
                 <div className="col-lg-2">
-                <CancelButton to={`souhaitEvolution/details/${WishEvolutionId}`} />
+                <CancelButton to={`souhaits-evolution/details/${WishEvolutionId}`} />
                 </div>  
             </div>
             <BreadcrumbPers
                 items={[
-                { label: 'Accueil', path: '/softGcc/tableauBord' },
-                { label: 'Souhait évolution', path: '/softGcc/souhaitEvolution/suivi' },
-                { label: 'Détails', path: `/softGcc/souhaitEvolution/details/${WishEvolutionId}`},
-                { label: 'Modifier', path: `/softGcc/souhaitEvolution/edit/${WishEvolutionId}` },
+                { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                { label: 'Souhait évolution', path: '/soft-gcc/souhaits-evolution/suivi' },
+                { label: 'Détails', path: `/soft-gcc/souhaits-evolution/details/${WishEvolutionId}`},
+                { label: 'Modifier', path: `/soft-gcc/souhaits-evolution/edit/${WishEvolutionId}` },
                 ]}
             />
             {success && <div className="alert alert-success">{success}</div>}

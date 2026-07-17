@@ -67,9 +67,9 @@ function SalaryProfilePage({ task }) {
       </div>
       <BreadcrumbPers
         items={[
-          { label: 'Accueil', path: '/softGcc/tableauBord' },
-          { label: 'Compétences', path: '/softGcc/competences' },
-          { label: 'Profil', path: '/softGcc/competences/profil' }
+          { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+          { label: 'Compétences', path: '/soft-gcc/competences' },
+          { label: 'Profil', path: '/soft-gcc/competences/profil' }
         ]}
       />
       {loading && <Loader />}

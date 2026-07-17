@@ -277,7 +277,7 @@ const EvaluationDetails = ({ interview: propInterview, employeeId: propEmployeeI
                 
                 // Redirection après un court délai
                 setTimeout(() => {
-                    navigate('/homeInterview');
+                    navigate('/soft-gcc/evaluations/accueil');
                 }, 1500);
             } else {
                 // Si les deux méthodes échouent, afficher un message d'erreur

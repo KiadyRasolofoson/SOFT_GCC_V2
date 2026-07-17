@@ -33,7 +33,7 @@ const EvaluationLogin = () => {
       })
       .then(response => {
         if (response.data.valid) {
-          navigate('/employee-evaluation');
+          navigate('/soft-gcc/evaluation/questionnaire');
         } else {
           // Token expiré, supprimer du localStorage
           localStorage.removeItem('evaluationToken');
@@ -70,7 +70,7 @@ const EvaluationLogin = () => {
         localStorage.setItem('evaluationId', response.data.evaluationId);
         
         toast.success('Connexion réussie! Redirection vers votre évaluation...');
-        navigate('/employee-evaluation');
+        navigate('/soft-gcc/evaluation/questionnaire');
       } 
     } catch (err) {
       console.error('Login error:', err);

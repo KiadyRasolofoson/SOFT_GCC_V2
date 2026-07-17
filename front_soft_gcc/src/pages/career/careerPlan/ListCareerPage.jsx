@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../../components/PageHeader';
 import Template from '../../Template';
@@ -13,16 +13,7 @@ import { mdiEyeOutline } from '@mdi/js';
 import Icon from '@mdi/react';
 
 
-// Fonction debounce pour éviter les appels excessifs
-const debounce = (func, delay) => {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), delay);
-  };
-};
-
-// Page liste des compétences
+// Page liste des carrières
 const ListCareerPage = () => {
   // URL en tête de page 
   const module = 'Plan de carrière';
@@ -44,7 +35,7 @@ const ListCareerPage = () => {
       dateAssignmentMin: '',
       dateAssignmentMax: ''
     });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { data: dataDepartment } = useSWR('/Department', Fetcher);
@@ -93,12 +84,27 @@ const ListCareerPage = () => {
     [currentPage, pageSize]
   );
 
-  const debouncedFetchData = useCallback(debounce(fetchFilteredData, 300), [fetchFilteredData]);
-
-  // Mise à jour des données au changement de filtres
+  // Fetch immédiat au montage et changement de page
   useEffect(() => {
-    debouncedFetchData(filters);
-  }, [filters, debouncedFetchData]);
+    fetchFilteredData(filters);
+  }, [currentPage]);
+
+  // Debounce uniquement pour les filtres (pas au montage initial)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const handler = setTimeout(() => {
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        fetchFilteredData(filters);
+      }
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [filters]);
 
   // Mise à jour des données triées
   // Appliquer le tri chaque fois que `sortDirection` ou `careers` change
@@ -143,11 +149,11 @@ const ListCareerPage = () => {
     }
   };
 
-  const handleClick = () => navigate('/SoftGcc/carriere/creation');
+  const handleClick = () => navigate('/soft-gcc/carrieres/creation');
 
   // Navigation pour details carrieres
   const handleCareersDetails = (registrationNumber) => {
-    navigate(`/SoftGcc/carriere/fiche/${registrationNumber}`);
+    navigate(`/soft-gcc/carrieres/fiche/${registrationNumber}`);
   };
 
   return (
@@ -164,9 +170,9 @@ const ListCareerPage = () => {
       </div>
       <BreadcrumbPers
         items={[
-          { label: 'Accueil', path: '/softGcc/tableauBord' },
-          { label: 'Plan de carrière', path: '/softGcc/carriere' },
-          { label: 'Liste', path: '/softGcc/carriere' }
+          { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+          { label: 'Plan de carrière', path: '/soft-gcc/carriere' },
+          { label: 'Liste', path: '/soft-gcc/carriere' }
         ]}
       />
       <div className="row mt-3">

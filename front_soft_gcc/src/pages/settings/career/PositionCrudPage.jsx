@@ -128,14 +128,14 @@ function PositionCrudPage() {
                 </div>
 
                 <div className="col-lg-2">
-                    <CancelButton to="settings/carriere" />
+                    <CancelButton to="parametres/carrieres" />
                 </div>  
             </div>
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'paramètres carrières', path: '/softGcc/settings/carriere' },
-                    { label: 'Poste', path: '/softGcc/settings/settings/carriere/poste' },
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'paramètres carrières', path: '/soft-gcc/parametres/carrieres' },
+                    { label: 'Poste', path: '/soft-gcc/parametres/carrieres/postes' },
                 ]}
             />
            

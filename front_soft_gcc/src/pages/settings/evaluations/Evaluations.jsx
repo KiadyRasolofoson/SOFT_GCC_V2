@@ -8,19 +8,19 @@ function Evaluations() {
     const { hasPermission } = useUser();
 
     const handleQuestionsClick = () => {
-        navigate("/EvaluationQuestionSettings");
+        navigate("/soft-gcc/evaluations/parametres/questions");
     };
 
     const handleFormationClick = () => {
-        navigate("/EvaluationFormationSettings");
+        navigate("/soft-gcc/evaluations/parametres/formations");
     };
 
     const handleAdminClick = () => {
-        navigate("/EvaluationAdminSettings");
+        navigate("/soft-gcc/evaluations/parametres/administration");
     };
 
     const handleEvaluationTypesClick = () => {
-        navigate("/EvaluationTypesSettings");
+        navigate("/soft-gcc/evaluations/parametres/types");
     };
 
     // Vérifier si l'utilisateur a les permissions pour accéder à l'interface d'administration
