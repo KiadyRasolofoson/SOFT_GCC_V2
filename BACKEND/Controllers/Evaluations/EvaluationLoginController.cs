@@ -56,8 +56,8 @@ namespace soft_carriere_competence.Controllers
 
 	public class TemporaryLoginRequest
 	{
-		public string TempLogin { get; set; }
-		public string TempPassword { get; set; }
-		public string IPAddress { get; set; }
+		public string TempLogin { get; set; } = string.Empty;
+		public string TempPassword { get; set; } = string.Empty;
+		public string IPAddress { get; set; } = string.Empty;
 	}
 }

@@ -33,7 +33,7 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 			return await _dataService.GetEmployeeFilter(keyWord, departmentId, hiringDate1, hiringDate2, page, pageSize);
 		}
 
-		public async Task<Employee> GetById(int id)
+		public async Task<Employee?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

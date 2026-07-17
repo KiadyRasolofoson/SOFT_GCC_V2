@@ -17,7 +17,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return await _repository.FindAsync(r => r.state == null || r.state == 1);
         }
 
-        public async Task<Role> GetByIdAsync(int id)
+        public async Task<Role?> GetByIdAsync(int id)
         {
             return await _repository.GetFirstOrDefaultAsync(r => r.Roleid == id && (r.state == null || r.state == 1));
         }

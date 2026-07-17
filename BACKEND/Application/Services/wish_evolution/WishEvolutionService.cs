@@ -21,7 +21,7 @@ namespace soft_carriere_competence.Application.Services.wish_evolution
 			return await _repository.GetAll();
 		}
 
-		public async Task<WishEvolutionCareer> GetById(int id)
+		public async Task<WishEvolutionCareer?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

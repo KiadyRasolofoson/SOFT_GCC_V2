@@ -118,7 +118,7 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				UserId = user.Id,
 				Module = 1,
 				Action = "Suppression",
-				Description = $"L'utilisateur {user.Username} a supprimé une éducation existente ID {vEmployeeEducation.EmployeeEducationId} " +
+				Description = $"L'utilisateur {user.Username} a supprimé une éducation existente ID {vEmployeeEducation?.EmployeeEducationId ?? 0} " +
 						  $"({vEmployeeEducation?.StudyPathName ?? ""} - {vEmployeeEducation?.DegreeName ?? ""} - {vEmployeeEducation?.SchoolName ?? ""}) " +
 						  $"de l'employé matricule {vEmployeeEducation?.RegistrationNumber ?? ""}",
 				Timestamp = DateTime.UtcNow,

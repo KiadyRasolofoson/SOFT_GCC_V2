@@ -66,7 +66,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return await _dataService.GetAllQuestionsWithIncludes();
         }
         // Get a specific evaluation question by ID
-        public async Task<EvaluationQuestion> GetEvaluationQuestionByIdAsync(int id)
+        public async Task<EvaluationQuestion?> GetEvaluationQuestionByIdAsync(int id)
         {
             return await _evaluationQuestion.GetByIdAsync(id);
         }
@@ -262,7 +262,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
        string strengths,
        string weaknesses,
             string generalEvaluation,
-            List<MultiCriteriaRatingDto> detailedRatings = null)
+            List<MultiCriteriaRatingDto>? detailedRatings = null)
         {
             var evaluation = await _evaluationRepository.GetByIdAsync(evaluationId);
             if (evaluation == null) throw new Exception($"Evaluation with ID {evaluationId} not found.");
@@ -367,7 +367,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             try
             {
                 // Utiliser l'instance injectée du service de compétence ici
-                await _competenceService.CalculateAndSaveCompetenceResultsAsync(evaluationId);
+                if (_competenceService != null)
+                    await _competenceService.CalculateAndSaveCompetenceResultsAsync(evaluationId);
             }
             catch (Exception ex)
             {
@@ -616,6 +617,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
 
             // Envoyer l'email de rappel avec les identifiants à l'employé
+            if (string.IsNullOrEmpty(user.Email)) return;
             await _emailService.SendEmailAsync(
                 user.Email,
                 $"{evaluationTypeName} - Rappel",
@@ -683,7 +685,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
         // Get a specific training suggestion by ID
-        public async Task<TrainingSuggestion> GetTrainingSuggestionByIdAsync(int id)
+        public async Task<TrainingSuggestion?> GetTrainingSuggestionByIdAsync(int id)
         {
             return await _dataService.GetTrainingSuggestionByIdWithIncludesAsync(id);
         }
@@ -1110,10 +1112,10 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     competenceName = cn;
                 }
 
-                string formattedResponse = responseValue;
+                string formattedResponse = responseValue ?? string.Empty;
                 if (responseType == "QCM" && responseValue != null && int.TryParse(responseValue, out int optId) && options.TryGetValue(optId, out var optText))
                 {
-                    formattedResponse = optText;
+                    formattedResponse = optText!;
                 }
 
                 int maxTime = timeConfigs.ContainsKey(questionId) ? timeConfigs[questionId] : 15;

@@ -52,12 +52,12 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             return query.ToList();
         }
-        public async Task<Position> GetPosteByIdAsync(int posteId)
+        public async Task<Position?> GetPosteByIdAsync(int posteId)
         {
             return await _posteRepository.GetByIdAsync(posteId);
         } 
 
-        public async Task<Department> GetDepartmentByIdAsync(int departmentId)
+        public async Task<Department?> GetDepartmentByIdAsync(int departmentId)
         {
             return await _departementRepository.GetByIdAsync(departmentId);
         }

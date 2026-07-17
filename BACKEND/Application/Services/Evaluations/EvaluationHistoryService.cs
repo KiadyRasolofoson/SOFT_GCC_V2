@@ -231,7 +231,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
 
-        public async Task<IEnumerable<GlobalPerformanceDto>> GetGlobalPerformanceAsync(DateTime? startDate, DateTime? endDate, string department, string evaluationType)
+        public async Task<IEnumerable<GlobalPerformanceDto>> GetGlobalPerformanceAsync(DateTime? startDate, DateTime? endDate, string? department, string? evaluationType)
         {
             try
             {
@@ -652,12 +652,12 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
 
-        public async Task<Position> GetPosteByIdAsync(int posteId)
+        public async Task<Position?> GetPosteByIdAsync(int posteId)
         {
             return await _posteRepository.GetByIdAsync(posteId);
         }
 
-        public async Task<Department> GetDepartmentByIdAsync(int departmentId)
+        public async Task<Department?> GetDepartmentByIdAsync(int departmentId)
         {
             return await _departementRepository.GetByIdAsync(departmentId);
         }
