@@ -17,7 +17,7 @@ const ModelList = () => {
     const navigate = useNavigate();
 
     // Nvigation vers des pages
-    const handleClickNewModel = () => navigate('/softGcc/attestationManagement/edit');
+    const handleClickNewModel = () => navigate('/soft-gcc/attestations/edit');
 
 
   return (

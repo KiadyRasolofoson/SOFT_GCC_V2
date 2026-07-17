@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.crud_career;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.crud_career
 {
@@ -10,9 +11,9 @@ namespace soft_carriere_competence.Controllers.crud_career
 	[ApiController]
 	public class EstablishmentController : ControllerBase
 	{
-		private readonly EstablishmentService _establishmentService;
+		private readonly IEstablishmentService _establishmentService;
 
-		public EstablishmentController(EstablishmentService service)
+		public EstablishmentController(IEstablishmentService service)
 		{
 			_establishmentService = service;
 		}

@@ -5,11 +5,11 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
 {
     public class DetailedStatisticsDto
     {
-        public ScoreDistributionDto ScoreDistribution { get; set; }
+        public ScoreDistributionDto ScoreDistribution { get; set; } = new();
         public List<DistributionItemDto> DepartmentDistribution { get; set; } = new List<DistributionItemDto>();
         public List<DistributionItemDto> EvaluationTypeDistribution { get; set; } = new List<DistributionItemDto>();
         public List<YearlyPerformanceDto> PerformanceByYear { get; set; } = new List<YearlyPerformanceDto>();
-        public TrendDto TrendData { get; set; }
+        public TrendDto TrendData { get; set; } = new();
     }
 
     public class ScoreDistributionDto
@@ -24,7 +24,7 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
 
     public class DistributionItemDto
     {
-        public string Label { get; set; }      // Nom du département ou type d'évaluation
+        public string Label { get; set; } = string.Empty;      // Nom du département ou type d'évaluation
         public int Value { get; set; }         // Nombre d'évaluations
         public decimal AverageScore { get; set; }  // Score moyen
     }
@@ -34,7 +34,7 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
         public int Year { get; set; }          // Année
         public decimal AverageScore { get; set; }  // Score moyen pour l'année
         public int Count { get; set; }         // Nombre d'évaluations
-        public string BestDepartment { get; set; } // Département avec le meilleur score
+        public string BestDepartment { get; set; } = string.Empty; // Département avec le meilleur score
     }
 
     public class TrendDto

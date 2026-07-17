@@ -6,7 +6,7 @@ function CancelButton({ to }) {
     const navigate = useNavigate();
 
     const handleRetour = () => {
-        navigate(`/softGcc/${to}`);
+        navigate(`/soft-gcc/${to}`);
     };
 
     return (

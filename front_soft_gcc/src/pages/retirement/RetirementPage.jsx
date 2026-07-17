@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Template from '../Template';
 import '../../styles/skillsStyle.css';
@@ -9,15 +9,6 @@ import Fetcher from '../../components/Fetcher';
 import useSWR from 'swr';
 import FormattedDate from '../../helpers/FormattedDate';
 import BreadcrumbPers from '../../helpers/BreadcrumbPers';
-
-// Fonction debounce pour éviter les appels excessifs
-function debounce(func, delay) {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), delay);
-  };
-}
 
 function RetirementPage() {
   const [filters, setFilters] = useState({
@@ -33,7 +24,7 @@ function RetirementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showParameter, setShowParameter] = useState(false);
   const [sortedDataRetirement, setSortedDataRetirement] = useState([]);
@@ -130,13 +121,27 @@ function RetirementPage() {
   }, [sortDirection, dataRetirement, sortColumn]);
   
 
-  // Débouncer la recherche avec un délai de 3 secondes
-  const debouncedFetchData = useCallback(debounce(fetchFilteredData, 3000), [fetchFilteredData]);
-
-  // Déclencher la recherche à chaque modification des filtres
+  // Recherche immédiate lors du changement de page
   useEffect(() => {
-    debouncedFetchData(filters);
-  }, [filters, debouncedFetchData]);
+    fetchFilteredData(filters);
+  }, [currentPage]);
+
+  // Recherche debouncée lors du changement des filtres (recherche)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const handler = setTimeout(() => {
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        fetchFilteredData(filters);
+      }
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [filters]);
 
   // Gestion de la pagination
   const handlePageChange = (newPage) => {
@@ -167,9 +172,9 @@ function RetirementPage() {
       </div>
       <BreadcrumbPers
         items={[
-          { label: 'Accueil', path: '/softGcc/tableauBord' },
-          { label: 'Souhait évolution', path: '/softGcc/souhaitEvolution/suivi' },
-          { label: 'Liste', path: '/softGcc/souhaitEvolution/suivi' }
+          { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+          { label: 'Retraite', path: '/soft-gcc/retraite' },
+          { label: 'Liste', path: '/soft-gcc/retraite' }
         ]}
       />
       {error && <div className="alert alert-danger">{error}</div>}
@@ -285,7 +290,7 @@ function RetirementPage() {
               <h3 className="mb-0" style={{color: '#B8860B'}}>Liste</h3>
             </div>
             <div className="card-body">
-              {dataRetirement?.length > 0 ? (
+              {!loading && dataRetirement?.length > 0 ? (
                 <>
                   <table className="table table-competences">
                     <thead>
@@ -356,7 +361,7 @@ function RetirementPage() {
                   </div>
                 </>
               ) : (
-                !error && <p>{error}</p>
+                !loading && !error && <p className="text-center">Aucun résultat trouvé.</p>
               )}
             </div>
           </div>

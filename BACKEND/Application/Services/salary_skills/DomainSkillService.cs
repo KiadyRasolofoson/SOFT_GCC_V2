@@ -1,9 +1,10 @@
 ﻿using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
-	public class DomainSkillService
+	public class DomainSkillService : IDomainSkillService
 	{
 		private readonly IGenericRepository<DomainSkill> _repository;
 
@@ -17,7 +18,7 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 			return await _repository.GetAll();
 		}
 
-		public async Task<DomainSkill> GetById(int id)
+		public async Task<DomainSkill?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

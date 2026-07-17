@@ -18,13 +18,13 @@ function SettingSkillPage() {
     const [error, setError] = useState(null); 
 
     const  [listSettings, setListSettings] = useState([
-        {url: '/softGcc/settings/competence/niveau', crudName: 'Niveau d\'étude', icon: 'mdi mdi-star settings-icon'}, 
-        {url: '/softGcc/settings/competence/departement', crudName: 'Département', icon: 'mdi mdi-domain settings-icon'}, 
-        {url: '/softGcc/settings/competence/domaine', crudName: 'Domaine de compétence', icon: 'mdi mdi-briefcase settings-icon'}, 
-        {url: '/softGcc/settings/competence/language', crudName: 'Language', icon: 'mdi mdi-book-open-variant settings-icon'}, 
-        {url: '/softGcc/settings/competence/ecole', crudName: 'Ecole', icon: 'mdi mdi-school settings-icon'}, 
-        {url: '/softGcc/settings/competence/competence', crudName: 'Compétence', icon: 'mdi mdi-star-circle settings-icon'}, 
-        {url: '/softGcc/settings/competence/filiere', crudName: 'Filière', icon: 'mdi mdi-library settings-icon'}
+        {url: '/soft-gcc/parametres/competences/niveaux', crudName: 'Niveau d\'étude', icon: 'mdi mdi-star settings-icon'},
+        {url: '/soft-gcc/parametres/competences/departements', crudName: 'Département', icon: 'mdi mdi-domain settings-icon'},
+        {url: '/soft-gcc/parametres/competences/domaines', crudName: 'Domaine de compétence', icon: 'mdi mdi-briefcase settings-icon'},
+        {url: '/soft-gcc/parametres/competences/langues', crudName: 'Language', icon: 'mdi mdi-book-open-variant settings-icon'},
+        {url: '/soft-gcc/parametres/competences/ecoles', crudName: 'Ecole', icon: 'mdi mdi-school settings-icon'},
+        {url: '/soft-gcc/parametres/competences/competences', crudName: 'Compétence', icon: 'mdi mdi-star-circle settings-icon'},
+        {url: '/soft-gcc/parametres/competences/filieres', crudName: 'Filière', icon: 'mdi mdi-library settings-icon'}
     ]);
     
     // Navigation dans la page de crud
@@ -44,9 +44,9 @@ function SettingSkillPage() {
             </div>
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'paramètres compétences', path: '/softGcc/settings/competence' },
-                    { label: 'Menu', path: '/softGcc/settings/competence' },
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'paramètres compétences', path: '/soft-gcc/parametres/competences' },
+                    { label: 'Menu', path: '/soft-gcc/parametres/competences' },
                 ]}
             />
             

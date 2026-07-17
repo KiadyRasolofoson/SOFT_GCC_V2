@@ -19,12 +19,12 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         [Column(TypeName = "decimal(5, 2)")]
         public decimal OverallScore { get; set; }
 
-        public string ActionPlan { get; set; }
+        public string ActionPlan { get; set; } = string.Empty;
 
         [ForeignKey("UserId")]
-        public User User { get; set; }
+        public User User { get; set; } = null!;
 
         [ForeignKey("EvaluationId")]
-        public Evaluation Evaluation { get; set; }
+        public Evaluation Evaluation { get; set; } = null!;
     }
 }

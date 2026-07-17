@@ -1,10 +1,11 @@
 ﻿using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
-	public class EmployeeEducationService
+	public class EmployeeEducationService : IEmployeeEducationService
 	{
 		private readonly IGenericRepository<EmployeeEducation> _repository;
 		private readonly ISalarySkillDataService _dataService;
@@ -20,7 +21,7 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 			return await _repository.GetAll();
 		}
 
-		public async Task<EmployeeEducation> GetById(int id)
+		public async Task<EmployeeEducation?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

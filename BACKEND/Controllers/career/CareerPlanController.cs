@@ -15,6 +15,7 @@ using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.career
 {
@@ -22,13 +23,13 @@ namespace soft_carriere_competence.Controllers.career
 	[ApiController]
 	public class CareerPlanController : ControllerBase
 	{
-		private readonly CareerPlanService _careerPlanService;
-		private readonly HistoryService _historyService;
-		private readonly AssignmentTypeService _assignmentTypeService;
-		private readonly CertificateHistoryService _certificateHistoryService;
+		private readonly ICareerPlanService _careerPlanService;
+		private readonly IHistoryService _historyService;
+		private readonly IAssignmentTypeService _assignmentTypeService;
+		private readonly ICertificateHistoryService _certificateHistoryService;
 		private readonly WorkCertificatesService _workCertificatesService;
 
-		public CareerPlanController(CareerPlanService service, HistoryService historyService, AssignmentTypeService assignmentTypeService, CertificateHistoryService certificateHistoryService, WorkCertificatesService workCertificatesService)
+		public CareerPlanController(ICareerPlanService service, IHistoryService historyService, IAssignmentTypeService assignmentTypeService, ICertificateHistoryService certificateHistoryService, WorkCertificatesService workCertificatesService)
 		{
 			_careerPlanService = service;
 			_historyService = historyService;
@@ -151,15 +152,15 @@ namespace soft_carriere_competence.Controllers.career
 			if (id != careerPlan.CareerPlanId) return BadRequest();
 			await _careerPlanService.Update(careerPlan);
 
-			AssignmentType assignmentType = await _assignmentTypeService.GetById((int)careerPlan.AssignmentTypeId);
+			AssignmentType? assignmentType = await _assignmentTypeService.GetById((int)careerPlan.AssignmentTypeId);
 			var activityLog = new ActivityLog
 			{
 				UserId = 1,
 				Module = 2,
 				Action = "Modification",
-				Description = "L'user 1 a modifié un plan de carrière de type " + assignmentType.AssignmentTypeName + " pour l'employé " + careerPlan.RegistrationNumber,
+				Description = "L'user 1 a modifié un plan de carrière de type " + (assignmentType?.AssignmentTypeName ?? "") + " pour l'employé " + (careerPlan.RegistrationNumber ?? ""),
 				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 			};
 
 			await _historyService.Add(activityLog);
@@ -180,11 +181,11 @@ namespace soft_carriere_competence.Controllers.career
 		[HttpGet]
 		[Route("filter")]
 		public async Task<IActionResult> GetListCareersFilter(
-			string keyWord=null, 
-			string departmentId=null, 
-			string positionId=null,
-			string dateAssignmentMin = null,
-			string dateAssignmentMax = null,
+			string? keyWord=null, 
+			string? departmentId=null, 
+			string? positionId=null,
+			string? dateAssignmentMin = null,
+			string? dateAssignmentMax = null,
 			int pageNumber = 1, 
 			int pageSize = 2)
 		{
@@ -262,16 +263,16 @@ namespace soft_carriere_competence.Controllers.career
 			Console.WriteLine("Career plan id : " + careerPlanId);
 			if (isUpdated)
 			{
-				CareerPlan careerPlan = await _careerPlanService.GetById(careerPlanId);
-				AssignmentType assignmentType = await _assignmentTypeService.GetById(careerPlan.AssignmentTypeId);
+				CareerPlan? careerPlan = await _careerPlanService.GetById(careerPlanId);
+				AssignmentType? assignmentType = careerPlan != null ? await _assignmentTypeService.GetById(careerPlan.AssignmentTypeId) : null;
 				var activityLog = new ActivityLog
 				{
 					UserId = 1,
 					Module = 2,
 					Action = "Nettoyage",
-					Description = "L'user 1 a effacé le plan de carrière de type " + assignmentType.AssignmentTypeName + " pour l'employé " + careerPlan.RegistrationNumber,
+					Description = "L'user 1 a effacé le plan de carrière de type " + (assignmentType?.AssignmentTypeName ?? "") + " pour l'employé " + (careerPlan?.RegistrationNumber ?? ""),
 					Timestamp = DateTime.UtcNow,
-					Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+					Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 				};
 
 				await _historyService.Add(activityLog);
@@ -292,16 +293,16 @@ namespace soft_carriere_competence.Controllers.career
 
 			if (isUpdated)
 			{
-				AssignmentType assignmentType = await _assignmentTypeService.GetById((int)careerPlanId);
-				CareerPlan careerPlan = await _careerPlanService.GetById(careerPlanId);
+				CareerPlan? careerPlan = await _careerPlanService.GetById(careerPlanId);
+				AssignmentType? assignmentType = careerPlan != null ? await _assignmentTypeService.GetById(careerPlan.AssignmentTypeId) : null;
 				var activityLog = new ActivityLog
 				{
 					UserId = 1,
 					Module = 2,
 					Action = "Restauré",
-					Description = "L'user 1 a restauré le plan de carrière de type " + assignmentType.AssignmentTypeName + " pour l'employé " + careerPlan.RegistrationNumber,
+					Description = "L'user 1 a restauré le plan de carrière de type " + (assignmentType?.AssignmentTypeName ?? "") + " pour l'employé " + (careerPlan?.RegistrationNumber ?? ""),
 					Timestamp = DateTime.UtcNow,
-					Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+					Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 				};
 
 				await _historyService.Add(activityLog);
@@ -322,16 +323,16 @@ namespace soft_carriere_competence.Controllers.career
 
 			if (isUpdated)
 			{
-				AssignmentType assignmentType = await _assignmentTypeService.GetById((int)careerPlanId);
-				CareerPlan careerPlan = await _careerPlanService.GetById(careerPlanId);
+				CareerPlan? careerPlan = await _careerPlanService.GetById(careerPlanId);
+				AssignmentType? assignmentType = careerPlan != null ? await _assignmentTypeService.GetById(careerPlan.AssignmentTypeId) : null;
 				var activityLog = new ActivityLog
 				{
 					UserId = 1,
 					Module = 2,
 					Action = "suppression",
-					Description = "L'user 1 a supprimé le plan de carrière de type " + assignmentType.AssignmentTypeName + " pour l'employé " + careerPlan.RegistrationNumber,
+					Description = "L'user 1 a supprimé le plan de carrière de type " + (assignmentType?.AssignmentTypeName ?? "") + " pour l'employé " + (careerPlan?.RegistrationNumber ?? ""),
 					Timestamp = DateTime.UtcNow,
-					Metadata = HttpContext.Connection.RemoteIpAddress.ToString()
+					Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
 				};
 
 				await _historyService.Add(activityLog);
@@ -432,7 +433,7 @@ namespace soft_carriere_competence.Controllers.career
 
 				return Ok("Fichier pdf enregistré avec succès.");
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
 				return StatusCode(500, "Une erreur interne est survenue lors de l'enregistrement du fichier.");
 			}

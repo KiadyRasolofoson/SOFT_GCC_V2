@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Core.Entities.crud_career;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.crud_career
 {
@@ -9,9 +10,9 @@ namespace soft_carriere_competence.Controllers.crud_career
 	[ApiController]
 	public class ProfessionalCategoryController : ControllerBase
 	{
-		private readonly ProfessionalCategoryService _professionalCategoryService;
+		private readonly IProfessionalCategoryService _professionalCategoryService;
 
-		public ProfessionalCategoryController(ProfessionalCategoryService service)
+		public ProfessionalCategoryController(IProfessionalCategoryService service)
 		{
 			_professionalCategoryService = service;
 		}

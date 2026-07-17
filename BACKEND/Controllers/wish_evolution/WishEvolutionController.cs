@@ -5,6 +5,7 @@ using soft_carriere_competence.Application.Services.retirement;
 using soft_carriere_competence.Application.Services.wish_evolution;
 using soft_carriere_competence.Core.Entities.career_plan;
 using soft_carriere_competence.Core.Entities.wish_evolution;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.wish_evolution
 {
@@ -12,9 +13,9 @@ namespace soft_carriere_competence.Controllers.wish_evolution
 	[ApiController]
 	public class WishEvolutionController : ControllerBase
 	{
-		private readonly WishEvolutionService _wishEvolutionService;
+		private readonly IWishEvolutionService _wishEvolutionService;
 
-		public WishEvolutionController(WishEvolutionService service)
+		public WishEvolutionController(IWishEvolutionService service)
 		{
 			_wishEvolutionService = service;
 		}

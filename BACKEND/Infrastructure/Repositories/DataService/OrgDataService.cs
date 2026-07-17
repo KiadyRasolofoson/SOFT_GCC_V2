@@ -38,9 +38,9 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                 {
                     Name = e.Name,
                     FirstName = e.FirstName,
-                    Department = e.DepartmentName,
-                    Civilite = e.CiviliteName,
-                    Position = e.PositionName,
+                    Department = e.DepartmentName!,
+                    Civilite = e.CiviliteName ?? string.Empty,
+                    Position = e.PositionName ?? string.Empty,
                     Children = BuildOrgChart(employees, e.EmployeeId)
                 })
                 .ToList();

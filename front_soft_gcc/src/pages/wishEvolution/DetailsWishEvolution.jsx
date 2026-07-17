@@ -25,7 +25,7 @@ const createSkillNecessary = (skillPosition, skillEmployee) => {
 function DetailsWishEvolution() {
   const module = "Souhait d'évolution";
   const action = "Détails";
-  const url = "/souhaitEvolution/details";
+  const url = "/souhaits-evolution/details";
 
   const { WishEvolutionId } = useParams();
 
@@ -107,7 +107,7 @@ function DetailsWishEvolution() {
     setIsLoading(true);
     try {
       const response = await axios.delete(urlApi(`/WishEvolution/${wishEvolutionId}`));
-      navigate(`/softGcc/souhaitEvolution/suivi`);
+      navigate(`/soft-gcc/souhaits-evolution/suivi`);
     } catch (error) {
         console.error('Erreur lors de la suppression du souhait d\'evolution : ', error.response?.data || error.message);
         setError('Erreur lors de la suppression du souhait d\'evolution : '+error);
@@ -118,17 +118,17 @@ function DetailsWishEvolution() {
 
   // Navigation pour modifier
   const handleEdit = (wishEvolutionId) => {
-    navigate(`/softGcc/souhaitEvolution/edit/${wishEvolutionId}`);
+    navigate(`/soft-gcc/souhaits-evolution/edit/${wishEvolutionId}`);
   };
 
   // Navigation pour la page des competences
   const handleSkill = () => {
-    navigate(`/competences/profil/${dataDescription.employeeId}`);
+    navigate(`/soft-gcc/competences/profil/${dataDescription.employeeId}`);
   };
 
   // Navigation pour la page des carrieress
   const handleCareer = () => {
-    navigate(`/carriere/fiche/${dataDescription.registrationNumber}`);
+    navigate(`/soft-gcc/carrieres/fiche/${dataDescription.registrationNumber}`);
   };
 
   return (
@@ -140,14 +140,14 @@ function DetailsWishEvolution() {
           <p className="skill-title">DÉTAILS DE LA DEMANDE</p>
         </div>
         <div className="col-lg-2">
-          <CancelButton to="souhaitEvolution/suivi" />
+          <CancelButton to="souhaits-evolution/suivi" />
         </div>  
       </div>
       <BreadcrumbPers
         items={[
-          { label: 'Accueil', path: '/softGcc/tableauBord' },
-          { label: 'Souhait évolution', path: '/softGcc/souhaitEvolution/suivi' },
-          { label: 'Détails', path: '/softGcc/souhaitEvolution/détails' },
+          { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+          { label: 'Souhait évolution', path: '/soft-gcc/souhaits-evolution/suivi' },
+          { label: 'Détails', path: '/soft-gcc/souhaits-evolution/details' },
         ]}
       />
       {error && <div className="alert alert-danger">{error}</div>}

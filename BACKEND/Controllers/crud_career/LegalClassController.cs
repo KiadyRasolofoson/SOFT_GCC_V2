@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Core.Entities.crud_career;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.crud_career
 {
@@ -9,9 +10,9 @@ namespace soft_carriere_competence.Controllers.crud_career
 	[ApiController]
 	public class LegalClassController : ControllerBase
 	{
-		private readonly LegalClassService _legalClassService;
+		private readonly ILegalClassService _legalClassService;
 
-		public LegalClassController(LegalClassService service)
+		public LegalClassController(ILegalClassService service)
 		{
 			_legalClassService = service;
 		}

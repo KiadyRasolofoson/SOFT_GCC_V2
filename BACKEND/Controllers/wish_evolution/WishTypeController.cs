@@ -4,6 +4,7 @@ using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Application.Services.wish_evolution;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.wish_evolution;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.wish_evolution
 {
@@ -11,9 +12,9 @@ namespace soft_carriere_competence.Controllers.wish_evolution
 	[ApiController]
 	public class WishTypeController : ControllerBase
 	{
-		private readonly WishTypeService _wishTypeService;
+		private readonly IWishTypeService _wishTypeService;
 
-		public WishTypeController(WishTypeService service)
+		public WishTypeController(IWishTypeService service)
 		{
 			_wishTypeService = service;
 		}

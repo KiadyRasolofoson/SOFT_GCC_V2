@@ -219,7 +219,7 @@ const EvaluationNotation = () => {
       // Redirection après un délai pour laisser le temps au téléchargement de démarrer
       const redirectionTimeout = setTimeout(() => {
         console.log("Redirection après tentative de génération PDF");
-        navigate('/evaluations/salary-list');
+        navigate('/soft-gcc/evaluations/liste');
       }, 3000); // Augmenter le délai à 3 secondes
       
       return () => clearTimeout(redirectionTimeout);
@@ -357,7 +357,7 @@ const EvaluationNotation = () => {
   
   const handleCancel = () => {
     if (isSaved || window.confirm('Êtes-vous sûr de vouloir annuler? Les modifications non enregistrées seront perdues.')) {
-      navigate('/evaluations/salary-list');
+      navigate('/soft-gcc/evaluations/liste');
     }
   };
 
@@ -403,7 +403,7 @@ const EvaluationNotation = () => {
         
         // Planifier la redirection après le téléchargement
         setTimeout(() => {
-          navigate('/evaluations/salary-list');
+          navigate('/soft-gcc/evaluations/liste');
         }, 3000);
         
       } catch (error) {
@@ -570,7 +570,7 @@ const EvaluationNotation = () => {
             <p>{error}</p>
             <button 
               className="btn btn-primary" 
-              onClick={() => navigate('/evaluations/salary-list')}
+              onClick={() => navigate('/soft-gcc/evaluations/liste')}
             >
               Retour à la liste
             </button>

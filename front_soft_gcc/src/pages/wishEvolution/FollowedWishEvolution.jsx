@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Template from '../Template';
 import '../../styles/skillsStyle.css';
@@ -14,15 +14,6 @@ import { mdiEyeOutline } from '@mdi/js';
 import Icon from '@mdi/react';
 
  
-// Fonction debounce pour éviter les appels excessifs
-function debounce(func, delay) {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), delay);
-  };
-}
-
 // Fonction pour initialiser les données du graphe
 function initializeGraph(setWishesEvolutionGraph) {
   setWishesEvolutionGraph([
@@ -49,7 +40,7 @@ function FollowedWishEvolution() {
   const navigate = useNavigate();
 
   // États principaux
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [wishesEvolution, setWishesEvolution] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -127,27 +118,14 @@ function FollowedWishEvolution() {
 
   // Fetch des données pour le graphe
   const fetchFilteredGraph = useCallback(async () => {
-    setLoading(true);
     try {
       const response = await Fetcher(`/WishEvolution/graphe/${filters.year}`);
       setDataGraph(response || []);
-
     } catch (err) {
       console.log(err.message);
-      setError('Erreur inattendue : ' + err.message);
       setDataGraph([]);
-    } finally {
-      setLoading(false);
     }
   }, [filters.year]);
-
-  // Débouncer les appels
-  const debouncedFetchData = useCallback(debounce(fetchFilteredData, 1000), [
-    fetchFilteredData,
-  ]);
-  const debouncedFetchGraph = useCallback(debounce(fetchFilteredGraph, 1000), [
-    fetchFilteredGraph,
-  ]);
 
   // Effet pour synchroniser les données du graphe
   useEffect(() => {
@@ -163,23 +141,44 @@ function FollowedWishEvolution() {
     }
   }, [dataGraph]);
 
-  // Effet pour déclencher les fetch
+  // Fetch immédiat au montage et changement de page
   useEffect(() => {
-    debouncedFetchData(filters);
-  }, [filters, debouncedFetchData]);
+    fetchFilteredData(filters);
+  }, [currentPage]);
 
+  // Debounce uniquement pour les filtres (pas au montage initial)
+  const isFirstRender = useRef(true);
   useEffect(() => {
-    debouncedFetchGraph();
-  }, [filters.year, debouncedFetchGraph]);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const handler = setTimeout(() => {
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        fetchFilteredData(filters);
+      }
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [filters]);
+
+  // Fetch graph (debounced, ne modifie pas le loading du tableau)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchFilteredGraph();
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [filters.year]);
 
   // Navigation pour ajout
   const handleClick = () => {
-    navigate('/softGcc/souhaitEvolution/ajouter');
+    navigate('/soft-gcc/souhaits-evolution/ajouter');
   };
 
   // Navigation pour details souhait evolution
   const handleWishEvolutionDetails = (wishEvolutionId) => {
-    navigate(`/softGcc/souhaitEvolution/details/${wishEvolutionId}`);
+    navigate(`/soft-gcc/souhaits-evolution/details/${wishEvolutionId}`);
   };
 
   // Gestion de la pagination
@@ -202,9 +201,9 @@ function FollowedWishEvolution() {
           </div>
           <BreadcrumbPers
             items={[
-              { label: 'Accueil', path: '/softGcc/tableauBord' },
-              { label: 'Souhait évolution', path: '/softGcc/souhaitEvolution/suivi' },
-              { label: 'Liste', path: '/softGcc/souhaitEvolution/suivi' }
+              { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+              { label: 'Souhait évolution', path: '/soft-gcc/souhaits-evolution/suivi' },
+              { label: 'Liste', path: '/soft-gcc/souhaits-evolution/suivi' }
             ]}
           />
           {error && <div className="alert alert-danger">{error}</div>}
@@ -331,71 +330,75 @@ function FollowedWishEvolution() {
                   <h3 className="mb-0" style={{color: '#B8860B'}}>Liste des demandes</h3>
                 </div>
                 <div className="card-body">
-                  <table className="table table-competences">
-                    <thead>
-                      <tr>
-                        <th>Matricule</th>
-                        <th>Employe</th>
-                        <th>Type souhait</th>
-                        <th>Poste souhaite</th>
-                        <th>Priorite</th>
-                        <th>Date de demande</th>
-                        <th>Statut</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {wishesEvolution?.length > 0 ? (
-                        wishesEvolution.map((item) => (
-                          <tr key={item.wishEvolutionCareerId} onClick={() => {handleWishEvolutionDetails(item.wishEvolutionCareerId)}}>
-                            <td>{item.registrationNumber}</td>
-                            <td>{item.firstName} {item.name}</td>
-                            <td>{item.wishTypeName}</td>
-                            <td style={{color: '#B8860B'}}>{item.wishPositionName}</td>
-                            <td>{item.priorityLetter}</td>
-                            <td>{new Date(item.requestDate).toLocaleDateString()}</td>
-                            {item.state === 1 ? (
-                              <td><label className="badge badge-warning">{item.stateLetter}</label ></td>
-                            ) : item.state === 5 ? (
-                              <td><label className="badge badge-warning">{item.stateLetter}</label ></td>
-                            ) : item.state === 10 ? (
-                              <td><label className="badge badge-success">{item.stateLetter}</label ></td>
-                            ) : (
-                              <td><label className="badge badge-danger">{item.stateLetter}</label ></td>
-                            )}
-                            <td>
-                              <button className="btn-details text-primary" >
-                                <Icon path={mdiEyeOutline} size={1} /> Voir demande
-                              </button>
-                            </td>
+                  {!loading && (
+                    <>
+                      <table className="table table-competences">
+                        <thead>
+                          <tr>
+                            <th>Matricule</th>
+                            <th>Employe</th>
+                            <th>Type souhait</th>
+                            <th>Poste souhaite</th>
+                            <th>Priorite</th>
+                            <th>Date de demande</th>
+                            <th>Statut</th>
+                            <th></th>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="7" className="text-center">Aucun résultat trouvé.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                  <div className="pagination">
-                    <h4>{paginationResult.totalRecords} resultats aux totals</h4>
-                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
-                      Précédent
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <button
-                        key={i + 1}
-                        className={`pagination-button ${i + 1 === currentPage ? 'active' : ''}`}
-                        onClick={() => handlePageChange(i + 1)}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
-                      Suivant
-                    </button>
-                    <h4>Page {paginationResult.currentPage} sur {paginationResult.totalPages} pour {paginationResult.pageSize} resultats</h4>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {wishesEvolution?.length > 0 ? (
+                            wishesEvolution.map((item) => (
+                              <tr key={item.wishEvolutionCareerId} onClick={() => {handleWishEvolutionDetails(item.wishEvolutionCareerId)}}>
+                                <td>{item.registrationNumber}</td>
+                                <td>{item.firstName} {item.name}</td>
+                                <td>{item.wishTypeName}</td>
+                                <td style={{color: '#B8860B'}}>{item.wishPositionName}</td>
+                                <td>{item.priorityLetter}</td>
+                                <td>{new Date(item.requestDate).toLocaleDateString()}</td>
+                                {item.state === 1 ? (
+                                  <td><label className="badge badge-warning">{item.stateLetter}</label ></td>
+                                ) : item.state === 5 ? (
+                                  <td><label className="badge badge-warning">{item.stateLetter}</label ></td>
+                                ) : item.state === 10 ? (
+                                  <td><label className="badge badge-success">{item.stateLetter}</label ></td>
+                                ) : (
+                                  <td><label className="badge badge-danger">{item.stateLetter}</label ></td>
+                                )}
+                                <td>
+                                  <button className="btn-details text-primary" >
+                                    <Icon path={mdiEyeOutline} size={1} /> Voir demande
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="7" className="text-center">Aucun résultat trouvé.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                      <div className="pagination">
+                        <h4>{paginationResult.totalRecords} resultats aux totals</h4>
+                        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+                          Précédent
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => (
+                          <button
+                            key={i + 1}
+                            className={`pagination-button ${i + 1 === currentPage ? 'active' : ''}`}
+                            onClick={() => handlePageChange(i + 1)}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+                          Suivant
+                        </button>
+                        <h4>Page {paginationResult.currentPage} sur {paginationResult.totalPages} pour {paginationResult.pageSize} resultats</h4>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

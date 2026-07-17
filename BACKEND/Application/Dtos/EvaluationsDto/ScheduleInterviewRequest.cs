@@ -4,7 +4,7 @@
     {
         public int EvaluationId { get; set; }
         public DateTime ScheduledDate { get; set; }
-        public List<int> Participants { get; set; }
+        public List<int> Participants { get; set; } = new();
         public int? EmployeeId { get; set; }
         public bool SendEmails { get; set; } = true; // Par défaut, on envoie des emails
     }

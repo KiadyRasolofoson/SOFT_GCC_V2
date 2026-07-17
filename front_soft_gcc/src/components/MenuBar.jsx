@@ -7,11 +7,11 @@ function MenuBar() {
 
   useEffect(() => {
     const pathname = location.pathname;
-    if (pathname.startsWith('/SoftGcc/carriere') || pathname.startsWith('/retraite') || pathname.startsWith('/softGcc/souhaitEvolution')) {
+    if (pathname.startsWith('/soft-gcc/carrieres') || pathname.startsWith('/soft-gcc/retraite') || pathname.startsWith('/soft-gcc/souhaits-evolution')) {
       setOpenMenu('carriere');
-    } else if (pathname.startsWith('/salary-list') || pathname.startsWith('/planning') || pathname.startsWith('/homeInterview') || pathname.startsWith('/history')) {
+    } else if (pathname.startsWith('/soft-gcc/evaluations/') && !pathname.startsWith('/soft-gcc/evaluations/parametres')) {
       setOpenMenu('evaluation');
-    } else if (pathname.startsWith('/softGcc/settings') || pathname.startsWith('/EvaluationSettings') || pathname.startsWith('/user-management')) {
+    } else if (pathname.startsWith('/soft-gcc/parametres') || pathname.startsWith('/soft-gcc/evaluations/parametres')) {
       setOpenMenu('param');
     } else {
       setOpenMenu(null);
@@ -28,14 +28,14 @@ function MenuBar() {
     <nav className="sidebar sidebar-offcanvas" id="sidebar" style={{ paddingTop: '30px' }}>
       <ul className="nav">
         <li className="nav-item">
-          <Link className={`nav-link ${isActive('/softGcc/tableauBord') ? 'active-menu' : ''}`} to="/softGcc/tableauBord">
+          <Link className={`nav-link ${isActive('/soft-gcc/tableau-de-bord') ? 'active-menu' : ''}`} to="/soft-gcc/tableau-de-bord">
             <span className="icon-bg"><i className="mdi mdi-view-grid menu-icon"></i></span>
             <span className="menu-title">Analyse statistiques</span>
           </Link>
         </li>
 
         <li className="nav-item">
-          <Link className={`nav-link ${isActive('/softGcc/competences') ? 'active-menu' : ''}`} to="/softGcc/competences">
+          <Link className={`nav-link ${isActive('/soft-gcc/competences') ? 'active-menu' : ''}`} to="/soft-gcc/competences">
             <span className="icon-bg"><i className="mdi mdi-school menu-icon"></i></span>
             <span className="menu-title">Compétences</span>
           </Link>
@@ -54,13 +54,13 @@ function MenuBar() {
           {openMenu === 'carriere' && (
             <ul className="nav flex-column sub-menu">
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/SoftGcc/carriere') ? 'active-menu' : ''}`} to="/SoftGcc/carriere" onClick={() => setOpenMenu(null)}>Plan de carrière</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/carrieres') ? 'active-menu' : ''}`} to="/soft-gcc/carrieres" onClick={() => setOpenMenu(null)}>Plan de carrière</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/retraite') ? 'active-menu' : ''}`} to="/retraite" onClick={() => setOpenMenu(null)}>Départ à la retraite</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/retraite') ? 'active-menu' : ''}`} to="/soft-gcc/retraite" onClick={() => setOpenMenu(null)}>Départ à la retraite</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/softGcc/souhaitEvolution') ? 'active-menu' : ''}`} to="/softGcc/souhaitEvolution/suivi" onClick={() => setOpenMenu(null)}>Évolution de carrière</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/souhaits-evolution') ? 'active-menu' : ''}`} to="/soft-gcc/souhaits-evolution" onClick={() => setOpenMenu(null)}>Évolution de carrière</Link>
               </li>
             </ul>
           )}
@@ -75,30 +75,30 @@ function MenuBar() {
           {openMenu === 'evaluation' && (
             <ul className="nav flex-column sub-menu">
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/salary-list') ? 'active-menu' : ''}`} to="/salary-list" onClick={() => setOpenMenu(null)}>Notation d'évaluation</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/liste') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/liste" onClick={() => setOpenMenu(null)}>Notation d'évaluation</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/planning') ? 'active-menu' : ''}`} to="/planning" onClick={() => setOpenMenu(null)}>Planning d'évaluations</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/planning') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/planning" onClick={() => setOpenMenu(null)}>Planning d'évaluations</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/homeInterview') ? 'active-menu' : ''}`} to="/homeInterview" onClick={() => setOpenMenu(null)}>Entretien d'évaluations</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/accueil') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/accueil" onClick={() => setOpenMenu(null)}>Entretien d'évaluations</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/history') ? 'active-menu' : ''}`} to="/history" onClick={() => setOpenMenu(null)}>Historique d'évaluations</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/historique') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/historique" onClick={() => setOpenMenu(null)}>Historique d'évaluations</Link>
               </li>
             </ul>
           )}
         </li>
 
         <li className="nav-item">
-          <Link className={`nav-link ${isActive('/softGcc/effectif') ? 'active-menu' : ''}`} to="/softGcc/effectif">
+          <Link className={`nav-link ${isActive('/soft-gcc/effectifs') ? 'active-menu' : ''}`} to="/soft-gcc/effectifs">
             <span className="icon-bg"><i className="mdi mdi-sitemap menu-icon"></i></span>
             <span className="menu-title">Organigramme et effectif</span>
           </Link>
         </li>
 
         <li className="nav-item">
-          <Link className={`nav-link ${isActive('/softGcc/activityHistory') ? 'active-menu' : ''}`} to="/softGcc/activityHistory">
+          <Link className={`nav-link ${isActive('/soft-gcc/historique') ? 'active-menu' : ''}`} to="/soft-gcc/historique">
             <span className="icon-bg"><i className="mdi mdi-history menu-icon"></i></span>
             <span className="menu-title">Historiques des activités</span>
           </Link>
@@ -113,19 +113,19 @@ function MenuBar() {
           {openMenu === 'param' && (
             <ul className="nav flex-column sub-menu">
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/softGcc/settings/competence') ? 'active-menu' : ''}`} to="/softGcc/settings/competence" onClick={() => setOpenMenu(null)}>Gestion Compétences</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/parametres/competences') ? 'active-menu' : ''}`} to="/soft-gcc/parametres/competences" onClick={() => setOpenMenu(null)}>Gestion Compétences</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/softGcc/settings/carriere') ? 'active-menu' : ''}`} to="/softGcc/settings/carriere" onClick={() => setOpenMenu(null)}>Gestion Carrières</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/parametres/carrieres') ? 'active-menu' : ''}`} to="/soft-gcc/parametres/carrieres" onClick={() => setOpenMenu(null)}>Gestion Carrières</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/softGcc/settings/employeeManagement/liste') ? 'active-menu' : ''}`} to="/softGcc/settings/employeeManagement/liste" onClick={() => setOpenMenu(null)}>Gestion employés</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/parametres/employes/liste') ? 'active-menu' : ''}`} to="/soft-gcc/parametres/employes/liste" onClick={() => setOpenMenu(null)}>Gestion employés</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/EvaluationSettings') ? 'active-menu' : ''}`} to="/EvaluationSettings" onClick={() => setOpenMenu(null)}>Gestion des évaluations</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/parametres') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/parametres" onClick={() => setOpenMenu(null)}>Gestion des évaluations</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/user-management') ? 'active-menu' : ''}`} to="/user-management" onClick={() => setOpenMenu(null)}>Gestion des utilisateurs</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/parametres/utilisateurs') ? 'active-menu' : ''}`} to="/soft-gcc/parametres/utilisateurs" onClick={() => setOpenMenu(null)}>Gestion des utilisateurs</Link>
               </li>
             </ul>
           )}

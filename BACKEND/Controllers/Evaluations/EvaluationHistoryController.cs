@@ -110,8 +110,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		public async Task<IActionResult> GetGlobalPerformance(
 		   [FromQuery] DateTime? startDate,
 		   [FromQuery] DateTime? endDate,
-		   [FromQuery] string department = null,
-		   [FromQuery] string evaluationType = null)
+		   [FromQuery] string? department = null,
+		   [FromQuery] string? evaluationType = null)
 		{
 			try
 			{

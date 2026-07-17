@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Template from '../../Template';
 import axios from 'axios';
+import { urlApi } from '../../../helpers/utils';
 
 function UsersList() {
     const [users, setUsers] = useState([]);
@@ -72,7 +73,7 @@ function UsersList() {
             });
             
             // Inclure tous les paramètres dans la requête API
-            const response = await axios.get('http://localhost:5189/api/User/paginated', {
+            const response = await axios.get(urlApi('/User/paginated'), {
                 params: {
                     pageNumber: currentPage,
                     pageSize: pageSize,
@@ -93,7 +94,7 @@ function UsersList() {
 
     const fetchRoles = async () => {
         try {
-            const response = await axios.get('http://localhost:5189/api/User/roles');
+            const response = await axios.get(urlApi('/User/roles'));
             setRoles(response.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des rôles:', error);
@@ -108,7 +109,7 @@ function UsersList() {
                 console.log("ID utilisateur pour mise à jour:", userId);
                 console.log("Données envoyées pour mise à jour:", formData);
                 
-                await axios.post(`http://localhost:5189/api/Authentification/update`, {
+                await axios.post(urlApi('/Authentification/update'), {
                     userId: userId,
                     firstName: formData.firstName,
                     lastName: formData.lastName,
@@ -117,7 +118,7 @@ function UsersList() {
                     roleId: parseInt(formData.roleId)
                 });
             } else {
-                await axios.post('http://localhost:5189/api/Authentification/register', {
+                await axios.post(urlApi('/Authentification/register'), {
                     lastName: formData.lastName,
                     firstName: formData.firstName,
                     username: formData.username,
@@ -171,7 +172,7 @@ function UsersList() {
     const handleDelete = async (userId) => {
         if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
             try {
-                await axios.delete(`http://localhost:5189/api/User/${userId}`);
+                await axios.delete(urlApi(`/User/${userId}`));
                 fetchUsers();
             } catch (error) {
                 console.error('Erreur lors de la suppression:', error);

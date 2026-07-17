@@ -5,11 +5,13 @@ using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.EvaluationInterface;
 using soft_carriere_competence.Core.Interface.DataService;
 using soft_carriere_competence.Core.Interface.AuthInterface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
-    public class EvaluationService
+    public class EvaluationService : IEvaluationService
     {
         private readonly IEvaluationQuestionRepository _questionRepository;
         private readonly IGenericRepository<EvaluationType> _evaluationTypeRepository;
@@ -23,7 +25,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         private readonly TemporaryAccountService _temporaryAccountService;
         private readonly IEmailService _emailService;
         private readonly ReminderSettings _reminderSettings;
-        private readonly EvaluationCompetenceService _competenceService;
+        private readonly EvaluationCompetenceService? _competenceService;
+        private readonly IConfiguration _configuration;
 
         public EvaluationService(IEvaluationQuestionRepository questionRepository, IGenericRepository<EvaluationType> evaluationType,
             IGenericRepository<EvaluationQuestion> EvaluationQuestion, IGenericRepository<Evaluation> _evaluation,
@@ -34,7 +37,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             IGenericRepository<Position> poste,
             IEvaluationDataService dataService,
             TemporaryAccountService temporaryAccountService,
-            EvaluationCompetenceService competenceService = null)
+            IConfiguration configuration,
+            EvaluationCompetenceService? competenceService = null)
         {
             _questionRepository = questionRepository;
             _evaluationTypeRepository = evaluationType;
@@ -48,6 +52,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             _posteRepository = poste;
             _dataService = dataService;
             _temporaryAccountService = temporaryAccountService;
+            _configuration = configuration;
             _competenceService = competenceService;
         }
 
@@ -65,7 +70,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return await _dataService.GetAllQuestionsWithIncludes();
         }
         // Get a specific evaluation question by ID
-        public async Task<EvaluationQuestion> GetEvaluationQuestionByIdAsync(int id)
+        public async Task<EvaluationQuestion?> GetEvaluationQuestionByIdAsync(int id)
         {
             return await _evaluationQuestion.GetByIdAsync(id);
         }
@@ -261,7 +266,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
        string strengths,
        string weaknesses,
             string generalEvaluation,
-            List<MultiCriteriaRatingDto> detailedRatings = null)
+            List<MultiCriteriaRatingDto>? detailedRatings = null)
         {
             var evaluation = await _evaluationRepository.GetByIdAsync(evaluationId);
             if (evaluation == null) throw new Exception($"Evaluation with ID {evaluationId} not found.");
@@ -366,7 +371,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             try
             {
                 // Utiliser l'instance injectée du service de compétence ici
-                await _competenceService.CalculateAndSaveCompetenceResultsAsync(evaluationId);
+                if (_competenceService != null)
+                    await _competenceService.CalculateAndSaveCompetenceResultsAsync(evaluationId);
             }
             catch (Exception ex)
             {
@@ -490,7 +496,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                             $"<strong>Mot de passe :</strong> {tempAccount.TempPassword}<br>" +
                             $"</div><br>" +
                             $"Ces identifiants seront valides à partir du {startDate.ToShortDateString()}.<br><br>" +
-                            $"<a href='http://localhost:5173/EvaluationLogin' class='button'>Accéder à l'évaluation</a><br><br>" +
+                            $"<a href='{_configuration["FrontendBaseUrl"]}/soft-gcc/evaluation/connexion' class='button'>Accéder à l'évaluation</a><br><br>" +
                             $"Cordialement,<br>" +
                             $"L'équipe Gestion des Carrières et Compétences"
                         );
@@ -512,7 +518,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                                 $"<strong>Employé concerné :</strong> {employeeName}<br>" +
                                 $"<strong>Période d'évaluation :</strong> Du {startDate.ToShortDateString()} au {endDate.ToShortDateString()}<br><br>" +
                                 $"Veuillez vous connecter à votre compte pour consulter et gérer cette évaluation.<br><br>" +
-                                $"<a href='http://localhost:5173/salary-list' class='button'>Accéder au système</a><br><br>" +
+                                $"<a href='{_configuration["FrontendBaseUrl"]}/soft-gcc/evaluations/liste' class='button'>Accéder au système</a><br><br>" +
                                 $"Cordialement,<br>" +
                                 $"L'équipe Gestion des Carrières et Compétences"
                             );
@@ -615,6 +621,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
 
             // Envoyer l'email de rappel avec les identifiants à l'employé
+            if (string.IsNullOrEmpty(user.Email)) return;
             await _emailService.SendEmailAsync(
                 user.Email,
                 $"{evaluationTypeName} - Rappel",
@@ -626,7 +633,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 $"<strong>Mot de passe :</strong> {tempAccount.TempPassword}<br>" +
                 $"</div><br>" +
                 $"Ces identifiants ne seront valides qu'à partir du {currentEvaluation.StartDate.ToShortDateString()}.<br><br>" +
-                $"<a href='http://localhost:5173/EvaluationLogin' class='button'>Accéder à l'évaluation</a><br><br>" +
+                $"<a href='{_configuration["FrontendBaseUrl"]}/soft-gcc/evaluation/connexion' class='button'>Accéder à l'évaluation</a><br><br>" +
                 $"Cordialement,<br>" +
                 $"L'équipe Gestion des Carrières et Compétences"
             );
@@ -682,7 +689,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
         // Get a specific training suggestion by ID
-        public async Task<TrainingSuggestion> GetTrainingSuggestionByIdAsync(int id)
+        public async Task<TrainingSuggestion?> GetTrainingSuggestionByIdAsync(int id)
         {
             return await _dataService.GetTrainingSuggestionByIdWithIncludesAsync(id);
         }
@@ -878,7 +885,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
         // Méthode pour récupérer une évaluation par son ID
-        public async Task<Evaluation> GetEvaluationByIdAsync(int evaluationId)
+        public async Task<Evaluation?> GetEvaluationByIdAsync(int evaluationId)
         {
             return await _evaluationRepository.GetByIdAsync(evaluationId);
         }
@@ -1109,10 +1116,10 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     competenceName = cn;
                 }
 
-                string formattedResponse = responseValue;
+                string formattedResponse = responseValue ?? string.Empty;
                 if (responseType == "QCM" && responseValue != null && int.TryParse(responseValue, out int optId) && options.TryGetValue(optId, out var optText))
                 {
-                    formattedResponse = optText;
+                    formattedResponse = optText!;
                 }
 
                 int maxTime = timeConfigs.ContainsKey(questionId) ? timeConfigs[questionId] : 15;
@@ -1241,7 +1248,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                             $"<strong>Date de soumission :</strong> {submission.CompletionDate.ToShortDateString()}<br>" +
                             $"<strong>Période d'évaluation :</strong> Du {evaluation.StartDate.ToShortDateString()} au {evaluation.EndDate.ToShortDateString()}<br><br>" +
                             $"En tant que superviseur désigné, vous êtes invité(e) à consulter et à valider cette évaluation.<br><br>" +
-                            $"<a href='http://localhost:5189/api/salary-list' class='button'>Accéder au système</a><br><br>" +
+                            $"<a href='{_configuration["FrontendBaseUrl"]}/soft-gcc/evaluations/liste' class='button'>Accéder au système</a><br><br>" +
                             $"Cordialement,<br>" +
                             $"L'équipe Gestion des Carrières et Compétences"
                         );

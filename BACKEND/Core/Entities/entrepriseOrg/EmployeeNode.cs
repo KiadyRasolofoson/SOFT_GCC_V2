@@ -2,11 +2,11 @@
 {
 	public class EmployeeNode
 	{
-		public string Name { get; set; }
-		public string FirstName { get; set; }
-		public string Department { get; set; }
-		public string Civilite { get; set; }
-		public string Position { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string FirstName { get; set; } = string.Empty;
+		public string Department { get; set; } = string.Empty;
+		public string Civilite { get; set; } = string.Empty;
+		public string Position { get; set; } = string.Empty;
 		public List<EmployeeNode> Children { get; set; } = new();
 	}
 }

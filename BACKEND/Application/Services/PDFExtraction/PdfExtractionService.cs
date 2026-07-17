@@ -1,5 +1,5 @@
-using iTextSharp.text.pdf;
-using iTextSharp.text.pdf.parser;
+using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas.Parser;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
@@ -54,10 +54,11 @@ namespace soft_carriere_competence.Application.Services.PDFExtraction
             
             var text = new StringBuilder();
             using (var reader = new PdfReader(memStream))
+            using (var pdfDoc = new PdfDocument(reader))
             {
-                for (int page = 1; page <= reader.NumberOfPages; page++)
+                for (int page = 1; page <= pdfDoc.GetNumberOfPages(); page++)
                 {
-                    text.Append(PdfTextExtractor.GetTextFromPage(reader, page));
+                    text.Append(PdfTextExtractor.GetTextFromPage(pdfDoc.GetPage(page)));
                     text.Append("\n\n"); // Séparateur de pages pour faciliter l'analyse
                 }
             }
@@ -165,7 +166,7 @@ namespace soft_carriere_competence.Application.Services.PDFExtraction
             return data;
         }
 
-        private QuestionResponseDto ExtractQuestion(string line)
+        private QuestionResponseDto? ExtractQuestion(string line)
         {
             try
             {

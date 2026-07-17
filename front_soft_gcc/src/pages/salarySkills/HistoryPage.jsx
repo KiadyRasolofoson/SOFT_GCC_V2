@@ -59,9 +59,9 @@ const HistoryPage = () => {
       </div>
       <BreadcrumbPers
         items={[
-          { label: 'Accueil', path: '/softGcc/tableauBord' },
-          { label: 'Historiques actions', path: '/softGcc/activityHistory' },
-          { label: 'Liste', path: '/softGcc/activityHistory' }
+          { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+          { label: 'Historiques actions', path: '/soft-gcc/historique' },
+          { label: 'Liste', path: '/soft-gcc/historique' }
         ]}
       />
       {error && <div className="error-message">{error}</div>}

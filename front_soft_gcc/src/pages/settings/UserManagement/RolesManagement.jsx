@@ -3,6 +3,7 @@ import Template from '../../Template';
 import axios from 'axios';
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import { useUser } from '../../Authentification/UserContext';
+import { urlApi } from '../../../helpers/utils';
 
 function RolesManagement() {
     const { hasPermission } = useUser();
@@ -20,7 +21,7 @@ function RolesManagement() {
     const fetchRoles = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:5189/api/Role');
+            const response = await axios.get(urlApi('/Role'));
             setRoles(response.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des rôles:', error);
@@ -31,7 +32,7 @@ function RolesManagement() {
 
     const fetchPermissions = async () => {
         try {
-            const response = await axios.get('http://localhost:5189/api/Permission');
+            const response = await axios.get(urlApi('/Permission'));
             // Filtrer les permissions pour ne montrer que celles que la RH peut gérer
             const filteredPermissions = response.data.filter(permission => 
                 !permission.name.includes('MANAGE_SYSTEM')
@@ -66,9 +67,9 @@ function RolesManagement() {
         e.preventDefault();
         try {
             if (currentRole) {
-                await axios.put(`http://localhost:5189/api/Role/${currentRole.id}`, formData);
+                await axios.put(urlApi(`/Role/${currentRole.id}`), formData);
             } else {
-                await axios.post('http://localhost:5189/api/Role', formData);
+                await axios.post(urlApi('/Role'), formData);
             }
             fetchRoles();
             setShowModal(false);
@@ -82,7 +83,7 @@ function RolesManagement() {
     const handleDelete = async (id) => {
         if (window.confirm('Êtes-vous sûr de vouloir supprimer ce rôle ?')) {
             try {
-                await axios.delete(`http://localhost:5189/api/Role/${id}`);
+                await axios.delete(urlApi(`/Role/${id}`));
                 fetchRoles();
             } catch (error) {
                 console.error('Erreur lors de la suppression du rôle:', error);

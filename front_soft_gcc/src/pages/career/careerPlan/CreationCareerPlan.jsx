@@ -58,7 +58,7 @@ function CreationCareerPlan({ onSearch }) {
 
     // Fonction qui gère le retour en arrière de la page
     const handleRetour = () => {
-        navigate(`/SoftGcc/carriere`);
+        navigate(`/soft-gcc/carriere`);
     };
 
 
@@ -237,14 +237,14 @@ function CreationCareerPlan({ onSearch }) {
                     <p className="skill-title">CREATION D'UN PLAN DE CARRIÈRE</p>
                 </div>
                 <div className="col-lg-2">
-                    <CancelButton to="carriere" />
+                    <CancelButton to="carrieres" />
                 </div>  
             </div>
             <BreadcrumbPers
                 items={[
-                { label: 'Accueil', path: '/SoftGcc/tableauBord' },
-                { label: 'Plan de carrière', path: '/SoftGcc/carriere' },
-                { label: 'Creation', path: '/SoftGcc/carriere/creation' }
+                { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                { label: 'Plan de carrière', path: '/soft-gcc/carriere' },
+                { label: 'Creation', path: '/soft-gcc/carrieres/creation' }
                 ]}
             />
             

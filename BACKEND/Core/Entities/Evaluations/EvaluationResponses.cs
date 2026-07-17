@@ -14,9 +14,9 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         [Column("QuestionId")]
         public int QuestionId { get; set; }
         [Column("ResponseType")]
-        public string ResponseType { get; set; }
+        public string ResponseType { get; set; } = string.Empty;
         [Column("ResponseValue")]
-        public string ResponseValue { get; set; }
+        public string ResponseValue { get; set; } = string.Empty;
         [Column("TimeSpent")]
         public int TimeSpent { get; set; }
         [Column("StartTime")]
@@ -31,9 +31,9 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public DateTime CreatedAt { get; set; }
 
         [ForeignKey("EvaluationId")]
-        public Evaluation Evaluation { get; set; }
+        public Evaluation Evaluation { get; set; } = null!;
         [ForeignKey("QuestionId")]
-        public EvaluationQuestion Question { get; set; }
+        public EvaluationQuestion Question { get; set; } = null!;
         
     }
 }

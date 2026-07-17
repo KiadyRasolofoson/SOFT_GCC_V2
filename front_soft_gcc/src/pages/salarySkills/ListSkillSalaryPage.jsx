@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { urlApi } from '../../helpers/utils';
 import PageHeader from '../../components/PageHeader';
 import Template from '../Template';
@@ -13,15 +12,6 @@ import BreadcrumbPers from '../../helpers/BreadcrumbPers';
 import api from '../../helpers/api';
 import { mdiEyeOutline } from '@mdi/js';
 import Icon from '@mdi/react';
-
-// Fonction debounce pour éviter les appels excessifs
-function debounce(func, delay) {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), delay);
-  };
-}
 
 // Page liste des competences
 function ListSkillSalaryPage() {
@@ -36,7 +26,7 @@ function ListSkillSalaryPage() {
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paginationResult, setPaginationResult] = useState({
       totalRecords: 0,
@@ -97,7 +87,6 @@ function ListSkillSalaryPage() {
   // Gerer les filtres par recherche
   const handleSearch = (term) => {
     setSearchTerm(term);
-    setCurrentPage(1);
   };
 
   //Gerer le changement de page par pagination
@@ -136,17 +125,31 @@ function ListSkillSalaryPage() {
 
 
 
-  // Débouncer la recherche avec un délai de 3 secondes
-  const debouncedFetchData = useCallback(debounce(fetchSkills, 1000), [fetchSkills]);
-
-  // Déclencher la recherche à chaque modification des filtres
+  // Fetch immédiat au montage et changement de page
   useEffect(() => {
-    debouncedFetchData(searchTerm);
-  }, [searchTerm, debouncedFetchData]);
+    fetchSkills(searchTerm);
+  }, [currentPage]);
+
+  // Debounce uniquement pour la recherche (pas au montage initial)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const handler = setTimeout(() => {
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        fetchSkills(searchTerm);
+      }
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   // Navigation pour details competences
   const handleSkillsDetails = (employeeId) => {
-    navigate(`/softGcc/competences/profil/${employeeId}`);
+    navigate(`/soft-gcc/competences/profil/${employeeId}`);
   };
 
   return (
@@ -162,9 +165,9 @@ function ListSkillSalaryPage() {
       </div>
       <BreadcrumbPers
         items={[
-          { label: 'Accueil', path: '/softGcc/tableauBord' },
-          { label: 'Compétences', path: '/softGcc/competences' },
-          { label: 'Liste des compétences', path: '/softGcc/competences' }
+          { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+          { label: 'Compétences', path: '/soft-gcc/competences' },
+          { label: 'Liste des compétences', path: '/soft-gcc/competences' }
         ]}
       />
       

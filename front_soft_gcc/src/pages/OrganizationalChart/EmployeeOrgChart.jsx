@@ -45,14 +45,14 @@ function EmployeeOrgChart() {
                 </div>
 
                 <div className="col-lg-2">
-                    <CancelButton to="effectif" />
+                    <CancelButton to="effectifs" />
                 </div>  
             </div>
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'Effectif par département', path: '/softGcc/effectif' },
-                    { label: 'Organigramme entreprise', path: '/softGcc/organigramme' },
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'Effectif par département', path: '/soft-gcc/effectif' },
+                    { label: 'Organigramme entreprise', path: '/soft-gcc/organigramme' },
                 ]}
             />
             {error && <div className="alert alert-danger">{error}</div>}

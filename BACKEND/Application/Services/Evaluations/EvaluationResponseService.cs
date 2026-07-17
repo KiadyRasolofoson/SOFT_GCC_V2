@@ -67,13 +67,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 ResponseId = Convert.ToInt32(row["ResponseId"]),
                 EvaluationId = Convert.ToInt32(row["EvaluationId"]),
                 QuestionId = Convert.ToInt32(row["QuestionId"]),
-                ResponseValue = row["ResponseValue"]?.ToString(),
-                ResponseType = row["ResponseType"]?.ToString(),
+                ResponseValue = row["ResponseValue"]?.ToString() ?? string.Empty,
+                ResponseType = row["ResponseType"]?.ToString() ?? string.Empty,
                 State = row.ContainsKey("State") && row["State"] != DBNull.Value ? Convert.ToInt32(row["State"]) : 0
             }).ToList();
         }
 
-        public async Task<EvaluationResponses> GetResponseAsync(int evaluationId, int questionId)
+        public async Task<EvaluationResponses?> GetResponseAsync(int evaluationId, int questionId)
         {
             var rows = await _dataService.ExecuteReaderAsync(
                 "SELECT TOP 1 * FROM Evaluation_Responses WHERE EvaluationId = @p0 AND QuestionId = @p1",
@@ -85,8 +85,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 ResponseId = Convert.ToInt32(row["ResponseId"]),
                 EvaluationId = Convert.ToInt32(row["EvaluationId"]),
                 QuestionId = Convert.ToInt32(row["QuestionId"]),
-                ResponseValue = row["ResponseValue"]?.ToString(),
-                ResponseType = row["ResponseType"]?.ToString(),
+                ResponseValue = row["ResponseValue"]?.ToString() ?? string.Empty,
+                ResponseType = row["ResponseType"]?.ToString() ?? string.Empty,
                 State = row.ContainsKey("State") && row["State"] != DBNull.Value ? Convert.ToInt32(row["State"]) : 0
             };
         }
@@ -147,7 +147,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             {
                 OptionId = Convert.ToInt32(row["OptionId"]),
                 QuestionId = Convert.ToInt32(row["QuestionId"]),
-                OptionText = row["OptionText"]?.ToString(),
+                OptionText = row["OptionText"]?.ToString() ?? string.Empty,
                 IsCorrect = row.ContainsKey("IsCorrect") && row["IsCorrect"] != DBNull.Value && Convert.ToBoolean(row["IsCorrect"])
             }).ToList();
 
@@ -224,7 +224,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             else
             {
                 var responseId = Convert.ToInt32(existingRows[0]["ResponseId"]);
-                response = await _responseRepository.GetByIdAsync(responseId);
+                var existingResponse = await _responseRepository.GetByIdAsync(responseId);
+                if (existingResponse == null) throw new Exception("Réponse non trouvée");
+                response = existingResponse;
                 response.TimeSpent = timeSpent;
                 response.EndTime = DateTime.UtcNow;
                 await _responseRepository.UpdateAsync(response);
@@ -331,7 +333,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             {
                 OptionId = Convert.ToInt32(row["optionId"]),
                 QuestionId = Convert.ToInt32(row["questionId"]),
-                OptionText = row["optionText"]?.ToString(),
+                OptionText = row["optionText"]?.ToString() ?? string.Empty,
                 IsCorrect = row.ContainsKey("isCorrect") && row["isCorrect"] != DBNull.Value && Convert.ToBoolean(row["isCorrect"]),
                 State = row.ContainsKey("state") && row["state"] != DBNull.Value ? Convert.ToInt32(row["state"]) : 0
             }).ToList();

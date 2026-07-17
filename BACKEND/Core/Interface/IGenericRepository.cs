@@ -17,7 +17,7 @@ namespace soft_carriere_competence.Core.Interface
         Task DeleteAsync(T entity);
 
         // Récupère une entité par son identifiant
-        Task<T> GetByIdAsync(int id);
+        Task<T?> GetByIdAsync(int id);
 
         // Récupère toutes les entités avec des propriétés de navigation
         Task<IEnumerable<T>> GetAllWithIncludesAsync(string includeProperties = "");
@@ -28,7 +28,7 @@ namespace soft_carriere_competence.Core.Interface
         // Récupère une page d'entités avec des propriétés de navigation
         IEnumerable<T> GetPage(int pageNumber, int pageSize, string includeProperties = "");
 
-        Task<T> GetFirstOrDefaultAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes);
+        Task<T?> GetFirstOrDefaultAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes);
 
 
         // Calcule le nombre total de pages pour une taille de page donnée
@@ -42,7 +42,7 @@ namespace soft_carriere_competence.Core.Interface
 
         // === Méthodes de compatibilité (alias sans Async pour remplacer ICrudRepository) ===
         Task<IEnumerable<T>> GetAll();
-        Task<T> GetById(int id);
+        Task<T?> GetById(int id);
         Task Add(T entity);
         Task Update(T entity);
         Task Delete(int id);

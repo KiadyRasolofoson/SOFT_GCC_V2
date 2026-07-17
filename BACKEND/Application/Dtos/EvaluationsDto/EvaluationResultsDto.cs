@@ -48,7 +48,7 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
             if (!HasDetailedRatings())
                 return;
 
-            foreach (var detailedRating in DetailedRatings)
+            foreach (var detailedRating in DetailedRatings!)
             {
                 if (detailedRating.QuestionId <= 0)
                     continue;

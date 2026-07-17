@@ -1,4 +1,5 @@
 using soft_carriere_competence.Application.Services.license;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Middleware
 {
@@ -44,7 +45,7 @@ namespace soft_carriere_competence.Middleware
             _options = options ?? new LicenseCheckMiddlewareOptions();
         }
 
-        public async Task InvokeAsync(HttpContext context, LicenseService licenseService)
+        public async Task InvokeAsync(HttpContext context, ILicenseService licenseService)
         {
             try
             {
@@ -89,8 +90,8 @@ namespace soft_carriere_competence.Middleware
 
                 var response = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    error = "license_check_failed",
-                    message = "Une erreur interne est survenue lors de la vérification de la licence.",
+                    error = "internal_server_error",
+                    message = "Une erreur interne est survenue. Veuillez réessayer ou contacter l'administrateur.",
                     detail = ex.Message
                 });
 

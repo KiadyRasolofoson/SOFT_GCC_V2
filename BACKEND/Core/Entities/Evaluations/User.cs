@@ -15,11 +15,11 @@ public class User
 
     [MaxLength(255)]
     [Column("last_name")]
-    public string LastName { get; set; }
+    public string LastName { get; set; } = string.Empty;
 
     [MaxLength(255)]
     [Column("first_name")]
-    public string FirstName { get; set; }
+    public string FirstName { get; set; } = string.Empty;
 
     [MaxLength(255)]
     [Column("username")]
@@ -29,7 +29,7 @@ public class User
     public string? Email { get; set; }
 
     [MaxLength(255)]
-    public string Password { get; set; }
+    public string Password { get; set; } = string.Empty;
 
     
     [Column("role_id")]

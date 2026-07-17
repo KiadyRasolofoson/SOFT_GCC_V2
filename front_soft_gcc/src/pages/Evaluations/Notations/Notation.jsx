@@ -20,7 +20,7 @@ function Notation() {
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title">Modal title</h5>
-                  <button type="button" className="close" aria-label="Close" onClick={() => navigate('/notation')}>
+                  <button type="button" className="close" aria-label="Close" onClick={() => navigate('/soft-gcc/evaluations/liste')}>
                     <span aria-hidden="true">&times;</span>
                   </button>
                 </div>
@@ -28,7 +28,7 @@ function Notation() {
                   Content of the modal goes here...
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => navigate('/notation')}>Close</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => navigate('/soft-gcc/evaluations/liste')}>Close</button>
                   <button type="button" className="btn btn-primary">Save changes</button>
                 </div>
               </div>

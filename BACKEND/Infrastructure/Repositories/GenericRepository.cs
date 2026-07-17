@@ -95,13 +95,13 @@ namespace soft_carriere_competence.Infrastructure.Repositories
                 .ToList();
         }
 
-        public async Task<T> GetByIdAsync(int id)
+        public async Task<T?> GetByIdAsync(int id)
         {
             return await _dbSet.FindAsync(id);
         }
 
 
-        public async Task<T> GetFirstOrDefaultAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
+        public async Task<T?> GetFirstOrDefaultAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
         {
             IQueryable<T> query = _dbSet;
 
@@ -138,7 +138,7 @@ namespace soft_carriere_competence.Infrastructure.Repositories
             return await _dbSet.ToListAsync();
         }
 
-        public async Task<T> GetById(int id)
+        public async Task<T?> GetById(int id)
         {
             return await _dbSet.FindAsync(id);
         }

@@ -14,16 +14,16 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
         public int EmployeeId { get; set; }
         public int EvaluationTypeId { get; set; }
         public int PositionId { get; set; }
-        public List<SelectedQuestion> SelectedQuestions { get; set; }
+        public List<SelectedQuestion> SelectedQuestions { get; set; } = new();
     }
 
     public class CreateEvaluationWithQuestionsDto
     {
         public int EvaluationTypeId { get; set; }
-        public List<int> SupervisorIds { get; set; }
+        public List<int> SupervisorIds { get; set; } = new();
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public List<SelectedQuestionsDto> EmployeeQuestions { get; set; }
+        public List<SelectedQuestionsDto> EmployeeQuestions { get; set; } = new();
         public bool EnableReminders { get; set; } = false;
     }
 } 

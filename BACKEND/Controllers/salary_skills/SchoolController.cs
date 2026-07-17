@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.salary_skills
 {
@@ -9,9 +10,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 	[ApiController]
 	public class SchoolController : ControllerBase
 	{
-		private readonly SchoolService _schoolService;
+		private readonly ISchoolService _schoolService;
 
-		public SchoolController(SchoolService service)
+		public SchoolController(ISchoolService service)
 		{
 			_schoolService = service;
 		}

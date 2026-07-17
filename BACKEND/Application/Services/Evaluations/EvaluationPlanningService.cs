@@ -46,18 +46,18 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e =>
-                    (e.FirstName + " " + e.LastName).Contains(search) ||
-                    e.FirstName.Contains(search) ||
-                    e.LastName.Contains(search));
+                    ((e.FirstName ?? "") + " " + (e.LastName ?? "")).Contains(search) ||
+                    (e.FirstName ?? "").Contains(search) ||
+                    (e.LastName ?? "").Contains(search));
 
             return query.ToList();
         }
-        public async Task<Position> GetPosteByIdAsync(int posteId)
+        public async Task<Position?> GetPosteByIdAsync(int posteId)
         {
             return await _posteRepository.GetByIdAsync(posteId);
         } 
 
-        public async Task<Department> GetDepartmentByIdAsync(int departmentId)
+        public async Task<Department?> GetDepartmentByIdAsync(int departmentId)
         {
             return await _departementRepository.GetByIdAsync(departmentId);
         }
@@ -93,9 +93,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e =>
-                    (e.FirstName + " " + e.LastName).Contains(search) ||
-                    e.FirstName.Contains(search) ||
-                    e.LastName.Contains(search));
+                    ((e.FirstName ?? "") + " " + (e.LastName ?? "")).Contains(search) ||
+                    (e.FirstName ?? "").Contains(search) ||
+                    (e.LastName ?? "").Contains(search));
                     
             // Éliminer les doublons en récupérant les IDs uniques
             var uniqueEmployeeIds = query

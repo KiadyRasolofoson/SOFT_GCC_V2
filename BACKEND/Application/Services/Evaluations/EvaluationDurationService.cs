@@ -224,14 +224,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             public double AdjustmentFactor { get; set; }
         }
 
-        private async Task<HistoricalData> GetHistoricalCompletionDataAsync(int evaluationTypeId, List<int> positionIds)
+        private async Task<HistoricalData?> GetHistoricalCompletionDataAsync(int evaluationTypeId, List<int> positionIds)
         {
             // Récupérer les évaluations terminées avec des dates de complétion
             var evaluations = await _evaluationRepository.FindAsync(e =>
                 e.EvaluationTypeId == evaluationTypeId &&
                 e.state == 20 &&
-                e.completionDate != null &&
-                e.StartDate != null);
+                e.completionDate != null);
 
             var completedEvaluations = evaluations
                 .Select(e => new

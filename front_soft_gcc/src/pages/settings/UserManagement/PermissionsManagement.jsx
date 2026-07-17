@@ -4,6 +4,7 @@ import axios from 'axios';
 import { FaPlus, FaSave, FaTimes, FaChevronDown, FaChevronRight, FaSearch, FaUserLock } from 'react-icons/fa';
 import { useUser } from '../../Authentification/UserContext';
 import { toast } from 'react-hot-toast';
+import { urlApi } from '../../../helpers/utils';
 
 function PermissionsManagement() {
     const { hasPermission } = useUser();
@@ -28,7 +29,7 @@ function PermissionsManagement() {
     const fetchPermissions = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:5189/api/Permission');
+            const response = await axios.get(urlApi('/Permission'));
             setPermissions(response.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des permissions:', error);
@@ -40,7 +41,7 @@ function PermissionsManagement() {
 
     const fetchRoles = async () => {
         try {
-            const response = await axios.get('http://localhost:5189/api/Role');
+            const response = await axios.get(urlApi('/Role'));
             const normalizedRoles = response.data.map(role => ({
                 roleId: role.roleid,
                 title: role.title,
@@ -113,7 +114,7 @@ function PermissionsManagement() {
 
     const fetchRolePermissions = async (roleId) => {
         try {
-            const response = await axios.get(`http://localhost:5189/api/Permission/role/${roleId}`);
+            const response = await axios.get(urlApi(`/Permission/role/${roleId}`));
             if (response.data && Array.isArray(response.data)) {
             setRolePermissions(response.data);
             setTempPermissions(response.data);
@@ -214,7 +215,7 @@ function PermissionsManagement() {
         try {
             const permissionIds = tempPermissions.map(p => p.permissionId);
             await axios.put(
-                `http://localhost:5189/api/Permission/role/${selectedRole.roleId}`,
+                urlApi(`/Permission/role/${selectedRole.roleId}`),
                 { permissionIds },
                 { headers: { 'Content-Type': 'application/json' } }
             );
@@ -501,11 +502,11 @@ function PermissionsManagement() {
                                     try {
                                         if (currentPermission) {
                                             await axios.put(
-                                                `http://localhost:5189/api/Permission/${currentPermission.permissionId}`,
+                                                urlApi(`/Permission/${currentPermission.permissionId}`),
                                                 { ...currentPermission, ...formData }
                                             );
                                         } else {
-                                            await axios.post('http://localhost:5189/api/Permission', formData);
+                                            await axios.post(urlApi('/Permission'), formData);
                                         }
                                         setShowModal(false);
                                         fetchPermissions();

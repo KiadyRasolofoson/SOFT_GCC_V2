@@ -17,7 +17,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return await _dataService.GetAllCompetenceLinesAsync();
         }
 
-        public async Task<CompetenceLine> GetByIdAsync(int id)
+        public async Task<CompetenceLine?> GetByIdAsync(int id)
         {
             return await _dataService.GetCompetenceLineByIdAsync(id);
         }

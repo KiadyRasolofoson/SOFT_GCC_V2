@@ -5,6 +5,7 @@ using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Application.Services.retirement;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.retirement;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.retirement
 {
@@ -12,9 +13,9 @@ namespace soft_carriere_competence.Controllers.retirement
 	[ApiController]
 	public class RetirementController : ControllerBase
 	{
-		private readonly RetirementService _retirementService;
+		private readonly IRetirementService _retirementService;
 
-		public RetirementController(RetirementService service)
+		public RetirementController(IRetirementService service)
 		{
 			_retirementService = service;
 		}

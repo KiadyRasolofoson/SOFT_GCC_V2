@@ -29,7 +29,7 @@ const EvaluationConfirmation = () => {
     // Vérifier si l'utilisateur a accès à cette page
     const token = localStorage.getItem('evaluationToken');
     if (!token) {
-      navigate('/EvaluationLogin');
+      navigate('/soft-gcc/evaluation/connexion');
       return;
     }
 
