@@ -21,7 +21,7 @@ namespace soft_carriere_competence.Application.Services.retirement
 			return await _repository.GetAll();
 		}
 
-		public async Task<RetirementParameter> GetById(int id)
+		public async Task<RetirementParameter?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

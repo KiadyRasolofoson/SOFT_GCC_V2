@@ -149,12 +149,12 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 .FirstOrDefault(e => e.EmployeeId == employeeId);
         }
 
-        public async Task<Position> GetPosteByIdAsync(int posteId)
+        public async Task<Position?> GetPosteByIdAsync(int posteId)
         {
             return await _posteRepository.GetByIdAsync(posteId);
         }
 
-        public async Task<Department> GetDepartmentByIdAsync(int departmentId)
+        public async Task<Department?> GetDepartmentByIdAsync(int departmentId)
         {
             return await _departementRepository.GetByIdAsync(departmentId);
         }
@@ -326,7 +326,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 foreach (var (participantId, isEvaluatedEmployee) in participants)
                 {
                     // Récupérer les informations du participant
-                    User userInfo = null;
+                    User? userInfo = null;
                     string firstName = "", lastName = "", email = "";
                     
                     if (isEvaluatedEmployee)
@@ -336,9 +336,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         
                         if (employee != null)
                         {
-                            firstName = employee.FirstName;
-                            lastName = employee.Name;
-                            email = employee.Email;
+                            firstName = employee.FirstName ?? string.Empty;
+                            lastName = employee.Name ?? string.Empty;
+                            email = employee.Email ?? string.Empty;
                             
                             // Mise à jour du nom pour les autres participants
                             evaluatedEmployeeName = $"{firstName} {lastName}";
@@ -353,7 +353,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         {
                             firstName = userInfo.FirstName;
                             lastName = userInfo.LastName;
-                            email = userInfo.Email;
+                            email = userInfo.Email ?? string.Empty;
                         }
                     }
                     
@@ -604,7 +604,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
 
-        public async Task<bool> UpdateInterviewAsync(int interviewId, DateTime? newDate, List<int> newParticipantIds, int? newStatus)
+        public async Task<bool> UpdateInterviewAsync(int interviewId, DateTime? newDate, List<int>? newParticipantIds, int? newStatus)
         {
             var interview = await _interviewRepository.GetByIdAsync(interviewId);
 

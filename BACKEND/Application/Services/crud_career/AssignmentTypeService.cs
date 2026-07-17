@@ -19,7 +19,7 @@ namespace soft_carriere_competence.Application.Services.crud_career
 			return await _repository.GetAll();
 		}
 
-		public async Task<AssignmentType> GetById(int id)
+		public async Task<AssignmentType?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

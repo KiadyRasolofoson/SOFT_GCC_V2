@@ -22,7 +22,7 @@ namespace soft_carriere_competence.Application.Services.career_plan
             return await _repository.GetAll();
         }
 
-        public async Task<CertificateHistory> GetById(int id)
+        public async Task<CertificateHistory?> GetById(int id)
         {
             return await _repository.GetById(id);
         }

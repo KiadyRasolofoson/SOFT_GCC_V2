@@ -18,7 +18,7 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 			return await _repository.GetAll();
 		}
 
-		public async Task<DomainSkill> GetById(int id)
+		public async Task<DomainSkill?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

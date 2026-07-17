@@ -22,7 +22,7 @@ namespace soft_carriere_competence.Application.Services.career_plan
 			_dataService = dataService;
 		}
 
-		public async Task<CareerPlan> GetById(int id)
+		public async Task<CareerPlan?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

@@ -257,7 +257,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 			if (dto.HasDetailedRatings())
 			{
 				Console.WriteLine("Notations détaillées par critères:");
-				foreach (var detailedRating in dto.DetailedRatings)
+				foreach (var detailedRating in dto.DetailedRatings!)
 				{
 					Console.WriteLine($"  Question {detailedRating.QuestionId}:");
 					Console.WriteLine($"    Pertinence: {detailedRating.Relevance?.ToString() ?? "0"}/5");

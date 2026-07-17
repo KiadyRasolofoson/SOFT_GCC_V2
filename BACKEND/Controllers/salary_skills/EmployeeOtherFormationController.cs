@@ -121,7 +121,7 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				UserId = user.Id,
 				Module = 1,
 				Action = "Suppression",
-				Description = $"L'utilisateur {user.Username} a supprimé une autre formation existante ID {vEmployeeOtherFormation.EmployeeOtherFormationId} " +
+				Description = $"L'utilisateur {user.Username} a supprimé une autre formation existante ID {vEmployeeOtherFormation?.EmployeeOtherFormationId ?? 0} " +
 						  $"({vEmployeeOtherFormation?.Description ?? ""}) " +
 						  $"de l'employé matricule {vEmployeeOtherFormation?.RegistrationNumber ?? ""}",
 				Timestamp = DateTime.UtcNow,

@@ -62,7 +62,7 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				UserId = user.Id,
 				Module = 1,
 				Action = "Création",
-				Description = $"L'utilisateur {user.Username} a créé une nouvelle language ID {vEmployeeLanguage.EmployeeLanguageId} " +
+				Description = $"L'utilisateur {user.Username} a créé une nouvelle language ID {vEmployeeLanguage?.EmployeeLanguageId ?? 0} " +
 						  $"({vEmployeeLanguage?.LanguageName ?? ""}) " +
 						  $"pour l'employé matricule {vEmployeeLanguage?.RegistrationNumber ?? ""}",
 				Timestamp = DateTime.UtcNow,
@@ -93,7 +93,7 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				UserId = user.Id,
 				Module = 1,
 				Action = "Modification",
-				Description = $"L'utilisateur {user.Username} a modifié une language existante ID {vEmployeeLanguage.EmployeeLanguageId} " +
+				Description = $"L'utilisateur {user.Username} a modifié une language existante ID {vEmployeeLanguage?.EmployeeLanguageId ?? 0} " +
 						  $"({vEmployeeLanguage?.LanguageName ?? ""}) " +
 						  $"de l'employé matricule {vEmployeeLanguage?.RegistrationNumber ?? ""}",
 				Timestamp = DateTime.UtcNow,
@@ -126,7 +126,7 @@ namespace soft_carriere_competence.Controllers.salary_skills
 				UserId = user.Id,
 				Module = 1,
 				Action = "Suppression",
-				Description = $"L'utilisateur {user.Username} a supprimé une language existante ID {vEmployeeLanguage.EmployeeLanguageId} " +
+				Description = $"L'utilisateur {user.Username} a supprimé une language existante ID {vEmployeeLanguage?.EmployeeLanguageId ?? 0} " +
 						  $"({vEmployeeLanguage?.LanguageName ?? ""}) " +
 						  $"de l'employé matricule {vEmployeeLanguage?.RegistrationNumber ?? ""}",
 				Timestamp = DateTime.UtcNow,

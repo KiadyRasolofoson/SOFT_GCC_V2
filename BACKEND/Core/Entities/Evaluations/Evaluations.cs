@@ -48,12 +48,12 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         [Column("completionDate")]
         public DateTime? completionDate {  get; set; }
         [ForeignKey("EvaluationTypeId")]
-        public EvaluationType EvaluationType { get; set; }
+        public EvaluationType? EvaluationType { get; set; }
 
 
 
         [ForeignKey("EmployeeId")]
-        public Employee Employee { get; set; }
+        public Employee? Employee { get; set; }
 
         [Column("state")]
         public int state {  get; set; }

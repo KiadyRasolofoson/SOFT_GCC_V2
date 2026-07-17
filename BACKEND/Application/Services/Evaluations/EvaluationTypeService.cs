@@ -16,7 +16,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return await _repository.GetAllAsync();
         }
 
-        public async Task<EvaluationType> GetEvaluationTypeByIdAsync(int id)
+        public async Task<EvaluationType?> GetEvaluationTypeByIdAsync(int id)
         {
             return await _repository.GetByIdAsync(id);
         }

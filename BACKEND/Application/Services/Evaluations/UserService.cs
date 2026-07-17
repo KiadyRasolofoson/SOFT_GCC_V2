@@ -69,9 +69,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return rows.Select(row => new User
             {
                 Id = Convert.ToInt32(row["UserId"]),
-                LastName = row["last_name"]?.ToString(),
-                FirstName = row["first_name"]?.ToString(),
-                Email = row["email"]?.ToString(),
+                LastName = row["last_name"]?.ToString() ?? string.Empty,
+                FirstName = row["first_name"]?.ToString() ?? string.Empty,
+                Email = row["email"]?.ToString() ?? string.Empty,
                 Username = row.ContainsKey("username") ? row["username"]?.ToString() : null,
                 RoleId = Convert.ToInt32(row["role_id"])
             }).ToList();

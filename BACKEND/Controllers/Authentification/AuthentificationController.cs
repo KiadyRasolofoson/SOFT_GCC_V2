@@ -2,7 +2,6 @@
 using soft_carriere_competence.Application.Dtos.LoginDto;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Interface.AuthInterface;
 
 namespace soft_carriere_competence.Controllers.Authentification
