@@ -7,7 +7,7 @@ function SkillsHistory({ task }) {
 
   // Navigation pour les historiques
   const handleClick = () => {
-    navigate('/softGcc/activityHistory');
+    navigate('/soft-gcc/historique');
   };
   
   return (

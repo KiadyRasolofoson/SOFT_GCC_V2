@@ -346,7 +346,7 @@ const EvaluationInterviews = () => {
         // Attendre un court instant pour que l'utilisateur voie le message de confirmation
         setTimeout(() => {
           // Rediriger vers la page d'accueil des entretiens
-          navigate('/homeInterview');
+          navigate('/soft-gcc/evaluations/accueil');
         }, 1500);
         
         return;
@@ -375,7 +375,7 @@ const EvaluationInterviews = () => {
           // Attendre un court instant pour que l'utilisateur voie le message de confirmation
           setTimeout(() => {
             // Rediriger vers la page d'accueil des entretiens
-            navigate('/homeInterview');
+            navigate('/soft-gcc/evaluations/accueil');
           }, 1500);
           
           return;

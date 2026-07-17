@@ -190,8 +190,8 @@ function DashboardPage() {
           
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'Analyse et statistique', path: '/softGcc/tableauBord' }
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'Analyse et statistique', path: '/soft-gcc/tableau-de-bord' }
                 ]}
             />
             {error && <div className="error-message">{error}</div>}

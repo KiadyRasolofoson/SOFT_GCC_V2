@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5189/api'; // URL de l'API backend
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5189/api';
 
 const UserService = {
   getEmployeeById: async (id) => {

@@ -62,14 +62,14 @@ function DetailDepartment() {
                         </div>
 
                         <div className="col-lg-2">
-                            <CancelButton to="effectif" />
+                            <CancelButton to="effectifs" />
                         </div>  
                     </div>
                     <BreadcrumbPers
                         items={[
-                            { label: 'Accueil', path: '/softGcc/tableauBord' },
-                            { label: 'Effectif par département', path: '/softGcc/effectif' },
-                            { label: 'Détails', path: `/softGcc/effectif/details/${DepartmentId}` },
+                            { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                            { label: 'Effectif par département', path: '/soft-gcc/effectif' },
+                            { label: 'Détails', path: `/soft-gcc/effectifs/details/${DepartmentId}` },
                         ]}
                     />
                     {error && <div className="alert alert-danger">{error}</div>}

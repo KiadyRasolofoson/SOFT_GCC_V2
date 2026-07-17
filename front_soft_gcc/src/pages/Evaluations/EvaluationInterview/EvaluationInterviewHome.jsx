@@ -442,7 +442,7 @@ function EvaluationInterviewHome() {
       if (interview.status === 25 && (isManager || isDirector)) {
         console.log("Redirection vers la page de détails pour validation");
         // Rediriger vers la page de détails de l'entretien pour validation
-        navigate("/evaluation-details", { 
+        navigate("/soft-gcc/evaluations/details", { 
           state: { 
             interview, 
             employeeId,
@@ -466,7 +466,7 @@ function EvaluationInterviewHome() {
 
         // Étape 3: Redirection vers la page de saisie de l'entretien
         console.log("Redirection vers la page d'entretien avec données:", { interview, employeeId });
-        navigate("/validation", { state: { interview, employeeId } });
+        navigate("/soft-gcc/evaluations/entretiens", { state: { interview, employeeId } });
       }
       setActionLoading(employeeId, false);
     } catch (error) {
@@ -810,7 +810,7 @@ function EvaluationInterviewHome() {
           });
           
           // Rediriger vers la page de détails de l'entretien avec tous les IDs nécessaires
-          navigate("/evaluation-details", { 
+          navigate("/soft-gcc/evaluations/details", { 
             state: { 
               interview, 
               employeeId,

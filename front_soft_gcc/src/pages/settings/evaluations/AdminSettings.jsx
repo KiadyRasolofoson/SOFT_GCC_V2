@@ -4,6 +4,7 @@ import axios from 'axios';
 import Template from "../../Template";
 import { useUser } from "../../Authentification/UserContext";
 import PermissionService from "../../../services/PermissionService";
+import { urlApi } from '../../../helpers/utils';
 import {
     Box, Typography, Card, CardContent,
     TextField, Button, Grid, Slider,
@@ -47,7 +48,7 @@ const AdminSettings = () => {
         const canAccess = PermissionService.hasFunctionalPermission(hasPermission, 'EVAL_SETTINGS');
         if (!canAccess) {
             toast.error("Vous n'avez pas les permissions nécessaires pour accéder à cette page");
-            navigate('/evaluations');
+            navigate('/soft-gcc/evaluations/parametres');
         } else {
             fetchEvaluations();
         }
@@ -58,7 +59,7 @@ const AdminSettings = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5189/api/evaluation/templates', {
+            const response = await axios.get(urlApi('/evaluation/templates'), {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setEvaluations(response.data);
@@ -77,7 +78,7 @@ const AdminSettings = () => {
             const token = localStorage.getItem('token');
 
             // Utiliser l'endpoint original
-            const response = await axios.get(`http://localhost:5189/api/evaluation/${evaluationTypeId}/questions`, {
+            const response = await axios.get(urlApi(`/evaluation/${evaluationTypeId}/questions`), {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
@@ -213,7 +214,7 @@ const AdminSettings = () => {
             }));
 
             const response = await axios.post(
-                `http://localhost:5189/api/evaluation/questions/update-time`,
+                urlApi('/evaluation/questions/update-time'),
                 questionsWithTime,
                 { headers: { Authorization: `Bearer ${token}` } }
             );

@@ -32,12 +32,12 @@ function DepartmentEffective() {
 
     // Navigation pour ajout
     const handleClickOrg = () => {
-        navigate('/softGcc/organigramme');
+        navigate('/soft-gcc/organigramme');
     };
 
     // Navigation pour details
     const handleClickDetails = (departmentId) => {
-        navigate(`/softGcc/effectif/details/${departmentId}`);
+        navigate(`/soft-gcc/effectifs/details/${departmentId}`);
     };
 
     // Récupération des données à l'aide de l'API
@@ -70,9 +70,9 @@ function DepartmentEffective() {
             </div>
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'Effectif par département', path: '/softGcc/effectif' },
-                    { label: 'Liste', path: '/softGcc/effectif' }
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'Effectif par département', path: '/soft-gcc/effectif' },
+                    { label: 'Liste', path: '/soft-gcc/effectif' }
                 ]}
             />
             {error && <div className="alert alert-danger">{error}</div>}

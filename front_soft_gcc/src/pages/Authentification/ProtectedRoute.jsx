@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useUser } from "./UserContext";
+import Template from "../Template";
+import Loader from "../../helpers/Loader";
 import PropTypes from 'prop-types';
 
 const ProtectedRoute = ({ requiredPermission }) => {
@@ -67,8 +69,11 @@ const ProtectedRoute = ({ requiredPermission }) => {
 
   // Attendre que l'initialisation soit terminée
   if (!isInitialized || loading || isChecking) {
-    console.log('Chargement en cours...');
-    return <div>Chargement...</div>;
+    return (
+      <Template>
+        <Loader />
+      </Template>
+    );
   }
 
   // Vérifier l'authentification

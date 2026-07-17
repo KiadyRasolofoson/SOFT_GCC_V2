@@ -25,12 +25,12 @@ function AffectationList({ dataAssignmentAppointment, dataAssignmentAdvancement,
 
     // Click sur le bouton edit 
     const handleClickEdit = (item) => {
-        navigate(`/softGcc/carriere/fiche/edit/${item.careerPlanId}`); 
+        navigate(`/soft-gcc/carrieres/fiche/edit/${item.careerPlanId}`); 
     };
 
     // Click sur le bouton détails
     const handleClickDetail = (item) => {
-        navigate(`/softGcc/carriere/fiche/detail/${item.careerPlanId}`); 
+        navigate(`/soft-gcc/carrieres/fiche/detail/${item.careerPlanId}`); 
     };
 
     /// Affichage d'une modale de confirmation d'une suppression d'item de competence

@@ -63,9 +63,17 @@ const Login = () => {
       };
     }
     const status = err.response.status;
+    const data = err.response.data;
+
+    if (status === 403 && data?.error === "license_invalid") {
+      return {
+        message: data.message || "Licence invalide. Veuillez contacter l'administrateur.",
+        type: "license",
+      };
+    }
     if (status === 401) {
       return {
-        message: err.response.data?.message || "Identifiant ou mot de passe incorrect.",
+        message: data?.message || "Identifiant ou mot de passe incorrect.",
         type: "auth",
       };
     }
@@ -76,7 +84,7 @@ const Login = () => {
       };
     }
     return {
-      message: err.response.data?.message || "Une erreur inattendue est survenue.",
+      message: data?.message || "Une erreur inattendue est survenue.",
       type: "auth",
     };
   };
@@ -107,7 +115,7 @@ const Login = () => {
       if (response.status === 200) {
         localStorage.setItem("token", response.data.token);
         await initializeUser();
-        navigate("/softGcc/tableauBord");
+        navigate("/soft-gcc/tableau-de-bord");
       }
     } catch (err) {
       const { message, type } = getErrorMessage(err);

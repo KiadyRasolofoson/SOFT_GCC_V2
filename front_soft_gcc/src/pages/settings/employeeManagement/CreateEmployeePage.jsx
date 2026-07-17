@@ -162,14 +162,14 @@ function CreateEmployeePage({ onSearch }) {
                 </div>
 
                 <div className="col-lg-2">
-                    <CancelButton to="settings/employeeManagement/liste" />
+                    <CancelButton to="parametres/employes/liste" />
                 </div>  
             </div>
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'Gestion employés', path: '/softGcc/settings/employeeManagement/liste' },
-                    { label: 'Ajout', path: '/softGcc/settings/employeeManagement/create' },
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'Gestion employés', path: '/soft-gcc/parametres/employes/liste' },
+                    { label: 'Ajout', path: '/soft-gcc/parametres/employes/create' },
                 ]}
             />
             {error && <div className="alert alert-danger">{error}</div>}

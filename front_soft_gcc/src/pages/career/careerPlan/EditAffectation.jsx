@@ -153,7 +153,7 @@ function EditAffectation() {
 
     // Fonction qui gère le retour en arrière de la page
     const handleRetour = () => {
-        navigate(`/softGcc/carriere/fiche/${assignmentToEdit.registrationNumber}`);
+        navigate(`/soft-gcc/carrieres/fiche/${assignmentToEdit.registrationNumber}`);
     };
 
     return (
@@ -175,10 +175,10 @@ function EditAffectation() {
             
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/SoftGcc/tableauBord' },
-                    { label: 'Plan de carrière', path: '/SoftGcc/carriere' },
-                    { label: 'Fiche carrière', path: `/softGcc/carriere/fiche/${assignmentToEdit.registrationNumber}` },
-                    { label: 'Modifier', path: `SoftGcc/carriere/fiche/edit/${CareerPlanId}` }
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'Plan de carrière', path: '/soft-gcc/carriere' },
+                    { label: 'Fiche carrière', path: `/soft-gcc/carrieres/fiche/${assignmentToEdit.registrationNumber}` },
+                    { label: 'Modifier', path: `/soft-gcc/carrieres/fiche/edit/${CareerPlanId}` }
                 ]}
             />
           

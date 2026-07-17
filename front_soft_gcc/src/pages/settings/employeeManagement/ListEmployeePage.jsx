@@ -138,7 +138,7 @@ function ListEmployeePage() {
 
   // Navigation pour ajout
   const handleClick = () => {
-    navigate('/softGcc/settings/employeeManagement/create');
+    navigate('/soft-gcc/parametres/employes/create');
   };
 
   return (
@@ -157,9 +157,9 @@ function ListEmployeePage() {
       </div>
       <BreadcrumbPers
         items={[
-          { label: 'Accueil', path: '/softGcc/tableauBord' },
-          { label: 'Gestion employés', path: '/softGcc/settings/employeeManagement/liste' },
-          { label: 'Liste', path: '/softGcc/settings/employeeManagement/liste' },
+          { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+          { label: 'Gestion employés', path: '/soft-gcc/parametres/employes/liste' },
+          { label: 'Liste', path: '/soft-gcc/parametres/employes/liste' },
         ]}
       />
 
@@ -282,7 +282,7 @@ function ListEmployeePage() {
                     <tbody>
                       {sortedEmployees.length > 0 ? (
                         sortedEmployees.map((item) => (
-                          <tr key={item.employeeId} onClick={() => navigate(`/softGcc/competences/profil/${item.employeeId}`)}>
+                          <tr key={item.employeeId} onClick={() => navigate(`/soft-gcc/competences/profil/${item.employeeId}`)}>
                             <td className="py-1">
                               {item.photo ? (
                                 <img src={urlApi(`/Employee/photo/${item.employeeId}`)} alt={'Employe '+item.registrationNumber} />

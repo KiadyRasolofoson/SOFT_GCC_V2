@@ -141,14 +141,14 @@ function DegreeCrudPage() {
                 </div>
 
                 <div className="col-lg-2">
-                    <CancelButton to="settings/competence" />
+                    <CancelButton to="parametres/competences" />
                 </div>  
             </div>
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'paramètres compétences', path: '/softGcc/settings/competence' },
-                    { label: 'Niveau étude', path: '/softGcc/settings/competence/niveau' },
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'paramètres compétences', path: '/soft-gcc/parametres/competences' },
+                    { label: 'Niveau étude', path: '/soft-gcc/parametres/competences/niveaux' },
                 ]}
             />
            
