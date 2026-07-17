@@ -14,7 +14,7 @@ import Loader from '../../../helpers/Loader';
 // Page de modification d'un plan de carrière
 function EditAffectation() {
     // Initialisation des variables etats
-    const { CareerPlanId } = useParams();
+    const { careerPlanId: CareerPlanId } = useParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [assignmentToEdit, setAssignmentToEdit] = useState({});

@@ -20,7 +20,7 @@ function SalaryProfilePage({ task }) {
   const url = "/competences";
 
   // Gestion des states
-  const { idEmployee } = useParams();
+  const { employeeId: idEmployee } = useParams();
   const [employeeDescription, setEmployeeDescription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null); 
@@ -28,7 +28,8 @@ function SalaryProfilePage({ task }) {
   // Récupération des données à l'aide de l'API
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true); 
+      if (!idEmployee) return;
+      setLoading(true);
       try {
         const response = await api.get(`/EmployeeSkills/description/${idEmployee}`);
         const data = await response.data;

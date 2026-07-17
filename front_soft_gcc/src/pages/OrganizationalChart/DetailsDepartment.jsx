@@ -16,7 +16,7 @@ function DetailDepartment() {
     // Initialisation des states
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const { DepartmentId } = useParams();
+    const { departmentId: DepartmentId } = useParams();
     const [employeeList, setEmployeeList] = useState([]);
     const [department, setDepartment] = useState(null);
 
