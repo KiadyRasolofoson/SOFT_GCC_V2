@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using soft_carriere_competence.Application.Dtos.LicenseDto;
 using soft_carriere_competence.Infrastructure.Data;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -17,7 +18,7 @@ namespace soft_carriere_competence.Application.Services.license
     /// - GetStatus : revalide la signature à chaque appel (avec cache mémoire de 5 min)
     /// - GetMachineId : calcule un identifiant machine local
     /// </summary>
-    public class LicenseService
+    public class LicenseService : ILicenseService
     {
         private readonly ApplicationDbContext _context;
         private readonly RsaPublicKeyProvider _rsaProvider;

@@ -5,15 +5,15 @@ function UserManagement() {
     const navigate = useNavigate();
 
     const handleUsersClick = () => {
-        navigate("/users-list");
+        navigate("/soft-gcc/parametres/utilisateurs/liste");
     };
 
     const handleRolesClick = () => {
-        navigate("/roles-management");
+        navigate("/soft-gcc/parametres/utilisateurs/roles");
     };
 
     const handlePermissionsClick = () => {
-        navigate("/permissions-management");
+        navigate("/soft-gcc/parametres/utilisateurs/permissions");
     };
 
     return (

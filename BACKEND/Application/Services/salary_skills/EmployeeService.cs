@@ -2,10 +2,11 @@
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
-	public class EmployeeService
+	public class EmployeeService : IEmployeeService
 	{
 		private readonly IGenericRepository<Employee> _repository;
 		private readonly ISalarySkillDataService _dataService;
@@ -32,7 +33,7 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 			return await _dataService.GetEmployeeFilter(keyWord, departmentId, hiringDate1, hiringDate2, page, pageSize);
 		}
 
-		public async Task<Employee> GetById(int id)
+		public async Task<Employee?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

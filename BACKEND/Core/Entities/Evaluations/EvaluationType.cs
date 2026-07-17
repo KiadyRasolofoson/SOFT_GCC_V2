@@ -11,7 +11,7 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public int EvaluationTypeId { get; set; }
 
         [MaxLength(100)]
-        public string Designation { get; set; }
+        public string Designation { get; set; } = string.Empty;
         [Column("state")]
         public int? state { get; set; }
     }

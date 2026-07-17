@@ -121,9 +121,9 @@ function SalaryList() {
     const selectedEmployee = employees.find(emp => emp.employeeId === employeeId || emp.evaluationId === evaluationId);
     console.log('Données employé sélectionné:', selectedEmployee);
     
-    const path = evaluationId 
-      ? `/evaluations/notation/evaluation/${evaluationId}`
-      : `/evaluations/notation/employee/${employeeId}`;
+    const path = evaluationId
+      ? `/soft-gcc/evaluations/notation/evaluation/${evaluationId}`
+      : `/soft-gcc/evaluations/notation/employee/${employeeId}`;
     
     navigate(path);
   };

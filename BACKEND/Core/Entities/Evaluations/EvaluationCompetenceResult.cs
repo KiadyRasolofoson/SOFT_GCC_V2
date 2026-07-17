@@ -24,19 +24,19 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public decimal Score { get; set; }
         
         [Column(TypeName = "nvarchar(max)")]
-        public string Comments { get; set; }
+        public string Comments { get; set; } = string.Empty;
         
         public DateTime CreatedAt { get; set; }
         
         public int State { get; set; }
         
         [ForeignKey("EvaluationId")]
-        public virtual Evaluation Evaluation { get; set; }
+        public virtual Evaluation Evaluation { get; set; } = null!;
 
         [ForeignKey("EmployeeId")]
-        public virtual Employee Employee { get; set; }
+        public virtual Employee Employee { get; set; } = null!;
         
         [ForeignKey("CompetenceLineId")]
-        public virtual CompetenceLine CompetenceLine { get; set; }
+        public virtual CompetenceLine CompetenceLine { get; set; } = null!;
     }
 } 

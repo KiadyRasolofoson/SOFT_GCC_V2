@@ -11,12 +11,12 @@ namespace soft_carriere_competence.Core.Entities.entrepriseOrg
 		public int TestCsvId { get; set; }
 
 		[Column("nom")]
-		public string Nom { get; set; }
+		public string Nom { get; set; } = string.Empty;
 
 		[Column("date_naissance")]
 		public DateTime DateNaissance { get; set; }
 
 		[Column("quartier")]
-		public string Quartier { get; set; }
+		public string Quartier { get; set; } = string.Empty;
 	}
 }

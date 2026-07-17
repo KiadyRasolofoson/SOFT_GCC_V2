@@ -20,9 +20,9 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public decimal Score { get; set; }
 
         [ForeignKey("UserId")]
-        public User User { get; set; }
+        public User User { get; set; } = null!;
 
         [ForeignKey("EvaluationQuestionnaireId")]
-        public EvaluationQuestionnaire EvaluationQuestionnaire { get; set; }
+        public EvaluationQuestionnaire EvaluationQuestionnaire { get; set; } = null!;
     }
 }

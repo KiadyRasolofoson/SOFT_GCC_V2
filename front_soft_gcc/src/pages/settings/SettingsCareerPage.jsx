@@ -18,19 +18,19 @@ function SettingCareerPage() {
     const [error, setError] = useState(null); 
 
     const  [listSettings, setListSettings] = useState([
-        {url: '/softGcc/settings/carriere/typeAffectation', crudName: 'Type d\'affectation', icon: 'mdi mdi-account-arrow-right settings-icon'}, 
-        {url: '/softGcc/settings/carriere/typeCertificat', crudName: 'Type de certificat', icon: 'mdi mdi-certificate settings-icon'},
-        {url: '/softGcc/settings/carriere/echelon', crudName: 'Echelon', icon: 'mdi mdi-stairs settings-icon'},  
-        {url: '/softGcc/settings/carriere/typeEmploye', crudName: 'Type de contrat', icon: 'mdi mdi-account-tie settings-icon'},  
-        {url: '/softGcc/settings/carriere/etablissement', crudName: 'Etablissement', icon: 'mdi mdi-domain settings-icon'}, 
-        {url: '/softGcc/settings/carriere/fonction', crudName: 'Fonction', icon: 'mdi mdi-briefcase settings-icon'}, 
-        {url: '/softGcc/settings/carriere/indication', crudName: 'Indice', icon: 'mdi mdi-star settings-icon'}, 
-        {url: '/softGcc/settings/carriere/classeLegale', crudName: 'Classe legale', icon: 'mdi mdi-gavel settings-icon'}, 
-        {url: '/softGcc/settings/carriere/bulletin', crudName: 'Bulletin', icon: 'mdi mdi-newspaper settings-icon'}, 
-        {url: '/softGcc/settings/carriere/methodePaiement', crudName: 'Methode de paiement', icon: 'mdi mdi-credit-card settings-icon'},                 
-        {url: '/softGcc/settings/carriere/poste', crudName: 'Poste', icon: 'mdi mdi-briefcase settings-icon'},     
-        {url: '/softGcc/settings/carriere/categorieProfessionnelle', crudName: 'Categorie professionnelle', icon: 'mdi mdi-account-tie settings-icon'},                 
-        {url: '/softGcc/settings/carriere/categorieSocioProfessionnelle', crudName: 'Categorie socio-professionnelle', icon: 'mdi mdi-account-tie settings-icon'},                 
+        {url: '/soft-gcc/parametres/carrieres/types-affectation', crudName: 'Type d\'affectation', icon: 'mdi mdi-account-arrow-right settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/types-certificat', crudName: 'Type de certificat', icon: 'mdi mdi-certificate settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/echelons', crudName: 'Echelon', icon: 'mdi mdi-stairs settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/types-employe', crudName: 'Type de contrat', icon: 'mdi mdi-account-tie settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/etablissements', crudName: 'Etablissement', icon: 'mdi mdi-domain settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/fonctions', crudName: 'Fonction', icon: 'mdi mdi-briefcase settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/indications', crudName: 'Indice', icon: 'mdi mdi-star settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/classes-legales', crudName: 'Classe legale', icon: 'mdi mdi-gavel settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/bulletins', crudName: 'Bulletin', icon: 'mdi mdi-newspaper settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/methodes-paiement', crudName: 'Methode de paiement', icon: 'mdi mdi-credit-card settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/postes', crudName: 'Poste', icon: 'mdi mdi-briefcase settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/categories-professionnelles', crudName: 'Categorie professionnelle', icon: 'mdi mdi-account-tie settings-icon'},
+        {url: '/soft-gcc/parametres/carrieres/categories-socio-professionnelles', crudName: 'Categorie socio-professionnelle', icon: 'mdi mdi-account-tie settings-icon'},
     ]);
     
     // Navigation dans la page de crud
@@ -50,9 +50,9 @@ function SettingCareerPage() {
             </div>
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'paramètres carrières', path: '/softGcc/settings/carriere' },
-                    { label: 'Menu', path: '/softGcc/settings/carriere' },
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'paramètres carrières', path: '/soft-gcc/parametres/carrieres' },
+                    { label: 'Menu', path: '/soft-gcc/parametres/carrieres' },
                 ]}
             />
             

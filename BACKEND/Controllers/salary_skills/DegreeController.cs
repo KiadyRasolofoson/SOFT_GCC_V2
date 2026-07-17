@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services;
 using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.salary_skills
 {
@@ -10,9 +11,9 @@ namespace soft_carriere_competence.Controllers.salary_skills
 	[ApiController]
 	public class DegreeController : ControllerBase
 	{
-		private readonly DegreeService _degreeService;
+		private readonly IDegreeService _degreeService;
 
-		public DegreeController(DegreeService service)
+		public DegreeController(IDegreeService service)
 		{
 			_degreeService = service;
 		}

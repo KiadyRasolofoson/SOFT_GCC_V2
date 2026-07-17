@@ -1,10 +1,11 @@
 ﻿using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.wish_evolution;
 using soft_carriere_competence.Core.Interface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.wish_evolution
 {
-	public class WishTypeService
+	public class WishTypeService : IWishTypeService
 	{
 		private readonly IGenericRepository<WishType> _repository;
 
@@ -18,7 +19,7 @@ namespace soft_carriere_competence.Application.Services.wish_evolution
 			return await _repository.GetAll();
 		}
 
-		public async Task<WishType> GetById(int id)
+		public async Task<WishType?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

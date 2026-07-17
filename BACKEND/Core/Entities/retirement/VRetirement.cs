@@ -7,7 +7,7 @@ namespace soft_carriere_competence.Core.Entities.retirement
 	{
 		[Key]
 		[Column("Registration_number")]
-		public string RegistrationNumber { get; set; }
+		public string RegistrationNumber { get; set; } = string.Empty;
 
 		[Column("Civilite_id")]
 		public int? CiviliteId { get; set; }

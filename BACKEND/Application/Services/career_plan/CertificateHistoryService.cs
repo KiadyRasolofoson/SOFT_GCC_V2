@@ -2,10 +2,11 @@
 using soft_carriere_competence.Core.Entities.career_plan;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.career_plan
 {
-    public class CertificateHistoryService
+    public class CertificateHistoryService : ICertificateHistoryService
     {
         private readonly IGenericRepository<CertificateHistory> _repository;
         private readonly ICareerPlanDataService _dataService;
@@ -21,7 +22,7 @@ namespace soft_carriere_competence.Application.Services.career_plan
             return await _repository.GetAll();
         }
 
-        public async Task<CertificateHistory> GetById(int id)
+        public async Task<CertificateHistory?> GetById(int id)
         {
             return await _repository.GetById(id);
         }

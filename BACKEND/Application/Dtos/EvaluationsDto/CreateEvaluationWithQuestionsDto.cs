@@ -6,7 +6,7 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
         public int EmployeeId { get; set; }
         public int EvaluationTypeId { get; set; }
         public int PositionId { get; set; }
-        public List<QuestionCompetenceDto> SelectedQuestions { get; set; }
+        public List<QuestionCompetenceDto> SelectedQuestions { get; set; } = new();
     }
 
     public class QuestionCompetenceDto

@@ -15,28 +15,28 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public int QuestionId { get; set; }
 
         [Column("ReferenceText")]
-        public string ReferenceText { get; set; }
+        public string ReferenceText { get; set; } = string.Empty;
 
         [Column("EvaluationGuidelines")]
-        public string EvaluationGuidelines { get; set; }
+        public string EvaluationGuidelines { get; set; } = string.Empty;
 
         [Column("ExpectedKeyPoints")]
-        public string ExpectedKeyPoints { get; set; }
+        public string ExpectedKeyPoints { get; set; } = string.Empty;
 
         [Column("ScoreDescription1")]
-        public string ScoreDescription1 { get; set; }
+        public string ScoreDescription1 { get; set; } = string.Empty;
 
         [Column("ScoreDescription2")]
-        public string ScoreDescription2 { get; set; }
+        public string ScoreDescription2 { get; set; } = string.Empty;
 
         [Column("ScoreDescription3")]
-        public string ScoreDescription3 { get; set; }
+        public string ScoreDescription3 { get; set; } = string.Empty;
 
         [Column("ScoreDescription4")]
-        public string ScoreDescription4 { get; set; }
+        public string ScoreDescription4 { get; set; } = string.Empty;
 
         [Column("ScoreDescription5")]
-        public string ScoreDescription5 { get; set; }
+        public string ScoreDescription5 { get; set; } = string.Empty;
 
         [Column("CreatedAt")]
         public DateTime CreatedAt { get; set; }
@@ -55,12 +55,12 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
 
         // Relations avec d'autres entités
         [ForeignKey("QuestionId")]
-        public virtual EvaluationQuestion Question { get; set; }
+        public virtual EvaluationQuestion Question { get; set; } = null!;
 
         [ForeignKey("CreatedById")]
-        public virtual User CreatedBy { get; set; }
+        public virtual User CreatedBy { get; set; } = null!;
 
         [ForeignKey("UpdatedById")]
-        public virtual User UpdatedBy { get; set; }
+        public virtual User UpdatedBy { get; set; } = null!;
     }
 } 

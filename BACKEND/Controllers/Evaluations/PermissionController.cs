@@ -7,17 +7,17 @@ namespace soft_carriere_competence.Controllers.Evaluations
     // Classe pour la désérialisation
     public class PermissionUpdateModel
     {
-        public List<int> permissionIds { get; set; }
+        public List<int> permissionIds { get; set; } = new List<int>();
     }
 
     // Nouvelle classe DTO pour retourner les permissions avec leur module
     public class PermissionDto
     {
         public int PermissionId { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public int State { get; set; }
-        public string Module { get; set; }
+        public string Module { get; set; } = string.Empty;
     }
 
     [Route("api/[controller]")]
@@ -239,8 +239,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
         public class PermissionUpdateDto
         {
             public int PermissionId { get; set; }
-            public string Name { get; set; }
-            public string Description { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
             // Exclure 'State' si nécessaire
         }
         

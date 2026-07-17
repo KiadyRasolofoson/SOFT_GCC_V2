@@ -49,7 +49,7 @@ const EvaluationPage = () => {
     localStorage.removeItem('evaluationToken');
     localStorage.removeItem('evaluationId');
     toast.info('Vous avez été déconnecté.');
-    navigate('/EvaluationLogin');
+    navigate('/soft-gcc/evaluation/connexion');
   };
 
   // Gestion du temps
@@ -296,7 +296,7 @@ const EvaluationPage = () => {
     console.log('Initialisation avec token:', token ? 'Présent' : 'Absent', 'et evaluationId:', evaluationId);
 
     if (!token || !evaluationId) {
-      navigate('/evaluation-login');
+      navigate('/soft-gcc/evaluation/connexion');
       return;
     }
 
@@ -305,7 +305,7 @@ const EvaluationPage = () => {
       localStorage.removeItem('evaluationToken');
       localStorage.removeItem('evaluationId');
       toast.error('Votre session a expiré. Veuillez vous reconnecter.');
-      navigate('/evaluation-login');
+      navigate('/soft-gcc/evaluation/connexion');
       return;
     }
 
@@ -316,7 +316,7 @@ const EvaluationPage = () => {
         localStorage.removeItem('evaluationToken');
         localStorage.removeItem('evaluationId');
         toast.error('Votre session a expiré. Veuillez vous reconnecter.');
-        navigate('/evaluation-login');
+        navigate('/soft-gcc/evaluation/connexion');
       }
     }, 60000); // Vérifier toutes les minutes
 
@@ -594,7 +594,7 @@ const EvaluationPage = () => {
     
     if (!token || !evaluationId) {
       toast.error('Session expirée. Veuillez vous reconnecter.');
-      navigate('/evaluation-login');
+      navigate('/soft-gcc/evaluation/connexion');
       return;
     }
     
@@ -648,7 +648,7 @@ const EvaluationPage = () => {
         toast.success('Évaluation soumise avec succès!');
         localStorage.removeItem('evaluationToken');
         localStorage.removeItem('evaluationId');
-        navigate('/EvaluationConfirmation');
+        navigate('/soft-gcc/evaluation/confirmation');
       } else {
         setError('Erreur lors de la soumission de l\'évaluation. Veuillez réessayer.');
       }

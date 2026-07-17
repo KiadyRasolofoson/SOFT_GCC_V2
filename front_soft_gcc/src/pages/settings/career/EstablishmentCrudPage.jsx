@@ -196,7 +196,7 @@ function EstablishmentCrudPage() {
                 </div>
 
                 <div className="col-lg-2">
-                    <CancelButton to="settings/carriere" />
+                    <CancelButton to="parametres/carrieres" />
                 </div>  
             </div>
             {isLoading && <Loader />}

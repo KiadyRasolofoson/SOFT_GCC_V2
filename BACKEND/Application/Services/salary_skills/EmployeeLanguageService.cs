@@ -1,10 +1,11 @@
 ﻿using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.salary_skills
 {
-	public class EmployeeLanguageService
+	public class EmployeeLanguageService : IEmployeeLanguageService
 	{
 		private readonly IGenericRepository<EmployeeLanguage> _repository;
 		private readonly ISalarySkillDataService _dataService;
@@ -20,7 +21,7 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 			return await _repository.GetAll();
 		}
 
-		public async Task<EmployeeLanguage> GetById(int id)
+		public async Task<EmployeeLanguage?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

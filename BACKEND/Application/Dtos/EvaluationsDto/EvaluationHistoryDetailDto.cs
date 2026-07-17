@@ -3,8 +3,8 @@
     public class EvaluationHistoryDetailDto
     {
         public int EvaluationId { get; set; }
-        public string LastName { get; set; }
-        public string FirstName { get; set; }
+        public string LastName { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
 
         public string? Position { get; set; }
         public string? EvaluationType { get; set; }

@@ -4,6 +4,7 @@ using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.AuthInterface;
 using soft_carriere_competence.Core.Interface.DataService;
+using Microsoft.Extensions.Configuration;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
@@ -18,6 +19,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         private readonly IGenericRepository<Evaluation> _evaluationRepository;
         private readonly IGenericRepository<Employee> _employeeRepository;
         private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
 
         public EvaluationInterviewService(
             IEvaluationDataService dataService,
@@ -28,7 +30,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             IGenericRepository<InterviewParticipants> participantRepository,
             IGenericRepository<Evaluation> evaluationRepository,
             IGenericRepository<Employee> employeeRepository,
-            IEmailService emailService)
+            IEmailService emailService,
+            IConfiguration configuration)
         {
             _dataService = dataService;
             _posteRepository = posteRepository;
@@ -39,6 +42,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             _evaluationRepository = evaluationRepository;
             _employeeRepository = employeeRepository;
             _emailService = emailService;
+            _configuration = configuration;
         }
 
         public async Task<IEnumerable<VEmployeesFinishedEvaluation>> GetEmployeesWithFinishedEvalAsync(
@@ -56,9 +60,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e =>
-                    (e.FirstName + " " + e.LastName).Contains(search) ||
-                    e.FirstName.Contains(search) ||
-                    e.LastName.Contains(search));
+                    ((e.FirstName ?? "") + " " + (e.LastName ?? "")).Contains(search) ||
+                    (e.FirstName ?? "").Contains(search) ||
+                    (e.LastName ?? "").Contains(search));
 
             return query.ToList();
         }
@@ -84,9 +88,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e =>
-                    (e.FirstName + " " + e.LastName).Contains(search) ||
-                    e.FirstName.Contains(search) ||
-                    e.LastName.Contains(search));
+                    ((e.FirstName ?? "") + " " + (e.LastName ?? "")).Contains(search) ||
+                    (e.FirstName ?? "").Contains(search) ||
+                    (e.LastName ?? "").Contains(search));
 
             // Appliquer le tri
             if (!string.IsNullOrEmpty(sortBy))
@@ -149,12 +153,12 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 .FirstOrDefault(e => e.EmployeeId == employeeId);
         }
 
-        public async Task<Position> GetPosteByIdAsync(int posteId)
+        public async Task<Position?> GetPosteByIdAsync(int posteId)
         {
             return await _posteRepository.GetByIdAsync(posteId);
         }
 
-        public async Task<Department> GetDepartmentByIdAsync(int departmentId)
+        public async Task<Department?> GetDepartmentByIdAsync(int departmentId)
         {
             return await _departementRepository.GetByIdAsync(departmentId);
         }
@@ -326,7 +330,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 foreach (var (participantId, isEvaluatedEmployee) in participants)
                 {
                     // Récupérer les informations du participant
-                    User userInfo = null;
+                    User? userInfo = null;
                     string firstName = "", lastName = "", email = "";
                     
                     if (isEvaluatedEmployee)
@@ -336,9 +340,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         
                         if (employee != null)
                         {
-                            firstName = employee.FirstName;
-                            lastName = employee.Name;
-                            email = employee.Email;
+                            firstName = employee.FirstName ?? string.Empty;
+                            lastName = employee.Name ?? string.Empty;
+                            email = employee.Email ?? string.Empty;
                             
                             // Mise à jour du nom pour les autres participants
                             evaluatedEmployeeName = $"{firstName} {lastName}";
@@ -353,7 +357,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         {
                             firstName = userInfo.FirstName;
                             lastName = userInfo.LastName;
-                            email = userInfo.Email;
+                            email = userInfo.Email ?? string.Empty;
                         }
                     }
                     
@@ -385,7 +389,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                                    $"<strong>Employé concerné :</strong> {evaluatedEmployeeName}<br>" +
                                    $"<strong>Date et heure :</strong> {formattedDate}<br><br>" +
                                    $"Veuillez vous connecter à votre compte pour consulter les détails de cet entretien.<br><br>" +
-                                   $"<a href='http://localhost:5189/api/homeInterview' class='button'>Accéder au système</a><br><br>" +
+                                   $"<a href='{_configuration["FrontendBaseUrl"]}/soft-gcc/evaluations/accueil' class='button'>Accéder au système</a><br><br>" +
                                    $"Cordialement,<br>" +
                                    $"L'équipe Gestion des Carrières et Compétences";
                     }
@@ -604,7 +608,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
 
-        public async Task<bool> UpdateInterviewAsync(int interviewId, DateTime? newDate, List<int> newParticipantIds, int? newStatus)
+        public async Task<bool> UpdateInterviewAsync(int interviewId, DateTime? newDate, List<int>? newParticipantIds, int? newStatus)
         {
             var interview = await _interviewRepository.GetByIdAsync(interviewId);
 

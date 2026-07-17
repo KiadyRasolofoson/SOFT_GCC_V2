@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.dashboard;
 using soft_carriere_competence.Application.Services.wish_evolution;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.dashboard
 {
@@ -11,9 +12,9 @@ namespace soft_carriere_competence.Controllers.dashboard
 	[Authorize]
 	public class DashboardController : ControllerBase
 	{
-		private readonly DashboardService _dashboardService;
+		private readonly IDashboardService _dashboardService;
 
-		public DashboardController(DashboardService service)
+		public DashboardController(IDashboardService service)
 		{
 			_dashboardService = service;
 		}

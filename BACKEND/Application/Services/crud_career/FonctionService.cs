@@ -1,9 +1,10 @@
 ﻿using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Interface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Application.Services.crud_career
 {
-	public class FonctionService
+	public class FonctionService : IFonctionService
 	{
 		private readonly IGenericRepository<Fonction> _repository;
 
@@ -17,7 +18,7 @@ namespace soft_carriere_competence.Application.Services.crud_career
 			return await _repository.GetAll();
 		}
 
-		public async Task<Fonction> GetById(int id)
+		public async Task<Fonction?> GetById(int id)
 		{
 			return await _repository.GetById(id);
 		}

@@ -28,9 +28,9 @@ namespace soft_carriere_competence.Core.Entities.wish_evolution
 		public DateTime? UpdatedDate { get; set; }
 
 		[ForeignKey("PositionId")]
-		public Position Position { get; set; }
+		public Position Position { get; set; } = null!;
 
 		[ForeignKey("SkillId")]
-		public Skill Skill { get; set; }
+		public Skill Skill { get; set; } = null!;
 	}
 }

@@ -55,7 +55,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         // Génère un login temporaire unique basé sur le nom de l'employé
         private async Task<string> GenerateTemporaryLoginFromEmployeeAsync(Employee employee)
         {
-            string baseLogin = $"{employee.FirstName.Substring(0, 1)}{employee.Name}".ToLower();
+            string baseLogin = $"{(employee.FirstName ?? "x").Substring(0, 1)}{employee.Name ?? ""}".ToLower();
             baseLogin = baseLogin.Replace(" ", "").Replace("-", "");
 
             // Vérifier si ce login existe déjà et ajouter un nombre aléatoire si c'est le cas
@@ -207,7 +207,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"] ?? ""));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(

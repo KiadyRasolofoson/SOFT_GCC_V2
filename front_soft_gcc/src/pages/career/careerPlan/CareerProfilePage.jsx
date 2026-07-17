@@ -83,7 +83,7 @@ function CareerProfilePage({ onSearch }) {
 
     // Fonction qui gère le retour en arrière de la page
     const handleRetour = () => {
-        navigate(`/SoftGcc/carriere`);
+        navigate(`/soft-gcc/carriere`);
     };
 
     return (
@@ -107,9 +107,9 @@ function CareerProfilePage({ onSearch }) {
 
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/softGcc/tableauBord' },
-                    { label: 'Plan de carrière', path: '/softGcc/carriere' },
-                    { label: 'Détails', path: '/softGcc/carriere/fiche' }
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'Plan de carrière', path: '/soft-gcc/carriere' },
+                    { label: 'Détails', path: '/soft-gcc/carrieres/fiche' }
                 ]}
             />
 

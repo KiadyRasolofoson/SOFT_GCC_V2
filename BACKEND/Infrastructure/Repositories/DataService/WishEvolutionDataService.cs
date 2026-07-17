@@ -19,7 +19,7 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
         public async Task<List<PcdSuggestionPosition>> GetSuggestionPosition(int idEmployee)
         {
             return await _context.PcdSuggestionPosition
-                .FromSqlRaw($"EXEC pcd_GetSuggestionPosition @idEmployee = {idEmployee}")
+                .FromSqlRaw("EXEC pcd_GetSuggestionPosition @idEmployee = {0}", idEmployee)
                 .ToListAsync();
         }
 

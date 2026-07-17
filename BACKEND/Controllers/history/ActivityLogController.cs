@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.history;
 using soft_carriere_competence.Application.Services.salary_skills;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
 
 namespace soft_carriere_competence.Controllers.history
 {
@@ -9,9 +10,9 @@ namespace soft_carriere_competence.Controllers.history
 	[ApiController]
 	public class ActivityLogController : ControllerBase
 	{
-		private readonly HistoryService _historyService;
+		private readonly IHistoryService _historyService;
 
-		public ActivityLogController(HistoryService service)
+		public ActivityLogController(IHistoryService service)
 		{
 			_historyService = service;
 		}

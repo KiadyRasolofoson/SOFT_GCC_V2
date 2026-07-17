@@ -11,7 +11,7 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public int Roleid { get; set; }
 
         [MaxLength(255)]
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         [Column("state")]
         public int? state {  get; set; }

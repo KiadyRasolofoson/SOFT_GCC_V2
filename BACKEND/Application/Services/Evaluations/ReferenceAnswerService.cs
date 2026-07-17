@@ -18,7 +18,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         /// </summary>
         /// <param name="questionId">ID de la question</param>
         /// <returns>DTO de la réponse de référence ou null si inexistante</returns>
-        public async Task<ReferenceAnswerDto> GetReferenceAnswerForQuestionAsync(int questionId)
+        public async Task<ReferenceAnswerDto?> GetReferenceAnswerForQuestionAsync(int questionId)
         {
             var referenceAnswer = await _repository
                 .GetFirstOrDefaultAsync(ra => ra.QuestionId == questionId && ra.State == 1);

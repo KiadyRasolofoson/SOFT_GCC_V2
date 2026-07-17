@@ -16,21 +16,22 @@ namespace soft_carriere_competence.Application.Services.EmailService
         public async Task SendEmailAsync(string to, string subject, string body)
         {
             // Utilisation d'un client SMTP pour envoyer l'email
+            var host = _configuration["Email:Host"] ?? "";
+            var portStr = _configuration["Email:Port"] ?? "587";
+            var username = _configuration["Email:Username"] ?? "";
+            var password = _configuration["Email:Password"] ?? "";
+            var fromEmail = _configuration["Email:From"] ?? "";
+
             using var client = new SmtpClient
             {
-                Host = _configuration["Email:Host"],
-                Port = int.Parse(_configuration["Email:Port"]),
-                Credentials = new NetworkCredential(
-                    _configuration["Email:Username"],
-                    _configuration["Email:Password"]
-                ),
+                Host = host,
+                Port = int.Parse(portStr),
+                Credentials = new NetworkCredential(username, password),
                 EnableSsl = true
             };
 
-            var fromAddress = new MailAddress(
-                _configuration["Email:From"], 
-                _configuration["Email:DisplayName"] ?? "No Reply - GCC"
-            );
+            var fromAddress = new MailAddress(fromEmail, 
+                _configuration["Email:DisplayName"] ?? "No Reply - GCC");
             
             var mailMessage = new MailMessage
             {

@@ -21,7 +21,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return permissions.Where(p => p.State == 1);
         }
 
-        public async Task<Permission> GetByIdAsync(int id)
+        public async Task<Permission?> GetByIdAsync(int id)
         {
             return await _dataService.GetPermissionByIdAsync(id);
         }
@@ -108,7 +108,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             // Récupérer les permissions associées au rôle de l'utilisateur
             var rolePermissions = await _dataService.GetPermissionsByRoleIdAsync(user.RoleId);
-            var permissions = rolePermissions.Select(rp => rp.Permission).Where(p => p != null).ToList();
+            var permissions = rolePermissions.Select(rp => rp.Permission).Where(p => p != null).Select(p => p!).ToList();
 
             Console.WriteLine($"Nombre de permissions trouvées: {permissions.Count}");
             foreach (var permission in permissions)

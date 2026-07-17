@@ -19,12 +19,12 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public int? EmployeeId { get; set; }
 
         [ForeignKey("InterviewId")]
-        public EvaluationInterviews Interview { get; set; }
+        public EvaluationInterviews Interview { get; set; } = null!;
         
         [ForeignKey("UserId")]
-        public User User { get; set; }
+        public User User { get; set; } = null!;
 
         [ForeignKey("EmployeeId")]
-        public Employee Employee { get; set; }
+        public Employee Employee { get; set; } = null!;
     }
 }

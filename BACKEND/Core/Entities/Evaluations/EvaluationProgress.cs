@@ -25,8 +25,8 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public DateTime lastUpdate { get; set; }
 
         [ForeignKey("evaluationId")]
-        public Evaluation evaluation { get; set; }
+        public Evaluation evaluation { get; set; } = null!;
         
-        public Employee employee { get; set; }
+        public Employee employee { get; set; } = null!;
     }
 }

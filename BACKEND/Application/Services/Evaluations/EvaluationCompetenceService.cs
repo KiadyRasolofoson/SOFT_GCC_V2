@@ -551,8 +551,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
     public class CompetenceResultDto
     {
         public int CompetenceId { get; set; }
-        public string CompetenceName { get; set; }
-        public string Description { get; set; }
+        public string CompetenceName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public decimal Score { get; set; }
         public int EvaluationId { get; set; }
         public DateTime EvaluationDate { get; set; }
@@ -562,10 +562,10 @@ namespace soft_carriere_competence.Application.Services.Evaluations
     {
         public int ResultId { get; set; }
         public int CompetenceId { get; set; }
-        public string CompetenceName { get; set; }
+        public string CompetenceName { get; set; } = string.Empty;
         public decimal Score { get; set; }
         public int EvaluationId { get; set; }
         public DateTime EvaluationDate { get; set; }
-        public string EvaluationType { get; set; }
+        public string EvaluationType { get; set; } = string.Empty;
     }
 }

@@ -20,7 +20,7 @@ function DetailAssignment() {
     const url = "/carriere";
 
     // Initialisation des variables états
-    const { CareerPlanId } = useParams();
+    const { careerPlanId: CareerPlanId } = useParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [assignmentToEdit, setAssignmentToEdit] = useState({});
@@ -153,7 +153,7 @@ function DetailAssignment() {
     };
 
     const handleRetour = () => {
-        navigate(`/softGcc/carriere/fiche/${assignmentToEdit.registrationNumber}`);
+        navigate(`/soft-gcc/carrieres/fiche/${assignmentToEdit.registrationNumber}`);
     };
 
     return (
@@ -174,10 +174,10 @@ function DetailAssignment() {
             </div>
             <BreadcrumbPers
                 items={[
-                    { label: 'Accueil', path: '/SoftGcc/tableauBord' },
-                    { label: 'Plan de carrière', path: '/SoftGcc/carriere' },
-                    { label: 'Fiche carrière', path: `/softGcc/carriere/fiche/${assignmentToEdit.registrationNumber}` },
-                    { label: 'Détails', path: `SoftGcc/carriere/fiche/edit/${CareerPlanId}` }
+                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                    { label: 'Plan de carrière', path: '/soft-gcc/carriere' },
+                    { label: 'Fiche carrière', path: `/soft-gcc/carrieres/fiche/${assignmentToEdit.registrationNumber}` },
+                    { label: 'Détails', path: `/soft-gcc/carrieres/fiche/edit/${CareerPlanId}` }
                 ]}
             />
             <Alert variant="warning" className="mb-4">

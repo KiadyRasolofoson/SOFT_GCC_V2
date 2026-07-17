@@ -6,7 +6,7 @@
         public int EvaluationId { get; set; }
         public DateTime ScheduledDate { get; set; }
         public int Status { get; set; }
-        public List<int> ParticipantIds { get; set; } // Liste des IDs des participants
+        public List<int> ParticipantIds { get; set; } = new(); // Liste des IDs des participants
         public string? Notes { get; set; }
         public bool ManagerApproval { get; set; }
         public string? ManagerComments { get; set; }

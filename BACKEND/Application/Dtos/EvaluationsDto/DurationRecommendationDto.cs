@@ -8,8 +8,8 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
         public int Days { get; set; }
         public int Weeks { get; set; }
         public int RemainingDays { get; set; }
-        public string WeeksDisplay { get; set; }
-        public string Justification { get; set; }
+        public string WeeksDisplay { get; set; } = string.Empty;
+        public string Justification { get; set; } = string.Empty;
         public bool IsCurrentDurationSufficient { get; set; }
         public List<string> FactorsConsidered { get; set; } = new List<string>();
     }
