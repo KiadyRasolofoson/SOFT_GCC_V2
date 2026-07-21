@@ -1,7 +1,7 @@
 /*
 	Auteur : Inssa Chalman
 	Date : 21 mai 2025
-	Description : Script complet pour la création des tables nécessaires dans l'application Soft_GCC
+	Description : Script complet pour la crï¿½ation des tables nï¿½cessaires dans l'application Soft_GCC
 	Version : 1.0
 
 
@@ -149,7 +149,7 @@ CREATE TABLE Assignment_type (
 	Assignment_type_name NVARCHAR(50)
 );
 
-INSERT INTO Assignment_type (Assignment_type_name) VALUES ('Nomination'), ('Mise en disponibilité'), ('Avancement');
+INSERT INTO Assignment_type (Assignment_type_name) VALUES ('Nomination'), ('Mise en disponibilitï¿½'), ('Avancement');
 
 -- Creation de la table etablissement(id, designation)
 CREATE TABLE Establishment (
@@ -160,6 +160,8 @@ CREATE TABLE Establishment (
 	Mail NVARCHAR(250),
 	Website NVARCHAR(250),
 	Social_network NVARCHAR(250),
+	Nif NVARCHAR(50),
+	Stat NVARCHAR(50),
 	Logo VARBINARY(MAX) NULL,
 	Creation_date DATETIME,
 	Updated_date DATETIME
