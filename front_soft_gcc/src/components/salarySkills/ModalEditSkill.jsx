@@ -6,6 +6,7 @@ import axios from 'axios';
 import { urlApi } from '../../helpers/utils';
 import '../../styles/modal.css';
 import api from '../../helpers/api';
+import { getUserMessage } from '../../helpers/errorHandler';
 
 // Gerer la modification d'une competence
 function ModalEditSkill({ showEditSkill, handleCloseEditSkill, selectedSkill, idEmployee, fetchData, error }) {
@@ -101,8 +102,8 @@ function ModalEditSkill({ showEditSkill, handleCloseEditSkill, selectedSkill, id
                 state: '',
                 employeeId: idEmployee,
             });
-        } catch (error) {
-            setSubmitError({ submit: `Erreur lors de l'insertion de la compétence : ${error.message}` });
+        } catch (err) {
+            setSubmitError(getUserMessage(err, 'modification').message);
         }
     };
 
@@ -122,7 +123,7 @@ function ModalEditSkill({ showEditSkill, handleCloseEditSkill, selectedSkill, id
                 {loadingDomainSkill || loadingSkill ? (
                     <div>Chargement...</div>
                 ) : errorDomainSkill || errorSkill ? (
-                    <div>Erreur lors du chargement des données.</div>
+                    <div>Impossible de charger les données nécessaires. Vérifiez votre connexion et réessayez.</div>
                 ) : (
                     <form>
                         <div className="form-group">

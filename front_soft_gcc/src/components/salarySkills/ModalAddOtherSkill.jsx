@@ -4,6 +4,7 @@ import axios from 'axios';
 import { urlApi } from '../../helpers/utils';
 import '../../styles/modal.css';
 import api from '../../helpers/api';
+import { getUserMessage } from '../../helpers/errorHandler';
     
 // Gerer l'inertion d'autres formations
 function ModalAddOtherSkill ({ showOtherSkill, handleCloseOtherSkill, idEmployee, fetchData, error, dataEmployeeDescription }) {
@@ -66,8 +67,8 @@ function ModalAddOtherSkill ({ showOtherSkill, handleCloseOtherSkill, idEmployee
             handleCloseOtherSkill(); 
             await fetchData();
             dataEmployeeDescription.otherFormationNumber++;
-        } catch (error) {
-            setSubmitError(`Erreur lors d'insertion d'un language : ${error.message}`);
+        } catch (err) {
+            setSubmitError(getUserMessage(err, 'insertion').message);
         }
     };
 

@@ -11,15 +11,16 @@ import BreadcrumbPers from '../../../helpers/BreadcrumbPers';
 import CancelButton from '../../../helpers/CancelButton';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../helpers/api';
+import ErrorMessage from '../../../helpers/ErrorMessage';
 
 // Page de creation d'un plan de carriere
 function CreationCareerPlan({ onSearch }) {
     // Initialisation des states
     const [selectedItem, setSelectedItem] = useState('1');
     const [formErrors, setFormErrors] = useState({});
-    const [submitError, setSubmitError] = useState(''); 
-    const [isLoading, setIsLoading] = useState(false); 
-    const [error, setError] = useState(false); 
+    const [submitError, setSubmitError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
     const navigate = useNavigate();
     
 
@@ -37,8 +38,8 @@ function CreationCareerPlan({ onSearch }) {
             ]);
             setDataEmployee(employeeResponse.data || []);
             setDataAssignmentType(assignmentTypeResponse.data || []);
-        } catch (error) {
-            setError(`Erreur lors de la recuperation des donnees : ${error.message}`);
+        } catch (err) {
+            setError(err);
         } finally {
             setIsLoading(false);
         }
@@ -164,10 +165,9 @@ function CreationCareerPlan({ onSearch }) {
   
         const response = await axios.post(urlApi('/CareerPlan'), dataToSend);
         handleRetour();
-    } catch (error) {
-        console.error('Erreur lors de l\'insertion :', error.response?.data || error.message);
-        setError(`Erreur lors de l\'insertion : ${error.message}`);
-
+    } catch (err) {
+        console.error('Erreur lors de l\'insertion :', err);
+        setSubmitError(err);
     } finally {
         setIsLoading(false);
     }
@@ -229,7 +229,8 @@ function CreationCareerPlan({ onSearch }) {
     return (
         <Template>
             {isLoading && <Loader />}
-            {error && <div className="alert alert-danger">{error}</div>}
+            <ErrorMessage error={error} context="chargement" onRetry={fetchData} />
+            <ErrorMessage error={submitError} context="insertion" />
 
             <div className="title-container">
                 <div className="col-lg-10 skill-header">

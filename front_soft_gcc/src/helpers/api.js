@@ -12,4 +12,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Intercepteur de réponse – enrichit les erreurs avec des métadonnées utiles
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      const { status, data } = error.response;
+      error.httpStatus = status;
+      error.apiData = data;
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
