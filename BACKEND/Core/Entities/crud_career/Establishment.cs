@@ -29,6 +29,12 @@ namespace soft_carriere_competence.Core.Entities.crud_career
         [Column("Social_network")]
         public string? SocialMedia { get; set; }
 
+        [Column("Nif")]
+        public string? Nif { get; set; }
+
+        [Column("Stat")]
+        public string? Stat { get; set; }
+
         [Column("Logo")]
         public byte[]? Logo { get; set; }
 

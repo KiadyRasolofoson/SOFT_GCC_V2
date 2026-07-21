@@ -25,6 +25,8 @@ function EstablishmentCrudPage() {
         email: '',
         website: '',
         socialMedia: '',
+        nif: '',
+        stat: '',
         logo: null
     });
 
@@ -70,6 +72,8 @@ function EstablishmentCrudPage() {
             form.append("email", formData.email);
             form.append("website", formData.website);
             form.append("socialMedia", formData.socialMedia);
+            form.append("nif", formData.nif);
+            form.append("stat", formData.stat);
             if (formData.logo) {
                 form.append("logo", formData.logo);
             }
@@ -88,6 +92,8 @@ function EstablishmentCrudPage() {
                 email: '',
                 website: '',
                 socialMedia: '',
+                nif: '',
+                stat: '',
                 logo: null
             });
         } catch (error) {
@@ -126,6 +132,8 @@ function EstablishmentCrudPage() {
             form.append("email", formData.email);
             form.append("website", formData.website);
             form.append("socialMedia", formData.socialMedia);
+            form.append("nif", formData.nif);
+            form.append("stat", formData.stat);
             if (formData.logo instanceof File) {
                 form.append("logo", formData.logo);
             }
@@ -159,6 +167,8 @@ function EstablishmentCrudPage() {
                 email: response.data.email,
                 website: response.data.website,
                 socialMedia: response.data.socialMedia,
+                nif: response.data.nif || '',
+                stat: response.data.stat || '',
                 logo: logoUrl
             });
         } catch (err) {
@@ -170,14 +180,16 @@ function EstablishmentCrudPage() {
 
     const handleAnnulation = async () => {
         setIsModifiedPage(false);
-        setFormData({ 
+        setFormData({
             establishmentName: '',
             adress: '',
             phoneNumber: '',
             email: '',
             website: '',
             socialMedia: '',
-            logo: null        
+            nif: '',
+            stat: '',
+            logo: null
         });
     };
 
@@ -220,6 +232,8 @@ function EstablishmentCrudPage() {
                                             <th>Email</th>
                                             <th>Site web</th>
                                             <th>Réseaux sociaux</th>
+                                            <th>NIF</th>
+                                            <th>STAT</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
@@ -240,6 +254,8 @@ function EstablishmentCrudPage() {
                                                 <td>{item.email}</td>
                                                 <td>{item.website}</td>
                                                 <td>{item.socialMedia}</td>
+                                                <td>{item.nif}</td>
+                                                <td>{item.stat}</td>
                                                 <td>
                                                     <Button
                                                         onClick={() => handleChangeToModifiedPage(item.establishmentId)}
@@ -298,6 +314,14 @@ function EstablishmentCrudPage() {
                                             <input type="text" name="socialMedia" value={formData.socialMedia} onChange={handleChange} className="form-control" id="name" required />
                                         </div>
                                         <div className="form-group">
+                                            <label htmlFor="nif">NIF</label>
+                                            <input type="text" name="nif" value={formData.nif} onChange={handleChange} className="form-control" id="nif" />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="stat">STAT</label>
+                                            <input type="text" name="stat" value={formData.stat} onChange={handleChange} className="form-control" id="stat" />
+                                        </div>
+                                        <div className="form-group">
                                             <label>Logo</label>
                                             <input type="file" accept="image/*" onChange={handleFileChange} className="form-control" />
                                         </div>
@@ -339,6 +363,14 @@ function EstablishmentCrudPage() {
                                            <div className="form-group">
                                             <label htmlFor="socialMedia">Réseaux sociaux</label>
                                             <input type="text" name="socialMedia" value={formData.socialMedia} onChange={handleChange} className="form-control" id="name" required />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="nif">NIF</label>
+                                            <input type="text" name="nif" value={formData.nif} onChange={handleChange} className="form-control" id="nif" />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="stat">STAT</label>
+                                            <input type="text" name="stat" value={formData.stat} onChange={handleChange} className="form-control" id="stat" />
                                         </div>
                                         <div className="form-group">
                                             <label>Logo</label>

@@ -35,12 +35,14 @@ namespace soft_carriere_competence.Controllers.crud_career
 
 		[HttpPost]
 		public async Task<IActionResult> Create(
-			[FromForm] string establishmentName, 
-			[FromForm] string adress, 
-			[FromForm] string phoneNumber, 
+			[FromForm] string establishmentName,
+			[FromForm] string adress,
+			[FromForm] string phoneNumber,
 			[FromForm] string email,
 			[FromForm] string website,
 			[FromForm] string socialMedia,
+			[FromForm] string nif,
+			[FromForm] string stat,
 			[FromForm] IFormFile? logo)
 		{
 			byte[]? photoBytes = null;
@@ -53,13 +55,15 @@ namespace soft_carriere_competence.Controllers.crud_career
 				}
 			}
 
-			var establishment = new Establishment { 
-				EstablishmentName = establishmentName,  
+			var establishment = new Establishment {
+				EstablishmentName = establishmentName,
 				Address = adress,
 				PhoneNumber = phoneNumber,
 				Email = email,
 				Website = website,
 				SocialMedia = socialMedia,
+				Nif = nif,
+				Stat = stat,
 				Logo = photoBytes,
 				CreationDate = DateTime.UtcNow,
 				UpdatedDate = DateTime.UtcNow,
@@ -78,6 +82,8 @@ namespace soft_carriere_competence.Controllers.crud_career
 			[FromForm] string email,
 			[FromForm] string website,
 			[FromForm] string socialMedia,
+			[FromForm] string nif,
+			[FromForm] string stat,
 			[FromForm] IFormFile? logo)
 		{
 			var establishment = await _establishmentService.GetById(id);
@@ -102,6 +108,8 @@ namespace soft_carriere_competence.Controllers.crud_career
 			establishment.Email = email;
 			establishment.Website = website;
 			establishment.SocialMedia = socialMedia;
+			establishment.Nif = nif;
+			establishment.Stat = stat;
 			establishment.Logo = photoBytes;
 
 			await _establishmentService.Update(establishment);

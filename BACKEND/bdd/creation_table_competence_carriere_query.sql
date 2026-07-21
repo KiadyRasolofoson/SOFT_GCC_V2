@@ -208,6 +208,8 @@ CREATE TABLE Establishment (
 	Mail NVARCHAR(250),
 	Website NVARCHAR(250),
 	Social_network NVARCHAR(250),
+	Nif NVARCHAR(50),
+	Stat NVARCHAR(50),
 	Logo VARBINARY(MAX) NULL,
 	Creation_date DATETIME,
 	Updated_date DATETIME
