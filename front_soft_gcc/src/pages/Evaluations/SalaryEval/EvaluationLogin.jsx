@@ -3,21 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import api from '../../../helpers/api';
 import { toast } from 'react-toastify';
-import { 
-  Card, TextField, Button, Typography, Box, CircularProgress, 
-  Alert, Paper, Container, Grid, Divider, FormHelperText 
+import {
+  Card, TextField, Button, Typography, Box, CircularProgress,
+  Alert, Paper, Container, Grid, Divider, FormHelperText
 } from '@mui/material';
-import { 
-  FaLock, FaUser, FaClock, FaExclamationTriangle, 
-  FaSignInAlt, FaSpinner, FaCalendarAlt 
+import {
+  FaLock, FaUser, FaClock, FaExclamationTriangle,
+  FaSignInAlt, FaSpinner, FaCalendarAlt, FaRedo
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { getUserMessage } from '../../../helpers/errorHandler';
 
 const EvaluationLogin = () => {
   const [tempLogin, setTempLogin] = useState('');
   const [tempPassword, setTempPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [errorSuggestion, setErrorSuggestion] = useState('');
   const [showExpirationWarning, setShowExpirationWarning] = useState(false);
   const navigate = useNavigate();
 
@@ -52,6 +54,7 @@ const EvaluationLogin = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setErrorSuggestion('');
 
     try {
       // Récupérer l'adresse IP pour le suivi de sécurité
@@ -74,25 +77,13 @@ const EvaluationLogin = () => {
       } 
     } catch (err) {
       console.error('Login error:', err);
-      
-      if (err.response) {
-        // Gestion des différents types d'erreurs
-        switch (err.response.status) {
-          case 401:
-            setError('Identifiants invalides. Veuillez vérifier votre login et mot de passe.');
-            break;
-          case 403:
-            setError(err.response.data.message || 'Votre évaluation n\'est pas encore disponible.');
-            setShowExpirationWarning(true);
-            break;
-          case 404:
-            setError('Évaluation non trouvée. Veuillez contacter votre administrateur.');
-            break;
-          default:
-            setError('Une erreur est survenue lors de la connexion.');
-        }
-      } else {
-        setError('Problème de connexion au serveur. Ve uillez réessayer plus tard.');
+      const { message, suggestion } = getUserMessage(err, 'connexion');
+
+      setError(message);
+      setErrorSuggestion(suggestion || '');
+
+      if (err.response?.status === 403) {
+        setShowExpirationWarning(true);
       }
     } finally {
       setLoading(false);
@@ -142,7 +133,24 @@ const EvaluationLogin = () => {
                   startAdornment: <FaLock style={{ marginRight: '8px' }} />
                 }}
               />
-              {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+              {error && (
+                <Alert severity="error" sx={{ mt: 2 }}
+                  action={
+                    errorSuggestion ? null : (
+                      <Button color="inherit" size="small" onClick={handleSubmit}>
+                        <FaRedo style={{ marginRight: 4 }} /> Réessayer
+                      </Button>
+                    )
+                  }
+                >
+                  {error}
+                  {errorSuggestion && (
+                    <Typography variant="caption" display="block" sx={{ mt: 0.5, opacity: 0.8 }}>
+                      {errorSuggestion}
+                    </Typography>
+                  )}
+                </Alert>
+              )}
               {showExpirationWarning && (
                 <Alert severity="warning" sx={{ mt: 2 }}>
                   <FaExclamationTriangle style={{ marginRight: '8px' }} />

@@ -6,6 +6,7 @@ import axios from 'axios';
 import { urlApi } from '../../helpers/utils';
 import '../../styles/modal.css';
 import api from '../../helpers/api';
+import { getUserMessage } from '../../helpers/errorHandler';
 
 Modal.setAppElement('#root');
 
@@ -61,8 +62,8 @@ function ModalAddEducation({ showEducation, handleCloseEducation, idEmployee, fe
             handleCloseEducation();
             await fetchData();
             dataEmployeeDescription.educationNumber++;
-        } catch (error) {
-            setSubmitError(error.response?.data || 'Erreur lors de l\'insertion.');
+        } catch (err) {
+            setSubmitError(getUserMessage(err, 'insertion').message);
         }
     };
 
@@ -82,7 +83,7 @@ function ModalAddEducation({ showEducation, handleCloseEducation, idEmployee, fe
                 {loadingStudyPath || loadingDegree || loadingSchool ? (
                     <div>Chargement...</div>
                 ) : errorStudyPath || errorDegree || errorSchool ? (
-                    <div>Erreur lors du chargement des données.</div>
+                    <div>Impossible de charger les données nécessaires. Vérifiez votre connexion et réessayez.</div>
                 ) : (
                     <form>
                         <div className="form-group">

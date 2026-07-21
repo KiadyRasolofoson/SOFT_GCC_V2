@@ -1,0 +1,214 @@
+/* ============================================================
+   ErrorMessage – Affichage des erreurs utilisateur
+   ============================================================ */
+
+/* --- Bannière pleine largeur --- */
+.error-banner {
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  animation: errorSlideIn 0.3s ease-out;
+}
+
+.error-banner__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.error-banner__icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.error-banner__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-banner__title {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.error-banner__message {
+  font-size: 0.875rem;
+  opacity: 0.92;
+}
+
+.error-banner__suggestion {
+  font-size: 0.8rem;
+  opacity: 0.78;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.error-banner__actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.error-banner__close {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.error-banner__close:hover {
+  opacity: 1;
+}
+
+/* --- Inline (dans le flux, ex: sous un champ) --- */
+.error-inline {
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  animation: errorSlideIn 0.2s ease-out;
+}
+
+.error-inline__body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-inline__icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.error-inline__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-inline__message {
+  display: block;
+}
+
+.error-inline__suggestion {
+  display: block;
+  font-size: 0.78rem;
+  opacity: 0.75;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.error-inline__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.error-inline__retry {
+  padding: 0 4px;
+  font-size: 1.1rem;
+  color: inherit;
+  opacity: 0.7;
+}
+.error-inline__retry:hover {
+  opacity: 1;
+}
+
+.error-inline__close {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.error-inline__close:hover {
+  opacity: 1;
+}
+
+/* --- Toast (notification flottante) --- */
+.error-toast {
+  border-radius: 6px;
+  padding: 0;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: errorSlideIn 0.35s ease-out;
+  overflow: hidden;
+}
+
+.error-toast__body {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 14px;
+  gap: 10px;
+}
+
+.error-toast__icon {
+  flex-shrink: 0;
+  font-size: 1.3rem;
+  margin-top: 1px;
+}
+
+.error-toast__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-toast__title {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.error-toast__message {
+  display: block;
+  font-size: 0.825rem;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+.error-toast__suggestion {
+  display: block;
+  font-size: 0.78rem;
+  opacity: 0.72;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.error-toast__close {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+.error-toast__close:hover {
+  opacity: 1;
+}
+
+.error-toast__actions {
+  padding: 8px 14px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes errorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

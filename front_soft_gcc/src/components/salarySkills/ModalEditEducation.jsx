@@ -6,6 +6,7 @@ import axios from 'axios';
 import { urlApi } from '../../helpers/utils';
 import '../../styles/modal.css';
 import api from '../../helpers/api';
+import { getUserMessage } from '../../helpers/errorHandler';
     
 // Gerer la modification d'une education
 function ModalEditEducation({ showEditEducation, handleCloseEditEducation, selectedEducation, idEmployee, fetchData, error }) {
@@ -80,8 +81,8 @@ function ModalEditEducation({ showEditEducation, handleCloseEditEducation, selec
             const response = await api.put(`/EmployeeEducation/${selectedEducation.employeeEducationId}`, dataToSend);
             handleCloseEditEducation();
             await fetchData();
-        } catch (error) {
-            setSubmitError({ submit: `Erreur lors de la modification de diplômes & formations : ${error.message}` });
+        } catch (err) {
+            setSubmitError(getUserMessage(err, 'modification').message);
         }
     };
 
@@ -101,7 +102,7 @@ function ModalEditEducation({ showEditEducation, handleCloseEditEducation, selec
                 {loadingStudyPath || loadingDegree || loadingSchool ? (
                     <div>Chargement...</div>
                 ) : errorStudyPath || errorDegree || errorSchool ? (
-                    <div>Erreur lors du chargement des données.</div>
+                    <div>Impossible de charger les données nécessaires. Vérifiez votre connexion et réessayez.</div>
                 ) : (
                     <form>
                         <div className="form-group">

@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './styles/main.css';
 import 'react-loading-skeleton/dist/skeleton.css';
+import './helpers/ErrorMessage.css';
 
 function App() {
   return (

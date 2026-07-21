@@ -6,6 +6,7 @@ import axios from 'axios';
 import { urlApi } from '../../helpers/utils';
 import '../../styles/modal.css';
 import api from '../../helpers/api';
+import { getUserMessage } from '../../helpers/errorHandler';
     
 // Gerer la modification d'une langue
 function ModalEditLanguage ({ showEditLanguage, handleCloseEditLanguage, selectedLanguage, idEmployee, fetchData, error }) {
@@ -96,8 +97,8 @@ function ModalEditLanguage ({ showEditLanguage, handleCloseEditLanguage, selecte
               state: '',
               employeeId: idEmployee,
             });
-        } catch (error) {
-          setSubmitError(`Erreur lors de la modification d'un language : ${error.message}`);
+        } catch (err) {
+          setSubmitError(getUserMessage(err, 'modification').message);
         }
     };
 
@@ -117,7 +118,7 @@ function ModalEditLanguage ({ showEditLanguage, handleCloseEditLanguage, selecte
               {loadingLanguage ? (
                   <div>Chargement...</div>
               ) : errorLanguage ? (
-                  <div>Erreur lors du chargement des données.</div>
+                  <div>Impossible de charger les données nécessaires. Vérifiez votre connexion et réessayez.</div>
               ) : (
                   <form>
                       <div className="form-group">

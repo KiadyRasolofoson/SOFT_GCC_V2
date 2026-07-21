@@ -4,6 +4,7 @@ import axios from 'axios';
 import { urlApi } from '../../helpers/utils';
 import '../../styles/modal.css';
 import api from '../../helpers/api';
+import { getUserMessage } from '../../helpers/errorHandler';
     
 // Gerer la modification d'autre formation
 function ModalEditOtherSkill ({ showEditOtherSkill, handleCloseEditOtherSkill, selectedOtherSkill, idEmployee, fetchData, error }) {
@@ -81,8 +82,8 @@ function ModalEditOtherSkill ({ showEditOtherSkill, handleCloseEditOtherSkill, s
             const response = await api.put(`/EmployeeOtherFormation/${selectedOtherSkill.employeeOtherFormationId}`, dataToSend);
             handleCloseEditOtherSkill();
             await fetchData();
-        } catch (error) {
-            setSubmitError(`Erreur lors de la modification d'une formation : ${error.message}`);
+        } catch (err) {
+            setSubmitError(getUserMessage(err, 'modification').message);
         }
     };
 

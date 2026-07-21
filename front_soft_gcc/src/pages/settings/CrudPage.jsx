@@ -5,6 +5,7 @@ import Loader from '../../helpers/Loader';
 import { Button } from 'react-bootstrap';
 import axios from "axios";
 import { urlApi } from "../../helpers/utils";
+import ErrorMessage from "../../helpers/ErrorMessage";
 
 // Page de creation d'un plan de carriere
 function CrudPage({ onSearch }) {
@@ -15,7 +16,7 @@ function CrudPage({ onSearch }) {
 
     // Initialisation des states
     const [isLoading, setIsLoading] = useState(false); 
-    const [error, setError] = useState(false); 
+    const [error, setError] = useState(null);
     const [data, setData] = useState([]); 
 
     
@@ -36,8 +37,8 @@ function CrudPage({ onSearch }) {
             const response = await axios.post(urlApi('/Degree'), dataToSend);
             fetchData();
         } catch (error) {
-            console.error('Erreur lors de l\'insertion :', error.response?.data || error.message);
-            setError('Erreur lors de l\'insertion : '+error);
+            console.error('Erreur lors de l\'insertion :', error);
+            setError(error);
         } finally {
             setIsLoading(false);
         }
@@ -51,7 +52,7 @@ function CrudPage({ onSearch }) {
             setData(response.data || []);
         } catch (err) {
             console.error(err);
-            setError(`Erreur lors de la récupération des données : ${err.message}`);
+            setError(err);
         } finally {
             setIsLoading(false);
         }
@@ -78,25 +79,19 @@ function CrudPage({ onSearch }) {
           await fetchData();
         } catch (error) {
           console.error('Erreur lors de la suppression:', error);
-          serError(error.message);
+          setError(error);
         }
     };
     
-    /// Gestion d'affichage de loading
     if (isLoading) {
-        return <div>
-                <Loader />
-            </div>;
-    }
-
-    /// Gestion d'affichage d'erreur
-    if (error) {
-        return <div>Erreur: {error.message}</div>;
+        return <div><Loader /></div>;
     }
 
     return (
         <Template>
             <PageHeader module={module} action={action} url={url} />
+
+            <ErrorMessage error={error} context="chargement" onRetry={fetchData} />
 
             <h4>ENTITE NIVEAU</h4>
             <form className="forms-sample">

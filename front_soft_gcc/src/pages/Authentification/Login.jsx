@@ -4,7 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useUser } from "./UserContext";
 import './Login.css';
 import { FaUser, FaLock, FaEye, FaEyeSlash, FaUserTie, FaExclamationCircle, FaWifi, FaInfoCircle } from 'react-icons/fa';
+import { FaRedo } from 'react-icons/fa';
 import { urlApi } from "../../helpers/utils";
+import { getUserMessage } from "../../helpers/errorHandler";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +15,7 @@ const Login = () => {
   });
 
   const [error, setError] = useState("");
+  const [errorSuggestion, setErrorSuggestion] = useState("");
   const [errorType, setErrorType] = useState("auth"); // "auth", "network", "validation"
   const [dismissed, setDismissed] = useState(false);
   const navigate = useNavigate();
@@ -43,7 +46,7 @@ const Login = () => {
     // Clear field-level error on input
     setEmptyFields((prev) => ({ ...prev, [name]: false }));
     // Clear global error when user starts typing
-    if (error) setError("");
+    if (error) { setError(""); setErrorSuggestion(""); }
   };
 
   const validateForm = () => {
@@ -56,42 +59,28 @@ const Login = () => {
   };
 
   const getErrorMessage = (err) => {
-    if (!err.response) {
-      return {
-        message: "Impossible de se connecter au serveur. Vérifiez votre connexion réseau.",
-        type: "network",
-      };
-    }
-    const status = err.response.status;
-    const data = err.response.data;
-
-    if (status === 403 && data?.error === "license_invalid") {
-      return {
-        message: data.message || "Licence invalide. Veuillez contacter l'administrateur.",
-        type: "license",
-      };
-    }
-    if (status === 401) {
-      return {
-        message: data?.message || "Identifiant ou mot de passe incorrect.",
-        type: "auth",
-      };
-    }
-    if (status >= 500) {
-      return {
-        message: "Le serveur rencontre une erreur. Veuillez réessayer plus tard.",
-        type: "network",
-      };
-    }
+    const { type, message, suggestion } = getUserMessage(err, "connexion");
+    // Map errorHandler types to the UI types used in the banner
+    const typeMap = {
+      network: "network",
+      timeout: "network",
+      auth: "auth",
+      license: "license",
+      forbidden: "auth",
+      server: "network",
+      validation: "validation",
+    };
     return {
-      message: data?.message || "Une erreur inattendue est survenue.",
-      type: "auth",
+      message,
+      suggestion,
+      type: typeMap[type] || "auth",
     };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setErrorSuggestion("");
     setDismissed(false);
 
     // Field-level validation
@@ -118,8 +107,9 @@ const Login = () => {
         navigate("/soft-gcc/tableau-de-bord");
       }
     } catch (err) {
-      const { message, type } = getErrorMessage(err);
+      const { message, suggestion, type } = getErrorMessage(err);
       setError(message);
+      setErrorSuggestion(suggestion || "");
       setErrorType(type);
     } finally {
       setLoading(false);
@@ -146,8 +136,18 @@ const Login = () => {
                 </div>
                 <div className="error-banner__content">
                   <span className="error-banner__text">{error}</span>
+                  {errorSuggestion && (
+                    <span className="error-banner__hint">{errorSuggestion}</span>
+                  )}
                 </div>
-                <button className="error-banner__close" onClick={() => setDismissed(true)} aria-label="Fermer">&times;</button>
+                <div className="error-banner__actions-group">
+                  {errorType === "network" && (
+                    <button className="error-banner__retry" onClick={handleSubmit} title="Réessayer">
+                      <FaRedo />
+                    </button>
+                  )}
+                  <button className="error-banner__close" onClick={() => setDismissed(true)} aria-label="Fermer">&times;</button>
+                </div>
               </div>
             )}
 

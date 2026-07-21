@@ -9,13 +9,14 @@ import BreadcrumbPers from '../../../helpers/BreadcrumbPers';
 import CancelButton from '../../../helpers/CancelButton';
 import FetcherApi from '../../../helpers/FetcherApi';
 import api from '../../../helpers/api';
+import ErrorMessage from '../../../helpers/ErrorMessage';
 
 function CreateEmployeePage({ onSearch }) {
     const { data: dataEmployee } = useSWR('/Employee', FetcherApi);
     const { data: dataDepartment } = useSWR('/Department', FetcherApi);
 
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
+    const [error, setError] = useState(null);
     const [success, setSuccess] = useState("");
     const [formErrors, setFormErrors] = useState({});
 
@@ -132,8 +133,8 @@ function CreateEmployeePage({ onSearch }) {
             }
             setError(null);
             setSuccess("Creation du nouveau employé "+formData.registrationNumber+" réussi");
-        } catch (error) {
-            setError('Erreur lors de l\'insertion : ' + (error.response?.data || error.message));
+        } catch (err) {
+            setError(err);
         } finally {
             setIsLoading(false);
         }
@@ -172,7 +173,7 @@ function CreateEmployeePage({ onSearch }) {
                     { label: 'Ajout', path: '/soft-gcc/parametres/employes/create' },
                 ]}
             />
-            {error && <div className="alert alert-danger">{error}</div>}
+            <ErrorMessage error={error} context="insertion" />
             {success && <div className="alert alert-success">{success}</div>}
             <form className="forms-sample">
                 <div className="row">            

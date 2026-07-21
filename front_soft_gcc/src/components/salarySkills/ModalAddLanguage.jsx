@@ -6,6 +6,7 @@ import axios from 'axios';
 import { urlApi } from '../../helpers/utils';
 import '../../styles/modal.css';
 import api from '../../helpers/api';
+import { getUserMessage } from '../../helpers/errorHandler';
     
 // Gerer l'inertion d'une langue
 function ModalAddLanguage ({ showLanguage, handleCloseLanguage, idEmployee, fetchData, error, dataEmployeeDescription }) {
@@ -69,9 +70,9 @@ function ModalAddLanguage ({ showLanguage, handleCloseLanguage, idEmployee, fetc
             state: '',
             employeeId: idEmployee
         });
-        } catch (error) {
-          console.error('Erreur lors de l\'insertion :', error.response?.data || error.message);
-          setSubmitError(`Erreur lors d'insertion d'un language : ${error.message}`);
+        } catch (err) {
+          console.error('Erreur lors de l\'insertion :', err);
+          setSubmitError(getUserMessage(err, 'insertion').message);
       }
   };
         
@@ -92,7 +93,7 @@ function ModalAddLanguage ({ showLanguage, handleCloseLanguage, idEmployee, fetc
               {loadingLanguage ? (
                   <div>Chargement...</div>
               ) : errorLanguage ? (
-                  <div>Erreur lors du chargement des données.</div>
+                  <div>Impossible de charger les données nécessaires. Vérifiez votre connexion et réessayez.</div>
               ) : (
                   <form>
                       <div className="form-group">
