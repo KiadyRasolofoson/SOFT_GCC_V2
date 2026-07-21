@@ -171,7 +171,12 @@ export function getUserMessage(error, context = "chargement") {
   const ctx = CONTEXTS[context] || CONTEXTS.chargement;
 
   const title = ctx.title;
-  const suggestion = SUGGESTIONS[parsed.type] || SUGGESTIONS.unknown;
+  let suggestion = SUGGESTIONS[parsed.type] || SUGGESTIONS.unknown;
+
+  // Pour le contexte "connexion" avec une erreur auth, le message "session expirée" est trompeur
+  if (context === "connexion" && parsed.type === "auth") {
+    suggestion = "Vérifiez vos identifiants et réessayez. Si vous avez oublié votre mot de passe, contactez votre administrateur.";
+  }
 
   // Construit un message clair selon le type d'erreur
   let message;
@@ -183,7 +188,14 @@ export function getUserMessage(error, context = "chargement") {
       message = `Impossible de ${ctx.verb} ${ctx.noun}. Le serveur a mis trop de temps à répondre.`;
       break;
     case "auth":
-      message = `Impossible de ${ctx.verb} ${ctx.noun} car votre session a expiré.`;
+      // Pour le contexte "connexion", un 401 = identifiants invalides (pas session expirée)
+      if (context === "connexion") {
+        message = parsed.message && parsed.message.length > 5
+          ? parsed.message
+          : "Identifiant ou mot de passe incorrect. Vérifiez vos informations de connexion.";
+      } else {
+        message = `Impossible de ${ctx.verb} ${ctx.noun} car votre session a expiré.`;
+      }
       break;
     case "forbidden":
       message = `Vous n'avez pas l'autorisation de ${ctx.verb} ${ctx.noun}.`;
