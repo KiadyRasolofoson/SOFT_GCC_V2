@@ -5,6 +5,7 @@ using soft_carriere_competence.Infrastructure.Data;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 using System.Security.Cryptography;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace soft_carriere_competence.Application.Services.license
 {
@@ -71,11 +72,25 @@ namespace soft_carriere_competence.Application.Services.license
                 return result;
             }
 
-            // Upsert : met à jour ou insère la licence en base
-            var license = await _context.Set<Core.Entities.license.License>()
+            // Upsert : met à jour ou insère la licence en base.
+            // Si la licence existante a un LicenseId différent (nouvelle clé),
+            // on doit la supprimer d'abord car LicenseId est la clé primaire.
+            var currentLicense = await _context.Set<Core.Entities.license.License>()
                 .FirstOrDefaultAsync();
 
-            if (license == null)
+            Core.Entities.license.License license;
+
+            if (currentLicense != null && currentLicense.LicenseId != result.LicenseId!.Value)
+            {
+                _context.Set<Core.Entities.license.License>().Remove(currentLicense);
+                license = new Core.Entities.license.License();
+                _context.Set<Core.Entities.license.License>().Add(license);
+            }
+            else if (currentLicense != null)
+            {
+                license = currentLicense;
+            }
+            else
             {
                 license = new Core.Entities.license.License();
                 _context.Set<Core.Entities.license.License>().Add(license);
@@ -86,7 +101,6 @@ namespace soft_carriere_competence.Application.Services.license
             license.MachineId = machineId;
             license.CustomerId = result.CustomerId ?? string.Empty;
             license.ExpireAt = result.ExpireAt!.Value;
-            // Note: IssuedAt pourrait être extrait du payload si nécessaire
             license.IssuedAt = DateTime.UtcNow;
             license.LicenseType = result.LicenseType ?? string.Empty;
             license.Features = System.Text.Json.JsonSerializer.Serialize(result.Features);
@@ -160,33 +174,17 @@ namespace soft_carriere_competence.Application.Services.license
 
         /// <summary>
         /// Calcule un identifiant unique pour la machine locale.
-        /// Combine plusieurs informations système pour éviter les collisions.
+        /// Utilise l'UUID de la carte mère (stable) ou /etc/machine-id comme fallback.
+        /// N'inclut plus OSVersion ni UserName pour éviter les changements lors des mises à jour.
         /// </summary>
         public static string GetMachineId()
         {
             try
             {
                 var machineName = Environment.MachineName;
-                var userName = Environment.UserName;
-                var osVersion = Environment.OSVersion.VersionString;
+                var hardwareId = GetHardwareId();
+                var raw = $"{machineName}|{hardwareId ?? "unknown"}";
 
-                // Sous Linux, tente de lire /etc/machine-id (identifiant unique et stable)
-                string? machineId = null;
-                try
-                {
-                    if (File.Exists("/etc/machine-id"))
-                    {
-                        machineId = File.ReadAllText("/etc/machine-id")?.Trim();
-                    }
-                }
-                catch
-                {
-                    // Ignoré : on continue avec les autres infos
-                }
-
-                var raw = $"{machineName}|{userName}|{osVersion}|{machineId ?? "unknown"}";
-
-                // Hash SHA256 pour obtenir un identifiant de longueur fixe
                 var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
                 var sb = new StringBuilder();
                 foreach (var b in bytes)
@@ -197,9 +195,60 @@ namespace soft_carriere_competence.Application.Services.license
             }
             catch
             {
-                // Fallback : utilise le nom de machine uniquement
                 return Environment.MachineName;
             }
+        }
+
+        /// <summary>
+        /// Récupère un identifiant matériel stable :
+        /// - Linux : UUID carte mère (/sys/class/dmi/id/product_uuid), fallback /etc/machine-id
+        /// - Windows : MachineGuid du registre
+        /// - Autres (Docker sans DMI) : /etc/machine-id si dispo
+        /// </summary>
+        private static string? GetHardwareId()
+        {
+            // Linux : UUID carte mère via DMI (très stable)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                try
+                {
+                    if (File.Exists("/sys/class/dmi/id/product_uuid"))
+                    {
+                        var uuid = File.ReadAllText("/sys/class/dmi/id/product_uuid")?.Trim();
+                        if (!string.IsNullOrWhiteSpace(uuid))
+                            return uuid;
+                    }
+                }
+                catch { }
+
+                // Fallback : /etc/machine-id (stable sur OS installé, change dans Docker)
+                try
+                {
+                    if (File.Exists("/etc/machine-id"))
+                    {
+                        var machineId = File.ReadAllText("/etc/machine-id")?.Trim();
+                        if (!string.IsNullOrWhiteSpace(machineId))
+                            return machineId;
+                    }
+                }
+                catch { }
+            }
+
+            // Windows : MachineGuid du registre (stable, généré à l'installation)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                try
+                {
+                    using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Cryptography");
+                    var guid = key?.GetValue("MachineGuid")?.ToString();
+                    if (!string.IsNullOrWhiteSpace(guid))
+                        return guid;
+                }
+                catch { }
+            }
+
+            return null;
         }
     }
 }
