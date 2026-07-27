@@ -4,7 +4,6 @@ using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using Microsoft.AspNetCore.Authorization;
 using soft_carriere_competence.Middleware;
-using soft_carriere_competence.Middleware;
 
 namespace soft_carriere_competence.Controllers.Evaluations
 {
