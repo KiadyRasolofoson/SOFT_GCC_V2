@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using soft_carriere_competence.Infrastructure.Data;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Infrastructure.Repositories;
@@ -28,6 +29,8 @@ using soft_carriere_competence.Application.Services.EmailService;
 using soft_carriere_competence.Core.Interface.AuthInterface;
 using soft_carriere_competence.Application.Services.dashboard;
 using soft_carriere_competence.Application.Services.entrepriseOrg;
+using soft_carriere_competence.Application.Authorization;
+using soft_carriere_competence.Application.Authorization.Handlers;
 using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Application.Services.history;
 using soft_carriere_competence.Core.Entities.Evaluations;
@@ -192,6 +195,18 @@ builder.Services.AddSingleton<RsaPublicKeyProvider>();
 builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddMemoryCache();
 
+// ========================================
+// ABAC Authorization — Module Évaluation
+// ========================================
+builder.Services.AddScoped<IManagerHierarchyService, ManagerHierarchyService>();
+builder.Services.AddScoped<ISensitiveDataFilterService, SensitiveDataFilterService>();
+
+// Handlers
+builder.Services.AddScoped<IAuthorizationHandler, CanViewEvaluationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, CanEditEvaluationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, CanValidateEvaluationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, CanDelegateEvaluationHandler>();
+
 #endregion
 
 #region Cors configuration
@@ -234,7 +249,27 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // RBAC baseline (existing roles) — applied to all modules
+    // Aucune policy par défaut pour ne pas casser les modules existants
+
+    // ABAC — Module Évaluation
+    options.AddPolicy("CanViewEvaluation", policy =>
+        policy.Requirements.Add(new CanViewEvaluationRequirement()));
+    options.AddPolicy("CanEditEvaluation", policy =>
+        policy.Requirements.Add(new CanEditEvaluationRequirement()));
+    options.AddPolicy("CanValidateEvaluation", policy =>
+        policy.Requirements.Add(new CanValidateEvaluationRequirement()));
+    options.AddPolicy("CanDelegateEvaluation", policy =>
+        policy.Requirements.Add(new CanDelegateEvaluationRequirement()));
+
+    // Policy admin : restreint aux rôles Admin, RH, DG (role_id 1, 3, 4)
+    options.AddPolicy("RequireAdminRole", policy =>
+        policy.RequireAssertion(context =>
+            context.User.HasClaim(c => c.Type == "roleId" &&
+                (c.Value == "1" || c.Value == "3" || c.Value == "4"))));
+});
 #endregion
 
 #region Swagger
