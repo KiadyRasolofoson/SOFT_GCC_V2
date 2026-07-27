@@ -49,5 +49,14 @@ public class User
     // Navigation Properties
     [ForeignKey("RoleId")]
     public Role? Role { get; set; }
-   
+
+    /// <summary>
+    /// Lien vers l'entité Employee (RH). Nullable car tous les utilisateurs
+    /// n'ont pas forcément de fiche employé correspondante.
+    /// </summary>
+    [Column("employee_id")]
+    public int? EmployeeId { get; set; }
+
+    [ForeignKey("EmployeeId")]
+    public Employee? Employee { get; set; }
 }
