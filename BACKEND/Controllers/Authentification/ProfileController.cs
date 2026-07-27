@@ -82,6 +82,7 @@ namespace soft_carriere_competence.Controllers.Authentification
             var profile = new UserProfileDto
             {
                 UserId = user.Id,
+                UserName = user.Username ?? $"{user.FirstName} {user.LastName}",
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email,
@@ -98,45 +99,32 @@ namespace soft_carriere_competence.Controllers.Authentification
         }
 
         /// <summary>
-        /// Détermine les modules visibles dans la navbar à partir des permissions RBAC.
-        /// Logique centralisée côté serveur (vs hardcoding frontend actuel).
+        /// Détermine les modules visibles dans la navbar à partir des permissions RBAC et du rôle.
+        /// Les modules cœur de métier (compétences, carrières, etc.) sont visibles par tous les rôles.
+        /// Seuls les modules d'administration sont filtrés.
         /// </summary>
         private static List<string> DetermineVisibleModules(List<string> permissions, int roleId)
         {
             var modules = new List<string>();
 
-            // Module Dashboard (visible pour tous les utilisateurs authentifiés)
+            // Dashboard — visible pour tous les utilisateurs authentifiés
             modules.Add("dashboard");
 
-            // Module Compétences
-            if (permissions.Any(p => p.Contains("SKILL") || p.Contains("COMPETENCE")))
-                modules.Add("competences");
+            // Modules cœur de métier — visibles pour tous les rôles (RH, Manager, Admin, Directeur)
+            // La sécurité fine est gérée par les policies ABAC côté serveur, pas par la navbar
+            modules.Add("competences");
+            modules.Add("carrieres");
+            modules.Add("retraite");
+            modules.Add("souhaits");
+            modules.Add("organigramme");
+            modules.Add("historique");
 
-            // Module Carrières
-            if (permissions.Any(p => p.Contains("CAREER") || p.Contains("CARRIERE")))
-                modules.Add("carrieres");
-
-            // Module Retraite
-            if (permissions.Any(p => p.Contains("RETIREMENT") || p.Contains("RETRAITE")))
-                modules.Add("retraite");
-
-            // Module Souhaits d'évolution
-            if (permissions.Any(p => p.Contains("WISH") || p.Contains("SOUHAIT") || p.Contains("EVOLUTION")))
-                modules.Add("souhaits");
-
-            // Module Organigramme
-            if (permissions.Any(p => p.Contains("DEPARTMENT") || p.Contains("ORG")))
-                modules.Add("organigramme");
-
-            // Module Évaluations
-            if (permissions.Any(p => p.Contains("EVALUATION")))
+            // Module Évaluations — visible si l'utilisateur a une permission liée aux évaluations
+            // ou si c'est un Manager (qui a des droits contextuels ABAC sans permissions RBAC explicites)
+            if (permissions.Any(p => p.Contains("EVALUATION")) || roleId == 2)
                 modules.Add("evaluations");
 
-            // Module Historique
-            if (permissions.Any(p => p.Contains("HISTORY") || p.Contains("REPORT")))
-                modules.Add("historique");
-
-            // Module Paramétrage (admin : rôles 1, 3, 4)
+            // Module Paramétrage — réservé aux rôles Admin(3), RH(1), Directeur(4)
             if (roleId == 1 || roleId == 3 || roleId == 4)
                 modules.Add("parametrage");
 
