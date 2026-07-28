@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../../components/PageHeader';
 import Template from '../../Template';
@@ -84,27 +84,24 @@ const ListCareerPage = () => {
     [currentPage, pageSize]
   );
 
-  // Fetch immédiat au montage et changement de page
+  // Debounce des filtres
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
   useEffect(() => {
-    fetchFilteredData(filters);
-  }, [currentPage]);
-
-  // Debounce uniquement pour les filtres (pas au montage initial)
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
     const handler = setTimeout(() => {
+      setDebouncedFilters(filters);
       if (currentPage !== 1) {
         setCurrentPage(1);
-      } else {
-        fetchFilteredData(filters);
       }
     }, 300);
     return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  // Effet unique pour le chargement initial, la pagination et les filtres
+  useEffect(() => {
+    fetchFilteredData(debouncedFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, debouncedFilters]);
 
   // Mise à jour des données triées
   // Appliquer le tri chaque fois que `sortDirection` ou `careers` change
