@@ -18,6 +18,13 @@ LicenseGenerator/obj/
 LicenseGenerator.UI/bin/
 LicenseGenerator.UI/obj/
 
+# === License Generator UI - Build artifacts ===
+LicenseGenerator.UI/bin/
+LicenseGenerator.UI/obj/
+
+# === License Generator UI - Settings persistant (local) ===
+LicenseGenerator.UI/settings.json
+
 # === Tests - Build artifacts ===
 soft_carriere_competence.Tests/bin/
 soft_carriere_competence.Tests/obj/

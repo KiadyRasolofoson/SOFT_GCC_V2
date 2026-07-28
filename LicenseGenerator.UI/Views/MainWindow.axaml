@@ -1,0 +1,374 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LicenseGenerator.UI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="840"
+        x:Class="LicenseGenerator.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="SOFT GCC — Générateur de licences"
+        Width="780" Height="820"
+        MinWidth="620" MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        Background="White">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <!-- ── Titre principal ── -->
+        <Style Selector="TextBlock.page-title">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#0D0B61" />
+        </Style>
+
+        <!-- ── Sous-titre ── -->
+        <Style Selector="TextBlock.page-subtitle">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#666666" />
+        </Style>
+
+        <!-- ── Titre de section ── -->
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#0D0B61" />
+            <Setter Property="Margin" Value="0,20,0,8" />
+        </Style>
+
+        <!-- ── Label de champ ── -->
+        <Style Selector="TextBlock.field-label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#294669" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <!-- ── Champs de saisie ── -->
+        <Style Selector="TextBox">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#222222" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="BorderBrush" Value="#D0D5DD" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="#478B8D" />
+        </Style>
+
+        <Style Selector="ComboBox">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#222222" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="BorderBrush" Value="#D0D5DD" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+
+        <Style Selector="NumericUpDown">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#222222" />
+            <Setter Property="BorderBrush" Value="#D0D5DD" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+
+        <!-- Boutons +/- du NumericUpDown -->
+        <Style Selector="NumericUpDown RepeatButton">
+            <Setter Property="Foreground" Value="#294669" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+        <Style Selector="NumericUpDown RepeatButton:pointerover">
+            <Setter Property="Foreground" Value="#478B8D" />
+            <Setter Property="Background" Value="#F0F4F8" />
+        </Style>
+
+        <Style Selector="DatePicker">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#222222" />
+            <Setter Property="BorderBrush" Value="#D0D5DD" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+
+        <!-- ── Sélecteur durée (boutons plats avec cercle radio) ── -->
+        <Style Selector="Button.duration-toggle">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="Button.duration-toggle:pointerover TextBlock">
+            <Setter Property="Foreground" Value="#478B8D" />
+        </Style>
+
+        <!-- ── Bouton principal ── -->
+        <Style Selector="Button.primary">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="24,10" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="#478B8D" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Button.primary:pointerover">
+            <Setter Property="Background" Value="#3A7378" />
+        </Style>
+
+        <!-- ── Bouton secondaire ── -->
+        <Style Selector="Button.secondary">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#294669" />
+            <Setter Property="BorderBrush" Value="#D0D5DD" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button.secondary:pointerover">
+            <Setter Property="Background" Value="#F5F6FA" />
+        </Style>
+
+        <!-- ── Affichage clé de licence ── -->
+        <Style Selector="TextBox.key-display">
+            <Setter Property="FontFamily" Value="monospace" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Background" Value="#FFFBE6" />
+            <Setter Property="BorderBrush" Value="#E4D329" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+
+        <!-- ── Séparateur ── -->
+        <Style Selector="Border.separator">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="#E8EAED" />
+            <Setter Property="Margin" Value="0,16,0,4" />
+        </Style>
+
+        <!-- ── ProgressBar ── -->
+        <Style Selector="ProgressBar">
+            <Setter Property="Foreground" Value="#478B8D" />
+            <Setter Property="Height" Value="3" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer>
+        <StackPanel Margin="40,28">
+
+            <!-- ═══════════ EN-TÊTE ═══════════ -->
+            <TextBlock Text="Générateur de licences" Classes="page-title" />
+            <TextBlock Text="Générez une licence signée RSA 4096 et activez-la automatiquement via l'API."
+                       Classes="page-subtitle" Margin="0,4,0,0" />
+
+            <Border Classes="separator" />
+
+            <!-- ═══════════ SECTION 1 : IDENTIFICATION ═══════════ -->
+            <TextBlock Text="Identification" Classes="section-title" />
+
+            <Border Background="#F8F9FA" CornerRadius="6" Padding="16,14"
+                    BorderBrush="#E8EAED" BorderThickness="1">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto">
+                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                    <TextBlock Text="Customer ID" Classes="field-label" />
+                    <TextBox Text="{Binding CustomerId}" Watermark="CLIENT-001" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                    <TextBlock Text="Machine ID" Classes="field-label" />
+                    <TextBox Text="{Binding MachineId}" Watermark="Hash SHA-256 de la machine cible" />
+                </StackPanel>
+            </Grid>
+            </Border>
+
+            <!-- ═══════════ SECTION 2 : DURÉE ═══════════ -->
+            <TextBlock Text="Durée de la licence" Classes="section-title" />
+
+            <Border Background="#F8F9FA" CornerRadius="6" Padding="16,14"
+                    BorderBrush="#E8EAED" BorderThickness="1">
+            <StackPanel Spacing="10">
+<StackPanel Orientation="Horizontal" Spacing="24">
+                        <!-- Option : Durée en mois -->
+                        <Button Classes="duration-toggle"
+                                Command="{Binding SetDurationModeCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Width="18" Height="18" CornerRadius="9"
+                                        BorderBrush="#294669" BorderThickness="2" Background="White">
+                                    <Ellipse Width="10" Height="10" Fill="#478B8D"
+                                             IsVisible="{Binding UseDurationMode, Mode=OneWay}" />
+                                </Border>
+                                <TextBlock Text="Durée en mois" FontSize="13"
+                                           Foreground="#222222" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Option : Date d'expiration -->
+                        <Button Classes="duration-toggle"
+                                Command="{Binding SetDateModeCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Width="18" Height="18" CornerRadius="9"
+                                        BorderBrush="#294669" BorderThickness="2" Background="White">
+                                    <Ellipse Width="10" Height="10" Fill="#478B8D"
+                                             IsVisible="{Binding UseDurationMode, Converter={x:Static BoolConverters.Not}, Mode=OneWay}" />
+                                </Border>
+                                <TextBlock Text="Date d'expiration" FontSize="13"
+                                           Foreground="#222222" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                <StackPanel IsVisible="{Binding UseDurationMode}" Spacing="4">
+                    <TextBlock Text="Nombre de mois" Classes="field-label" />
+                    <NumericUpDown Minimum="1" Maximum="120"
+                                   Value="{Binding DurationMonths}" Width="150" />
+                </StackPanel>
+
+                <StackPanel IsVisible="{Binding UseDurationMode, Converter={x:Static BoolConverters.Not}}"
+                            Spacing="4">
+                    <TextBlock Text="Date d'expiration" Classes="field-label" />
+                    <DatePicker SelectedDate="{Binding ExpireAtDate}" Width="200" />
+                </StackPanel>
+            </StackPanel>
+            </Border>
+
+            <!-- ═══════════ SECTION 3 : OPTIONS ═══════════ -->
+            <TextBlock Text="Options" Classes="section-title" />
+
+            <Border Background="#F8F9FA" CornerRadius="6" Padding="16,14"
+                    BorderBrush="#E8EAED" BorderThickness="1">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto">
+                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                    <TextBlock Text="Type de licence" Classes="field-label" />
+                    <ComboBox ItemsSource="{Binding LicenseTypes}"
+                              SelectedItem="{Binding LicenseType}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                    <TextBlock Text="Fonctionnalités" Classes="field-label" />
+                    <TextBox Text="{Binding FeaturesText}"
+                             Watermark="ModuleA, ModuleB, ModuleC" />
+                </StackPanel>
+            </Grid>
+            </Border>
+
+            <!-- ═══════════ SECTION 4 : CONFIGURATION ═══════════ -->
+            <TextBlock Text="Configuration" Classes="section-title" />
+
+            <Border Background="#F8F9FA" CornerRadius="6" Padding="16,14"
+                    BorderBrush="#E8EAED" BorderThickness="1">
+            <StackPanel Spacing="12">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Clé privée RSA" Classes="field-label" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0" Margin="0,0,8,0"
+                                 Text="{Binding PrivateKeyFilePath}"
+                                 Watermark="/chemin/vers/private.key" />
+                        <Button Grid.Column="1"
+                                Command="{Binding BrowsePrivateKeyCommand}"
+                                Content="Parcourir..."
+                                Classes="secondary" />
+                    </Grid>
+                </StackPanel>
+                <StackPanel Spacing="4">
+                    <TextBlock Text="URL de l'API backend" Classes="field-label" />
+                    <TextBox Text="{Binding ApiBaseUrl}"
+                             Watermark="http://localhost:5001" />
+                </StackPanel>
+            </StackPanel>
+            </Border>
+
+            <!-- ═══════════ SECTION 5 : ACTION ─══════════ -->
+            <StackPanel Margin="0,24,0,0" Spacing="8">
+                <Button Command="{Binding GenerateCommand}"
+                        Content="Générer et activer la licence"
+                        Classes="primary"
+                        IsEnabled="{Binding IsGenerating, Converter={x:Static BoolConverters.Not}}"
+                        HorizontalAlignment="Stretch"
+                        Height="40" />
+                <ProgressBar IsVisible="{Binding IsGenerating}" IsIndeterminate="True" />
+            </StackPanel>
+
+            <!-- ═══════════ RÉSULTAT ═══════════ -->
+            <StackPanel Spacing="8" Margin="0,16,0,24"
+                        IsVisible="{Binding HasGeneratedKey}">
+
+                <!-- Statut -->
+                <Border Padding="10,8" Background="#F0FAF0" CornerRadius="4"
+                        BorderBrush="#C8E6C9" BorderThickness="1">
+                    <TextBlock Text="{Binding StatusMessage}"
+                               FontSize="13" Foreground="#2E7D32" TextWrapping="Wrap" />
+                </Border>
+
+                <!-- Clé générée -->
+                <TextBlock Text="Clé de licence générée" FontWeight="Bold"
+                           FontSize="13" Foreground="#0D0B61" Margin="0,8,0,4" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0" Text="{Binding GeneratedLicenseKey}" Margin="0,0,8,0"
+                             Classes="key-display" />
+                    <Button Grid.Column="1" Command="{Binding CopyKeyCommand}"
+                            Content="Copier" Classes="secondary" VerticalAlignment="Top" />
+                </Grid>
+
+                <!-- Tableau de détails -->
+                <Border Background="#F9FAFB" CornerRadius="4" Padding="16,12"
+                        BorderBrush="#E8EAED" BorderThickness="1"
+                        IsVisible="{Binding HasLicenseDetails}" Margin="0,4,0,0">
+                    <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="License ID"
+                                   FontWeight="SemiBold" FontSize="12" Foreground="#555555" />
+                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                   Text="{Binding GeneratedLicenseId}"
+                                   FontFamily="monospace" FontSize="11" Foreground="#333333" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Client"
+                                   FontWeight="SemiBold" FontSize="12" Foreground="#555555" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding GeneratedCustomerId}"
+                                   FontSize="12" Foreground="#333333" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Machine"
+                                   FontWeight="SemiBold" FontSize="12" Foreground="#555555" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GeneratedMachineId}"
+                                   FontFamily="monospace" FontSize="10" Foreground="#666666" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Type"
+                                   FontWeight="SemiBold" FontSize="12" Foreground="#555555" />
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding GeneratedLicenseType}"
+                                   FontSize="12" Foreground="#333333" />
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Expiration"
+                                   FontWeight="SemiBold" FontSize="12" Foreground="#555555" />
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding GeneratedExpireAt}"
+                                   FontSize="12" Foreground="#333333" />
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Fonctionnalités"
+                                   FontWeight="SemiBold" FontSize="12" Foreground="#555555" />
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding GeneratedFeatures}"
+                                   FontSize="12" Foreground="#333333" TextWrapping="Wrap" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- ═══════════ STATUT (avant génération) ═══════════ -->
+            <Border Padding="10,8" Background="#FFF8F0" CornerRadius="4"
+                    BorderBrush="#FFE0B2" BorderThickness="1"
+                    IsVisible="{Binding HasGeneratedKey, Converter={x:Static BoolConverters.Not}}">
+                <TextBlock Text="{Binding StatusMessage}"
+                           FontSize="13" Foreground="#CC5500" TextWrapping="Wrap" />
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>
+
