@@ -96,6 +96,10 @@ namespace soft_carriere_competence.Infrastructure.Data
 		public DbSet<LoginAttempt> loginAttempts { get; set; }
 		public DbSet<EvaluationQuestionConfig> evaluationQuestionConfigs { get; set; }
 
+		public DbSet<EvaluationStatusLog> EvaluationStatusLogs { get; set; }
+		public DbSet<EvaluationDelegation> EvaluationDelegations { get; set; }
+		public DbSet<AccessAuditLog> AccessAuditLogs { get; set; }
+
 		public DbSet<VEmployeeDetails> VEmployeeDetails { get; set; }
 		public DbSet<VEmployeeWithoutEvaluation> vEmployeeWithoutEvaluations { get; set; }
 		public DbSet<VEmployeesFinishedEvaluation> vEmployeesFinishedEvaluations { get; set; }

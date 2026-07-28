@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Enums;
 
 namespace soft_carriere_competence.Core.Entities.Evaluations
 {
@@ -56,7 +57,18 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
         public Employee? Employee { get; set; }
 
         [Column("state")]
-        public int state {  get; set; }
+        public int state { get; set; }
+
+        /// <summary>
+        /// Propriété calculée : mappe l'entier state vers l'enum EvaluationStatus.
+        /// Non mappée en base (utilise la colonne state existante).
+        /// </summary>
+        [NotMapped]
+        public EvaluationStatus Status
+        {
+            get => Enum.IsDefined(typeof(EvaluationStatus), state) ? (EvaluationStatus)state : EvaluationStatus.Brouillon;
+            set => state = (int)value;
+        }
 
         public ICollection<EvaluationSupervisors> Supervisors { get; set; } = new List<EvaluationSupervisors>();
     }
