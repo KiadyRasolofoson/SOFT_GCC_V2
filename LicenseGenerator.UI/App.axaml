@@ -1,0 +1,22 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:LicenseGenerator.UI"
+             x:Class="LicenseGenerator.UI.App">
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <Color x:Key="SystemAccentColor">#478B8D</Color>
+            <Color x:Key="SystemAccentColorDark1">#3A7378</Color>
+            <Color x:Key="SystemAccentColorDark2">#294669</Color>
+            <Color x:Key="SystemAccentColorLight1">#6BA5A8</Color>
+            <Color x:Key="SystemAccentColorLight2">#8FBDC0</Color>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+</Application>
