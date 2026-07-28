@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Template from '../Template';
 import '../../styles/skillsStyle.css';
@@ -121,27 +121,24 @@ function RetirementPage() {
   }, [sortDirection, dataRetirement, sortColumn]);
   
 
-  // Recherche immédiate lors du changement de page
+  // Debounce des filtres
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
   useEffect(() => {
-    fetchFilteredData(filters);
-  }, [currentPage]);
-
-  // Recherche debouncée lors du changement des filtres (recherche)
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
     const handler = setTimeout(() => {
+      setDebouncedFilters(filters);
       if (currentPage !== 1) {
         setCurrentPage(1);
-      } else {
-        fetchFilteredData(filters);
       }
     }, 1000);
     return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  // Effet unique pour le chargement initial, la pagination et les filtres
+  useEffect(() => {
+    fetchFilteredData(debouncedFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, debouncedFilters]);
 
   // Gestion de la pagination
   const handlePageChange = (newPage) => {

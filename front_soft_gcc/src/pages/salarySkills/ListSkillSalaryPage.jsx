@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { urlApi } from '../../helpers/utils';
 import PageHeader from '../../components/PageHeader';
@@ -125,27 +125,24 @@ function ListSkillSalaryPage() {
 
 
 
-  // Fetch immédiat au montage et changement de page
+  // Debounce de la recherche textuelle
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   useEffect(() => {
-    fetchSkills(searchTerm);
-  }, [currentPage]);
-
-  // Debounce uniquement pour la recherche (pas au montage initial)
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
     const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
       if (currentPage !== 1) {
         setCurrentPage(1);
-      } else {
-        fetchSkills(searchTerm);
       }
     }, 1000);
     return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
+
+  // Effet unique pour le chargement initial, la pagination et la recherche
+  useEffect(() => {
+    fetchSkills(debouncedSearchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, debouncedSearchTerm]);
 
   // Navigation pour details competences
   const handleSkillsDetails = (employeeId) => {

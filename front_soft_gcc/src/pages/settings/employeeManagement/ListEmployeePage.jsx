@@ -25,15 +25,6 @@ const getDepartmentImage = (departmentName) => {
     return departmentImages[departmentName.toLowerCase()] || departmentImages.default;
 };
 
-// Fonction debounce pour limiter les appels API
-function debounce(func, delay) {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), delay);
-  };
-}
-
 function ListEmployeePage() {
   const module = "Employe";
   const action = "Liste";
@@ -58,20 +49,27 @@ function ListEmployeePage() {
   const handleCloseModalImport = () => setShowModalImport(false);
   const handleShowModalImport = () => setShowModalImport(true);
 
+  // États pour la pagination
+  const [paginationResult, setPaginationResult] = useState({
+    totalRecords: 0,
+    pageSize: 0,
+    currentPage: 0,
+    totalPages: 0
+  });
+
   // Fonction pour gérer les filtres
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
-    setCurrentPage(1); // Réinitialisation à la première page lors d'un filtre
   };
 
   // Fonction pour récupérer les employés avec pagination et filtres
-  const fetchFilteredData = useCallback(async () => {
+  const fetchFilteredData = useCallback(async (appliedFilters) => {
     setLoading(true);
     setError(null);
 
     try {
       const queryParams = new URLSearchParams({
-        ...filters,
+        ...appliedFilters,
         page: currentPage,
         pageSize: pageSize
       }).toString();
@@ -81,6 +79,12 @@ function ListEmployeePage() {
       if (response.data.success) {
         setEmployees(response.data.data);
         setTotalPages(response.data.totalPages);
+        setPaginationResult({
+          totalRecords: response.data.totalCount,
+          pageSize: response.data.pageSize,
+          currentPage: response.data.currentPage,
+          totalPages: response.data.totalPages
+        });
       } else {
         setEmployees([]);
         setError(response.data.message);
@@ -91,15 +95,26 @@ function ListEmployeePage() {
     } finally {
       setLoading(false);
     }
-  }, [filters, currentPage, pageSize]);
+  }, [currentPage, pageSize]);
 
-  // Débouncer la recherche
-  const debouncedFetchData = useCallback(debounce(fetchFilteredData, 3000), [fetchFilteredData]);
-
-  // Charger les données à chaque changement de page ou de filtres
+  // Debounce des filtres
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
   useEffect(() => {
-    debouncedFetchData();
-  }, [filters, currentPage, debouncedFetchData]);
+    const handler = setTimeout(() => {
+      setDebouncedFilters(filters);
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      }
+    }, 300);
+    return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  // Effet unique pour le chargement initial, la pagination et les filtres
+  useEffect(() => {
+    fetchFilteredData(debouncedFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, debouncedFilters]);
 
   // Fonction pour trier les employés
   const handleSort = (column) => {
@@ -138,7 +153,7 @@ function ListEmployeePage() {
 
   // Navigation pour ajout
   const handleClick = () => {
-    navigate('/soft-gcc/parametres/employes/create');
+    navigate('/soft-gcc/parametres/employes/creer');
   };
 
   return (
@@ -306,9 +321,23 @@ function ListEmployeePage() {
                     </tbody>
                   </table>
                   <div className="pagination">
-                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>Précédent</button>
-                    <span>Page {currentPage} sur {totalPages}</span>
-                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>Suivant</button>
+                    <h4>{paginationResult.totalRecords} résultat(s) au total</h4>
+                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+                      Précédent
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        className={`pagination-button ${page === currentPage ? 'active' : ''}`}
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+                      Suivant
+                    </button>
+                    <h4>Page {paginationResult.currentPage} sur {paginationResult.totalPages} pour {paginationResult.pageSize} résultat(s)</h4>
                   </div>
                 </>
               )}
