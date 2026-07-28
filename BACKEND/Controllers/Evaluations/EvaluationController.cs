@@ -3,6 +3,7 @@ using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using Microsoft.AspNetCore.Authorization;
+using soft_carriere_competence.Middleware;
 
 namespace soft_carriere_competence.Controllers.Evaluations
 {
@@ -593,6 +594,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		}
 
 		[HttpGet("{id}")]
+		[Authorize(Policy = "CanViewEvaluation")]
+		[AuditTrail("Evaluation", "id")]
 		public async Task<IActionResult> GetEvaluationDetails(int id)
 		{
 			try

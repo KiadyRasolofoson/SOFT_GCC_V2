@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
+using Microsoft.AspNetCore.Authorization;
 
 namespace soft_carriere_competence.Controllers.Evaluations
 {
@@ -22,6 +23,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = "RequireAdminRole")]
     public class PermissionController : ControllerBase
     {
         private readonly PermissionService _permissionService;

@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.Evaluations;
+using Microsoft.AspNetCore.Authorization;
 
 [Route("api/User")]
 [ApiController]
+[Authorize]
 public class UserController : ControllerBase
 {
 	private readonly UserService _employeeService;

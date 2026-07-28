@@ -17,17 +17,18 @@ export const UserProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [userRole, setUserRole] = useState(null);
     const [userPermissions, setUserPermissions] = useState([]);
+    const [visibleModules, setVisibleModules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isInitialized, setIsInitialized] = useState(false);
 
     // Fonction pour nettoyer toutes les données utilisateur
     const clearUserData = () => {
         localStorage.removeItem('token');
-        localStorage.removeItem('userData');
-        localStorage.removeItem('userPermissions');
+        localStorage.removeItem('userProfile');
         setUser(null);
         setUserRole(null);
         setUserPermissions([]);
+        setVisibleModules([]);
         setIsInitialized(false);
     };
 
@@ -43,63 +44,57 @@ export const UserProvider = ({ children }) => {
         }
     };
 
-    // Fonction pour récupérer les données utilisateur
+    // Fonction pour récupérer les données utilisateur via le nouvel endpoint profil
     const fetchUserData = async (token) => {
         try {
-            // Récupération des informations de l'utilisateur
-            const userResponse = await axios.get(urlApi("/Authentification/current-user"), {
+            // Un seul appel : GET /api/me/profile (RBAC + ABAC + Profile)
+            const profileResponse = await axios.get(urlApi("/me/profile"), {
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
                 }
             });
 
-            const userData = userResponse.data;
+            const profile = profileResponse.data;
 
-            // Récupération des permissions
-            const permissionsResponse = await axios.get(urlApi(`/Permission/user/${userData.id}`), {
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                }
-            });
+            // Extraction des données du profil
+            const userData = {
+                id: profile.userId,
+                username: profile.userName,
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                email: profile.email,
+                roleId: profile.roleId,
+                roleTitle: profile.roleTitle,
+                employeeId: profile.employeeId,
+                registrationNumber: profile.registrationNumber,
+                departmentName: profile.departmentName
+            };
 
-            const permissions = permissionsResponse.data;
+            const permissions = profile.permissions || [];
+            const modules = profile.visibleModules || [];
 
             if (!Array.isArray(permissions)) {
                 console.error("Format de permissions invalide");
                 throw new Error("Format de permissions invalide");
             }
 
-            // Attribution du rôle
-            let roleTitle;
-            switch (userData.roleId) {
-                case 1:
-                    roleTitle = "RH";
-                    break;
-                case 2:
-                    roleTitle = "Manager";
-                    break;
-                case 3:
-                    roleTitle = "Director";
-                    break;
-                default:
-                    roleTitle = "Unknown";
-                    break;
-            }
-
             // Mise à jour des états
-            setUser({ ...userData, roleTitle });
+            setUser(userData);
             setUserPermissions(permissions);
-            setUserRole(roleTitle);
+            setUserRole(profile.roleTitle);
+            setVisibleModules(modules);
 
             // Stockage dans le localStorage
-            localStorage.setItem('userData', JSON.stringify({ ...userData, roleTitle }));
-            localStorage.setItem('userPermissions', JSON.stringify(permissions));
+            localStorage.setItem('userProfile', JSON.stringify({
+                ...userData,
+                permissions,
+                visibleModules: modules
+            }));
 
             return true;
         } catch (error) {
-            console.error("Erreur lors de la récupération des données utilisateur", error);
+            console.error("Erreur lors de la récupération du profil utilisateur", error);
             return false;
         }
     };
@@ -135,7 +130,11 @@ export const UserProvider = ({ children }) => {
             return false;
         }
         
-        return userPermissions.some(p => p.name === permission);
+        return userPermissions.some(p => {
+            // Supporte à la fois les chaînes (nouveau profil) et les objets {name} (ancien format)
+            const permName = typeof p === 'string' ? p : p?.name;
+            return permName === permission;
+        });
     };
 
     //  déconnexion
@@ -145,35 +144,34 @@ export const UserProvider = ({ children }) => {
 
     const refreshPermissions = async () => {
         const token = localStorage.getItem('token');
-        const userData = JSON.parse(localStorage.getItem('userData'));
-        
-        if (!token || !userData?.id) {
+        if (!token) {
             setUserPermissions([]);
             return;
         }
 
         try {
-            const response = await axios.get(urlApi(`/Permission/user/${userData.id}`), {
+            // Recharger via le même endpoint profil
+            const profileResponse = await axios.get(urlApi("/me/profile"), {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            if (response.data && Array.isArray(response.data)) {
-                setUserPermissions(response.data);
-                localStorage.setItem('userPermissions', JSON.stringify(response.data));
-            } else {
-                console.error("Format de données invalide lors du rechargement des permissions");
-                // Conserver les permissions existantes en cas d'erreur
-                const existingPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
-                setUserPermissions(existingPermissions);
+            const profile = profileResponse.data;
+            const permissions = profile.permissions || [];
+
+            if (Array.isArray(permissions)) {
+                setUserPermissions(permissions);
+                setVisibleModules(profile.visibleModules || []);
+                // Mettre à jour le localStorage
+                const stored = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                stored.permissions = permissions;
+                stored.visibleModules = profile.visibleModules || [];
+                localStorage.setItem('userProfile', JSON.stringify(stored));
             }
         } catch (error) {
             console.error('Erreur lors du rechargement des permissions', error);
-            // Conserver les permissions existantes en cas d'erreur
-            const existingPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
-            setUserPermissions(existingPermissions);
         }
     };
 
@@ -181,7 +179,8 @@ export const UserProvider = ({ children }) => {
         <UserContext.Provider value={{ 
             user, 
             userRole, 
-            userPermissions, 
+            userPermissions,
+            visibleModules,
             loading, 
             isInitialized,
             setUser, 
