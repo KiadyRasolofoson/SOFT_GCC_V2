@@ -170,7 +170,7 @@ function CreateEmployeePage({ onSearch }) {
                 items={[
                     { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
                     { label: 'Gestion employés', path: '/soft-gcc/parametres/employes/liste' },
-                    { label: 'Ajout', path: '/soft-gcc/parametres/employes/create' },
+                    { label: 'Ajout', path: '/soft-gcc/parametres/employes/creer' },
                 ]}
             />
             <ErrorMessage error={error} context="insertion" />
