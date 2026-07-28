@@ -4,7 +4,15 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     ÉDITEUR (LicenseGenerator)                       │
+│                     ÉDITEUR                                          │
+│                                                                     │
+│  ┌─ LicenseGenerator.UI (Avalonia/GUI) ─┐                           │
+│  │  Formulaire → Signe → Active via API │                           │
+│  └──────────────────────────────────────┘                           │
+│                                                                     │
+│  ┌─ LicenseGenerator (CLI) ─┐                                       │
+│  │  Ligne de commande → Signe → Fichier de sortie                   │
+│  └──────────────────────────┘                                       │
 │                                                                     │
 │  private.key ──→ Signe le payload JSON ──→ base64(payload|signature)│
 └──────────────────────────┬──────────────────────────────────────────┘
@@ -48,6 +56,26 @@ Génère `keys/private.key` et `keys/public.key`.
 La clé publique est compilée DANS le binaire — pas de fichier externe au runtime.
 
 ### 3. Génération d'une licence (côté éditeur)
+
+Deux outils sont disponibles : une **interface graphique desktop** (Avalonia UI, recommandée pour Linux) et un **outil en ligne de commande** (pour le scripting/automatisation).
+
+#### 3a. Interface graphique (LicenseGenerator.UI) — Recommandé
+
+```bash
+cd LicenseGenerator.UI/
+dotnet run
+```
+
+L'interface permet de :
+- Saisir le formulaire (Customer ID, Machine ID, durée en mois ou date d'expiration, type, fonctionnalités)
+- Sélectionner la clé privée RSA via un explorateur de fichiers
+- Configurer l'URL de l'API backend
+- Générer la licence et l'activer automatiquement dans la base de données
+- Copier la clé dans le presse-papier
+
+> **Prérequis** : .NET 8 SDK. Fonctionne sur Linux, macOS et Windows.
+
+#### 3b. Ligne de commande (LicenseGenerator) — Scripting/Automatisation
 
 ```bash
 cd LicenseGenerator/
@@ -170,7 +198,8 @@ Format final : **base64(payload_json | signature_base64)**
 | `Middleware/LicenseCheckMiddleware.cs` | Middleware de vérification |
 | `generate-keys.sh` | Script de génération des clés |
 | `bdd/01_CREATE_LICENSE_TABLE.sql` | Script SQL de création de la table |
-| `LicenseGenerator/Program.cs` | Outil console de génération |
+| `LicenseGenerator/Program.cs` | Outil CLI de génération de licence |
+| `LicenseGenerator.UI/` | Interface graphique Avalonia (Linux/macOS/Windows) |
 | `soft_carriere_competence.Tests/LicenseValidatorTests.cs` | Tests unitaires |
 
 ## Recommandations
