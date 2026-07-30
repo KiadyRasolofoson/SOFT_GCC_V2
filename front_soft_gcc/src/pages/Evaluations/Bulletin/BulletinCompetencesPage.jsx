@@ -258,7 +258,7 @@ const BulletinCompetencesPage = () => {
 
               {/* Boutons avec espacement homogène */}
               <div className="col-md-4">
-                <div className="d-flex gap-3">
+                <div className="d-flex" style={{ gap: '1rem' }}>
                   <button
                     className="btn btn-primary px-4 py-2"
                     onClick={handlePreview}
@@ -430,7 +430,7 @@ const BulletinCompetencesPage = () => {
             ))}
 
             {/* Boutons d'action fin de page */}
-            <div className="d-flex justify-content-center gap-4 mt-4 mb-5">
+            <div className="d-flex justify-content-center mt-4 mb-5" style={{ gap: '2.5rem' }}>
               <button
                 className="btn btn-primary px-5 py-2"
                 onClick={handlePreview}

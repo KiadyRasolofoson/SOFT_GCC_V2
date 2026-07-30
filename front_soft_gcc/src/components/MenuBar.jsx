@@ -14,7 +14,9 @@ function MenuBar() {
     const pathname = location.pathname;
     if (pathname.startsWith('/soft-gcc/carrieres') || pathname.startsWith('/soft-gcc/retraite') || pathname.startsWith('/soft-gcc/souhaits-evolution')) {
       setOpenMenu('carriere');
-    } else if (pathname.startsWith('/soft-gcc/evaluations/bulletin') || (pathname.startsWith('/soft-gcc/evaluations/') && !pathname.startsWith('/soft-gcc/evaluations/parametres'))) {
+    } else if (pathname.startsWith('/soft-gcc/evaluations/bulletin') || pathname.startsWith('/soft-gcc/competences')) {
+      setOpenMenu('competences');
+    } else if (pathname.startsWith('/soft-gcc/evaluations/') && !pathname.startsWith('/soft-gcc/evaluations/parametres')) {
       setOpenMenu('evaluation');
     } else if (pathname.startsWith('/soft-gcc/parametres') || pathname.startsWith('/soft-gcc/evaluations/parametres')) {
       setOpenMenu('param');
@@ -40,13 +42,28 @@ function MenuBar() {
           </Link>
         </li>
 
-        {/* Compétences */}
+        {/* Compétences des salariés */}
         {modules.has('competences') && (
         <li className="nav-item">
-          <Link className={`nav-link ${isActive('/soft-gcc/competences') ? 'active-menu' : ''}`} to="/soft-gcc/competences">
+          <div
+            className={`nav-link ${openMenu === 'competences' ? 'active-menu' : ''}`}
+            onClick={() => toggleMenu('competences')}
+            style={{ cursor: 'pointer' }}
+          >
             <span className="icon-bg"><i className="mdi mdi-school menu-icon"></i></span>
             <span className="menu-title">Compétences</span>
-          </Link>
+            <i className={`menu-arrow ${openMenu === 'competences' ? 'rotate-90' : ''}`}></i>
+          </div>
+          {openMenu === 'competences' && (
+            <ul className="nav flex-column sub-menu">
+              <li className="nav-item">
+                <Link className={`nav-link ${isActive('/soft-gcc/competences') ? 'active-menu' : ''}`} to="/soft-gcc/competences" onClick={() => setOpenMenu(null)}>Profil des compétences</Link>
+              </li>
+              <li className="nav-item">
+                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/bulletin') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/bulletin" onClick={() => setOpenMenu(null)}>Bulletin de compétences</Link>
+              </li>
+            </ul>
+          )}
         </li>
         )}
 
@@ -103,9 +120,6 @@ function MenuBar() {
               </li>
               <li className="nav-item">
                 <Link className={`nav-link ${isActive('/soft-gcc/evaluations/historique') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/historique" onClick={() => setOpenMenu(null)}>Historique d'évaluations</Link>
-              </li>
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/bulletin') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/bulletin" onClick={() => setOpenMenu(null)}>Bulletin de compétences</Link>
               </li>
             </ul>
           )}
