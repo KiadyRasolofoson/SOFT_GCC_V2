@@ -51,6 +51,7 @@ import Unauthorized from '../pages/Authentification/Unauthorized';
 import EvaluationNotation from '../pages/Evaluations/Notations/EvaluationNotation';
 import VerifyAttestationPage from '../pages/certificateManagement/VerifyAttestationPage';
 import EvaluationTypesSettings from '../pages/settings/evaluations/EvaluationTypesSettings';
+import BulletinCompetencesPage from '../pages/Evaluations/Bulletin/BulletinCompetencesPage';
 
 function AppRouter() {
   return (
@@ -133,6 +134,7 @@ function AppRouter() {
         <Route path="/soft-gcc/evaluations/parametres/formations" element={<FormationSuggestions />} />
         <Route path="/soft-gcc/evaluations/parametres/administration" element={<AdminSettings />} />
         <Route path="/soft-gcc/evaluations/parametres/types" element={<EvaluationTypesSettings />} />
+        <Route path="/soft-gcc/evaluations/bulletin" element={<BulletinCompetencesPage />} />
 
         {/* Attestations */}
         <Route path="/soft-gcc/attestations" element={<ModelList />} />
