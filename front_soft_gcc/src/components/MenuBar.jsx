@@ -14,7 +14,7 @@ function MenuBar() {
     const pathname = location.pathname;
     if (pathname.startsWith('/soft-gcc/carrieres') || pathname.startsWith('/soft-gcc/retraite') || pathname.startsWith('/soft-gcc/souhaits-evolution')) {
       setOpenMenu('carriere');
-    } else if (pathname.startsWith('/soft-gcc/evaluations/') && !pathname.startsWith('/soft-gcc/evaluations/parametres')) {
+    } else if (pathname.startsWith('/soft-gcc/evaluations/bulletin') || (pathname.startsWith('/soft-gcc/evaluations/') && !pathname.startsWith('/soft-gcc/evaluations/parametres'))) {
       setOpenMenu('evaluation');
     } else if (pathname.startsWith('/soft-gcc/parametres') || pathname.startsWith('/soft-gcc/evaluations/parametres')) {
       setOpenMenu('param');
@@ -103,6 +103,9 @@ function MenuBar() {
               </li>
               <li className="nav-item">
                 <Link className={`nav-link ${isActive('/soft-gcc/evaluations/historique') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/historique" onClick={() => setOpenMenu(null)}>Historique d'évaluations</Link>
+              </li>
+              <li className="nav-item">
+                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/bulletin') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/bulletin" onClick={() => setOpenMenu(null)}>Bulletin de compétences</Link>
               </li>
             </ul>
           )}
