@@ -27,29 +27,8 @@ import DepartmentEffective from '../pages/OrganizationalChart/DepartmentEffectiv
 import DetailDepartment from '../pages/OrganizationalChart/DetailsDepartment';
 import CsvUploader from '../pages/OrganizationalChart/CsvUploader';
 import HistoryPage from '../pages/salarySkills/HistoryPage';
-import SettingSkillPage from '../pages/settings/SettingSkillPage';
-import SettingCareerPage from '../pages/settings/SettingsCareerPage';
-import CrudPage from '../pages/settings/CrudPage';
-import DegreeCrudPage from '../pages/settings/skills/DegreeCrudPage';
-import DepartmentCrudPage from '../pages/settings/skills/DepartmentCrudPage';
-import DomainCrudPage from '../pages/settings/skills/DomainCrudPage';
-import LanguageCrudPage from '../pages/settings/skills/LanguageCrudPage';
-import SchoolCrudPage from '../pages/settings/skills/SchoolCrudPage';
-import SkillCrudPage from '../pages/settings/skills/SkillCrudPage';
-import StudyPathCrudPage from '../pages/settings/skills/StudyPathCrudPage';
-import AssignmentTypeCrudPage from '../pages/settings/career/AssignmentTypeCrudPage';
-import CertificateTypeCrudPage from '../pages/settings/career/CertificateTypeCrudPage';
-import EchelonCrudPage from '../pages/settings/career/EchelonCrudPage';
-import EmployeeTypeCrudPage from '../pages/settings/career/EmployeeTypeCrudPage';
-import EstablishmentCrudPage from '../pages/settings/career/EstablishmentCrudPage';
-import FonctionCrudPage from '../pages/settings/career/FonctionCrudPage';
-import IndicationCrudPage from '../pages/settings/career/IndicationCrudPage';
-import LegalClassCrudPage from '../pages/settings/career/LegalClassCrudPage';
-import NewsLetterTemplateCrudPage from '../pages/settings/career/NewsLetterTemplateCrudPage';
-import PaymentMethodCrudPage from '../pages/settings/career/PaymentMethodCrudPage';
-import PositionCrudPage from '../pages/settings/career/PositionCrudPage';
-import ProfessionalCategoryCrudPage from '../pages/settings/career/ProfessionalCategoryCrudPage';
-import SocioCategoryProfessionalCrudPage from '../pages/settings/career/SocioCategoryProfessionalCrudPage';
+import ParametresCompetences from '../pages/settings/ParametresCompetences';
+import ParametresCarrieres from '../pages/settings/ParametresCarrieres';
 import UploadImage from '../pages/settings/UploadImage';
 import CreateEmployeePage from '../pages/settings/employeeManagement/CreateEmployeePage';
 import ListEmployeePage from '../pages/settings/employeeManagement/ListEmployeePage';
@@ -133,31 +112,10 @@ function AppRouter() {
         <Route path="/soft-gcc/evaluations/notation/evaluation/:evaluationId" element={<EvaluationNotation />} />
 
         {/* Paramètres - Compétences */}
-        <Route path="/soft-gcc/parametres/competences" element={<SettingSkillPage />} />
-        <Route path="/soft-gcc/parametres/competences/crud" element={<CrudPage />} />
-        <Route path="/soft-gcc/parametres/competences/niveaux" element={<DegreeCrudPage />} />
-        <Route path="/soft-gcc/parametres/competences/departements" element={<DepartmentCrudPage />} />
-        <Route path="/soft-gcc/parametres/competences/domaines" element={<DomainCrudPage />} />
-        <Route path="/soft-gcc/parametres/competences/langues" element={<LanguageCrudPage />} />
-        <Route path="/soft-gcc/parametres/competences/ecoles" element={<SchoolCrudPage />} />
-        <Route path="/soft-gcc/parametres/competences/competences" element={<SkillCrudPage />} />
-        <Route path="/soft-gcc/parametres/competences/filieres" element={<StudyPathCrudPage />} />
+        <Route path="/soft-gcc/parametres/competences" element={<ParametresCompetences />} />
 
         {/* Paramètres - Carrières */}
-        <Route path="/soft-gcc/parametres/carrieres" element={<SettingCareerPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/types-affectation" element={<AssignmentTypeCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/types-certificat" element={<CertificateTypeCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/echelons" element={<EchelonCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/types-employe" element={<EmployeeTypeCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/etablissements" element={<EstablishmentCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/fonctions" element={<FonctionCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/indications" element={<IndicationCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/classes-legales" element={<LegalClassCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/bulletins" element={<NewsLetterTemplateCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/methodes-paiement" element={<PaymentMethodCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/postes" element={<PositionCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/categories-professionnelles" element={<ProfessionalCategoryCrudPage />} />
-        <Route path="/soft-gcc/parametres/carrieres/categories-socio-professionnelles" element={<SocioCategoryProfessionalCrudPage />} />
+        <Route path="/soft-gcc/parametres/carrieres" element={<ParametresCarrieres />} />
 
         {/* Paramètres - Employés */}
         <Route path="/soft-gcc/parametres/employes/liste" element={<ListEmployeePage />} />
@@ -183,6 +141,29 @@ function AppRouter() {
         {/* Upload image */}
         <Route path="/soft-gcc/parametres/upload-image" element={<UploadImage />} />
       </Route>
+
+      {/* ========== REDIRECTIONS PARAMÉTRAGE (anciennes routes CRUD → consolidées) ========== */}
+      <Route path="/soft-gcc/parametres/competences/crud" element={<Navigate to="/soft-gcc/parametres/competences" replace />} />
+      <Route path="/soft-gcc/parametres/competences/niveaux" element={<Navigate to="/soft-gcc/parametres/competences" replace />} />
+      <Route path="/soft-gcc/parametres/competences/departements" element={<Navigate to="/soft-gcc/parametres/competences" replace />} />
+      <Route path="/soft-gcc/parametres/competences/domaines" element={<Navigate to="/soft-gcc/parametres/competences" replace />} />
+      <Route path="/soft-gcc/parametres/competences/langues" element={<Navigate to="/soft-gcc/parametres/competences" replace />} />
+      <Route path="/soft-gcc/parametres/competences/ecoles" element={<Navigate to="/soft-gcc/parametres/competences" replace />} />
+      <Route path="/soft-gcc/parametres/competences/competences" element={<Navigate to="/soft-gcc/parametres/competences" replace />} />
+      <Route path="/soft-gcc/parametres/competences/filieres" element={<Navigate to="/soft-gcc/parametres/competences" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/types-affectation" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/types-certificat" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/echelons" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/types-employe" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/etablissements" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/fonctions" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/indications" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/classes-legales" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/bulletins" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/methodes-paiement" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/postes" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/categories-professionnelles" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
+      <Route path="/soft-gcc/parametres/carrieres/categories-socio-professionnelles" element={<Navigate to="/soft-gcc/parametres/carrieres" replace />} />
 
       {/* ========== REDIRECTIONS RÉTROCOMPATIBLES (anciens → nouveaux) ========== */}
       <Route path="/Register" element={<Navigate to="/register" replace />} />
