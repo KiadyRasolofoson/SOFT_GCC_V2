@@ -202,7 +202,8 @@ export const generateBulletinPDF = async (bulletinData, onProgress = () => {}) =
 
   // ─── 5. COMPÉTENCES PAR DOMAINE ───
   onProgress(40);
-  const { Domains: domains } = bulletinData;
+  // L'API retourne en camelCase (domaines) et non PascalCase (Domains)
+  const domains = bulletinData.domains || bulletinData.Domains || [];
 
   if (!domains || domains.length === 0) {
     doc.setFontSize(10);
@@ -273,32 +274,9 @@ export const generateBulletinPDF = async (bulletinData, onProgress = () => {}) =
           columnStyles: {
             0: { cellWidth: 'auto' },
             1: { cellWidth: 55 },
-            2: { cellWidth: 30 },
+            2: { cellWidth: 30, halign: 'center' },
             3: { cellWidth: 45 },
           },
-          didDrawCell: (data) => {
-            // Dessiner une barre de progression dans la colonne "Niveau" (index 2)
-            if (data.section === 'body' && data.column.index === 2) {
-              const level = section.items[data.row.index].level;
-              const barX = data.cell.x + 2;
-              const barY = data.cell.y + (data.cell.height - 6) / 2;
-              const barWidth = data.cell.width - 4;
-
-              let barColor;
-              if (level >= 70) barColor = successColor;
-              else if (level >= 40) barColor = warningColor;
-              else barColor = dangerColor;
-
-              // Fond
-              doc.setFillColor(235, 235, 235);
-              doc.roundedRect(barX, barY, barWidth, 6, 1, 1, 'F');
-
-              // Remplissage
-              const fillW = Math.max(3, (level / 100) * barWidth);
-              doc.setFillColor(barColor[0], barColor[1], barColor[2]);
-              doc.roundedRect(barX, barY, fillW, 6, 1, 1, 'F');
-            }
-          }
         });
 
         y = doc.autoTable.previous.finalY + 6;
@@ -325,19 +303,25 @@ export const generateBulletinPDF = async (bulletinData, onProgress = () => {}) =
   y += 5;
 
   const legendItems = [
-    { label: 'Maîtrisée (≥ 70%)', color: successColor },
-    { label: 'En cours d\'acquisition (40% - 69%)', color: warningColor },
+    { label: 'Maîtrisée (>= 70%)', color: successColor },
+    { label: 'En cours (40% - 69%)', color: warningColor },
     { label: 'Non acquise (< 40%)', color: dangerColor },
   ];
 
+  // Disposition sur 2 lignes pour éviter le débordement
+  const legendColWidth = contentWidth / 2;
   legendItems.forEach((item, idx) => {
-    const lx = margin + 5 + idx * 85;
+    const row = idx < 2 ? 0 : 1;
+    const col = idx < 2 ? idx : 0;
+    const lx = margin + 8 + col * legendColWidth;
+    const ly = y + row * 11;
     doc.setFillColor(item.color[0], item.color[1], item.color[2]);
-    doc.roundedRect(lx, y, 8, 8, 1, 1, 'F');
+    doc.roundedRect(lx, ly, 7, 7, 1, 1, 'F');
     doc.setFont(undefined, 'normal');
     doc.setTextColor(50, 50, 50);
-    doc.text(item.label, lx + 12, y + 6);
+    doc.text(item.label, lx + 11, ly + 5.5);
   });
+  y += (legendItems.length > 2 ? 26 : 16);
 
   y += 14;
 
