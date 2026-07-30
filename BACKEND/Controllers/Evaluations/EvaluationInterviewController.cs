@@ -231,5 +231,64 @@ namespace soft_carriere_competence.Controllers.Evaluations
 			}
 		}
 
+		/// <summary>
+		/// Récupère le récapitulatif de tous les objectifs extraits des entretiens d'évaluation
+		/// </summary>
+		[HttpGet("objectives-summary")]
+		public async Task<IActionResult> GetObjectivesSummary(
+			[FromQuery] int? departmentId = null,
+			[FromQuery] int? employeeId = null,
+			[FromQuery] string? statusFilter = null,
+			[FromQuery] string? searchQuery = null,
+			[FromQuery] int pageNumber = 1,
+			[FromQuery] int pageSize = 20)
+		{
+			try
+			{
+				var (objectives, statistics) = await _evaluationInterviewService.GetObjectivesSummaryAsync(
+					departmentId, employeeId, statusFilter, searchQuery, pageNumber, pageSize);
+
+				return Ok(new
+				{
+					Objectives = objectives,
+					Statistics = statistics,
+					TotalCount = statistics.TotalObjectives,
+					CurrentPage = pageNumber,
+					PageSize = pageSize
+				});
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Erreur lors de la récupération du récapitulatif des objectifs");
+				return StatusCode(500, new { message = $"Erreur lors de la récupération des objectifs : {ex.Message}" });
+			}
+		}
+
+		/// <summary>
+		/// Met à jour le statut et le taux de complétion d'un objectif
+		/// </summary>
+		[HttpPut("objectives/{interviewId}")]
+		public async Task<IActionResult> UpdateObjectiveStatus(int interviewId, [FromBody] UpdateObjectiveStatusDto dto)
+		{
+			if (dto == null)
+				return BadRequest(new { message = "Données invalides." });
+
+			try
+			{
+				var result = await _evaluationInterviewService.UpdateObjectiveStatusAsync(
+					interviewId, dto.ObjectiveIndex, dto.Status, dto.CompletionRate);
+
+				if (!result)
+					return NotFound(new { message = "Entretien ou objectif introuvable." });
+
+				return Ok(new { message = "Statut de l'objectif mis à jour avec succès." });
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Erreur lors de la mise à jour du statut de l'objectif");
+				return StatusCode(500, new { message = $"Erreur : {ex.Message}" });
+			}
+		}
+
 	}
 }

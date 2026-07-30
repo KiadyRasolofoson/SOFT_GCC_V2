@@ -47,6 +47,8 @@ const EvaluationInterviews = () => {
       description: '',
       dueDate: '',
       indicator: '',
+      status: 'Non commencé',
+      completionRate: 0,
     }],
     // Plan de développement
     developmentPlan: {
@@ -276,7 +278,7 @@ const EvaluationInterviews = () => {
       ...prev,
       objectives: [
         ...prev.objectives,
-        { description: '', dueDate: '', indicator: '' }
+        { description: '', dueDate: '', indicator: '', status: 'Non commencé', completionRate: 0 }
       ]
     }));
   };
@@ -740,6 +742,38 @@ const EvaluationInterviews = () => {
                                       value={objective.indicator}
                                       onChange={e => handleObjectiveChange(index, 'indicator', e.target.value)}
                                     />
+                                  </div>
+                                </div>
+
+                                <div className="row">
+                                  <div className="col-md-6 mb-3">
+                                    <label className="form-label">Statut</label>
+                                    <select
+                                      className="form-select"
+                                      value={objective.status || 'Non commencé'}
+                                      onChange={e => handleObjectiveChange(index, 'status', e.target.value)}
+                                    >
+                                      <option value="Non commencé">Non commencé</option>
+                                      <option value="En cours">En cours</option>
+                                      <option value="Atteint">Atteint</option>
+                                      <option value="Non atteint">Non atteint</option>
+                                    </select>
+                                  </div>
+
+                                  <div className="col-md-6 mb-3">
+                                    <label className="form-label">Taux de réalisation (%)</label>
+                                    <div className="d-flex align-items-center gap-2">
+                                      <input
+                                        type="range"
+                                        className="form-range"
+                                        min="0"
+                                        max="100"
+                                        step="5"
+                                        value={objective.completionRate || 0}
+                                        onChange={e => handleObjectiveChange(index, 'completionRate', Number(e.target.value))}
+                                      />
+                                      <span className="fw-bold" style={{ minWidth: '40px' }}>{objective.completionRate || 0}%</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
