@@ -794,6 +794,26 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 							var indicator = obj.TryGetProperty("indicator", out var ind) ? ind.GetString() : null;
 							var status = obj.TryGetProperty("status", out var st) ? st.GetString() ?? "Non commencé" : "Non commencé";
 							var completionRate = obj.TryGetProperty("completionRate", out var cr) && cr.TryGetInt32(out var rate) ? rate : 0;
+							var lastModified = obj.TryGetProperty("lastModified", out var lm) ? lm.GetString() : null;
+
+							// Extraire l'historique de progression
+							var progressHistory = new List<ProgressHistoryEntryDto>();
+							int progressHistoryCount = 0;
+							if (obj.TryGetProperty("progressHistory", out var phArray) && phArray.ValueKind == System.Text.Json.JsonValueKind.Array)
+							{
+								foreach (var entry in phArray.EnumerateArray())
+								{
+									progressHistory.Add(new ProgressHistoryEntryDto
+									{
+										Date = entry.TryGetProperty("date", out var d) ? d.GetString() ?? "" : "",
+										OldStatus = entry.TryGetProperty("oldStatus", out var os) ? os.GetString() ?? "" : "",
+										NewStatus = entry.TryGetProperty("newStatus", out var ns) ? ns.GetString() ?? "" : "",
+										OldCompletionRate = entry.TryGetProperty("oldCompletionRate", out var ocr) && ocr.TryGetInt32(out var orv) ? orv : 0,
+										NewCompletionRate = entry.TryGetProperty("newCompletionRate", out var ncr) && ncr.TryGetInt32(out var nrv) ? nrv : 0,
+									});
+								}
+								progressHistoryCount = progressHistory.Count;
+							}
 
 							// Ne pas inclure les objectifs sans description
 							if (string.IsNullOrWhiteSpace(description))
@@ -817,7 +837,10 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 								Indicator = indicator,
 								Status = status,
 								CompletionRate = completionRate,
-								ObjectiveIndex = objIndex
+								ObjectiveIndex = objIndex,
+								LastModified = lastModified,
+								ProgressHistoryCount = progressHistoryCount,
+								ProgressHistory = progressHistory
 							});
 							objIndex++;
 						}
@@ -870,6 +893,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 				NotAchievedObjectives = filteredList.Count(o => o.Status == "Non atteint"),
 				AverageCompletionRate = filteredList.Any()
 					? Math.Round(filteredList.Average(o => o.CompletionRate), 1)
+					: 0,
+				GlobalAchievementRate = filteredList.Any()
+					? Math.Round((double)filteredList.Count(o => o.Status == "Atteint") / filteredList.Count * 100, 1)
 					: 0
 			};
 
@@ -885,7 +911,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 		}
 
 		/// <summary>
-		/// Met à jour le statut et le taux de complétion d'un objectif dans les notes d'un entretien
+		/// Met à jour le statut et le taux de complétion d'un objectif dans les notes d'un entretien.
+		/// Inclut l'auto-synchronisation statut ↔ taux et l'historique de progression.
 		/// </summary>
 		public async Task<bool> UpdateObjectiveStatusAsync(int interviewId, int objectiveIndex, string? status, int? completionRate)
 		{
@@ -900,34 +927,130 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 				if (!parsedNotes.TryGetProperty("objectives", out var objectivesArray) || objectivesArray.ValueKind != System.Text.Json.JsonValueKind.Array)
 					return false;
 
+				// Déterminer le taux de complétion auto-calculé selon le statut
+				string newStatus = status ?? "Non commencé";
+				int newCompletionRate = completionRate ?? 0;
+
+				// Auto-synchronisation : si seul le statut change, dériver le taux
+				if (!string.IsNullOrEmpty(status) && (completionRate == null || completionRate == 0))
+				{
+					newCompletionRate = newStatus switch
+					{
+						"Atteint" => 100,
+						"Non commencé" => 0,
+						"Non atteint" => 0,
+						_ => completionRate ?? 0  // "En cours" garde la valeur manuelle
+					};
+				}
+
+				// Si le taux est mis à 100 manuellement, suggérer le statut "Atteint"
+				if (completionRate >= 100 && newStatus != "Atteint" && newStatus != "Non atteint")
+				{
+					newStatus = "Atteint";
+					newCompletionRate = 100;
+				}
+
+				var nowString = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss");
+
 				var objectivesList = new List<Dictionary<string, object>>();
 				int idx = 0;
 				foreach (var obj in objectivesArray.EnumerateArray())
 				{
 					var dict = new Dictionary<string, object>();
+
+					// Préserver tous les champs existants
 					foreach (var prop in obj.EnumerateObject())
 					{
-						if (prop.Name == "description" || prop.Name == "dueDate" || prop.Name == "indicator")
+						if (prop.Name == "progressHistory") continue; // Sera recalculé
+						if (prop.Name == "lastModified") continue;     // Sera mis à jour
+
+						if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String)
 							dict[prop.Name] = prop.Value.GetString() ?? "";
+						else if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Number)
+							dict[prop.Name] = prop.Value.GetInt32();
+						else
+							dict[prop.Name] = prop.Value;
 					}
 
-					// Mettre à jour le statut et le taux de complétion pour l'objectif ciblé
 					if (idx == objectiveIndex)
 					{
-						dict["status"] = status ?? "Non commencé";
-						dict["completionRate"] = completionRate ?? 0;
+						// Récupérer les anciennes valeurs pour l'historique
+						var oldStatus = obj.TryGetProperty("status", out var ost) ? ost.GetString() ?? "Non commencé" : "Non commencé";
+						var oldRate = obj.TryGetProperty("completionRate", out var ocr) && ocr.TryGetInt32(out var orv) ? orv : 0;
+
+						// Vérifier s'il y a un vrai changement
+						bool hasChanged = oldStatus != newStatus || oldRate != newCompletionRate;
+
+						// Appliquer les nouvelles valeurs
+						dict["status"] = newStatus;
+						dict["completionRate"] = newCompletionRate;
+						dict["lastModified"] = nowString;
+
+						// Construire l'historique de progression
+						var progressHistory = new List<Dictionary<string, object>>();
+
+						// Récupérer l'historique existant
+						if (obj.TryGetProperty("progressHistory", out var existingPh) && existingPh.ValueKind == System.Text.Json.JsonValueKind.Array)
+						{
+							foreach (var entry in existingPh.EnumerateArray())
+							{
+								var historyEntry = new Dictionary<string, object>();
+								foreach (var prop in entry.EnumerateObject())
+								{
+									if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String)
+										historyEntry[prop.Name] = prop.Value.GetString() ?? "";
+									else if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Number)
+										historyEntry[prop.Name] = prop.Value.GetInt32();
+								}
+								progressHistory.Add(historyEntry);
+							}
+						}
+
+						// Ajouter la nouvelle entrée d'historique si changement
+						if (hasChanged)
+						{
+							progressHistory.Add(new Dictionary<string, object>
+							{
+								["date"] = nowString,
+								["oldStatus"] = oldStatus,
+								["newStatus"] = newStatus,
+								["oldCompletionRate"] = oldRate,
+								["newCompletionRate"] = newCompletionRate
+							});
+						}
+
+						dict["progressHistory"] = progressHistory;
 					}
 					else
 					{
-						// Conserver les valeurs existantes
+						// Conserver les valeurs existantes pour les autres objectifs
 						dict["status"] = obj.TryGetProperty("status", out var st) ? st.GetString() ?? "Non commencé" : "Non commencé";
 						dict["completionRate"] = obj.TryGetProperty("completionRate", out var cr) && cr.TryGetInt32(out var r) ? r : 0;
+						dict["lastModified"] = obj.TryGetProperty("lastModified", out var lm) && lm.ValueKind == System.Text.Json.JsonValueKind.String ? lm.GetString() : null;
+
+						// Préserver l'historique existant
+						if (obj.TryGetProperty("progressHistory", out var existingPh) && existingPh.ValueKind == System.Text.Json.JsonValueKind.Array)
+						{
+							var phList = new List<Dictionary<string, object>>();
+							foreach (var entry in existingPh.EnumerateArray())
+							{
+								var historyEntry = new Dictionary<string, object>();
+								foreach (var prop in entry.EnumerateObject())
+								{
+									if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String)
+										historyEntry[prop.Name] = prop.Value.GetString() ?? "";
+									else if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Number)
+										historyEntry[prop.Name] = prop.Value.GetInt32();
+								}
+								phList.Add(historyEntry);
+							}
+							dict["progressHistory"] = phList;
+						}
 					}
 					idx++;
 				}
 
 				// Reconstruire le JSON complet avec les objectifs mis à jour
-				// On préserve le reste du JSON et on remplace juste le tableau objectives
 				var updatedNotes = new Dictionary<string, object>();
 				foreach (var prop in parsedNotes.EnumerateObject())
 				{

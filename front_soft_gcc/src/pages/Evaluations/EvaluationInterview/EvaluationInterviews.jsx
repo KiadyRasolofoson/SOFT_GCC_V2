@@ -49,6 +49,8 @@ const EvaluationInterviews = () => {
       indicator: '',
       status: 'Non commencé',
       completionRate: 0,
+      lastModified: new Date().toISOString(),
+      progressHistory: [],
     }],
     // Plan de développement
     developmentPlan: {
@@ -278,7 +280,7 @@ const EvaluationInterviews = () => {
       ...prev,
       objectives: [
         ...prev.objectives,
-        { description: '', dueDate: '', indicator: '', status: 'Non commencé', completionRate: 0 }
+        { description: '', dueDate: '', indicator: '', status: 'Non commencé', completionRate: 0, lastModified: new Date().toISOString(), progressHistory: [] }
       ]
     }));
   };
@@ -298,6 +300,24 @@ const EvaluationInterviews = () => {
   const handleObjectiveChange = (index, field, value) => {
     const newObjectives = [...formData.objectives];
     newObjectives[index][field] = value;
+    
+    // Auto-synchro statut ↔ taux
+    if (field === 'status') {
+      if (value === 'Atteint') {
+        newObjectives[index].completionRate = 100;
+      } else if (value === 'Non commencé' || value === 'Non atteint') {
+        newObjectives[index].completionRate = 0;
+      }
+    }
+    if (field === 'completionRate') {
+      if (value >= 100) {
+        newObjectives[index].status = 'Atteint';
+      } else if (value > 0 && newObjectives[index].status === 'Non commencé') {
+        newObjectives[index].status = 'En cours';
+      }
+    }
+    // Mettre à jour la date de dernière modification
+    newObjectives[index].lastModified = new Date().toISOString();
     
     setFormData(prev => ({
       ...prev,
