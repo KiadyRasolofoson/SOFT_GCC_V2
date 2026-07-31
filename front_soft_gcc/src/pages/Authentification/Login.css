@@ -128,64 +128,83 @@ body {
   margin-bottom: 24px;
 }
 
-.input-with-icon {
+.login-container .input-with-icon {
   position: relative;
   display: flex;
   align-items: center;
   border: 2px solid var(--neutral-light);
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: #F7FAFC;
   transition: all 0.3s ease;
+  overflow: hidden;
 }
 
-.input-with-icon:focus-within {
+.login-container .input-with-icon:focus-within {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(249, 178, 8, 0.2);
+  background-color: #FFFFFF;
 }
 
 /* Style du champ input */
-.input-with-icon input {
+.login-container .input-with-icon input {
+  flex: 1;
   width: 100%;
-  padding: 14px;
-  border: none; /* Pas de bordure car le conteneur parent en a déjà une */
-  font-size: 1rem;
+  padding: 14px 16px;
+  border: none;
+  font-size: 0.975rem;
   background-color: transparent;
   color: var(--neutral-dark);
 }
 
-/* Style de l'icône dans un conteneur distinct */
-.input-icon {
-  position: static;
-  /* Ne plus utiliser positioning absolu */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 12px;
-  color: var(--neutral-medium);
-  min-width: 40px;
-  /* Largeur fixe pour l'icône */
-  border-right: 1px solid #E2E8F0;
-  /* Séparateur visuel */
+.login-container .input-with-icon input[name="password"] {
+  padding-right: 48px;
 }
 
-/* Ajouter un style pour les placeholders */
-.input-with-icon input::placeholder {
+/* Style de l'icône à gauche (User/Lock) */
+.login-container .input-icon {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 14px;
+  color: var(--neutral-medium);
+  min-width: 44px;
+  height: 48px;
+  border-right: 1px solid #E2E8F0;
+  font-size: 1.1rem;
+  background-color: rgba(0, 0, 0, 0.02);
+  flex-shrink: 0;
+}
+
+.login-container .input-with-icon input::placeholder {
   color: #A0AEC0;
-  /* Couleur plus claire pour les placeholders */
 }
 
 /* Positionner l'icône de visibilité du mot de passe à droite */
-.toggle-password {
+.login-container .toggle-password {
   position: absolute;
-  right: 10px;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   cursor: pointer;
   color: var(--neutral-medium);
-  padding: 0 5px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  z-index: 5;
+  transition: color 0.2s ease;
 }
 
-.input-with-icon input:focus {
+.login-container .toggle-password:hover {
+  color: var(--neutral-dark);
+}
+
+.login-container .input-with-icon input:focus {
   outline: none;
-  /* La mise en évidence se fait au niveau du conteneur parent */
 }
 
 .login-button {
