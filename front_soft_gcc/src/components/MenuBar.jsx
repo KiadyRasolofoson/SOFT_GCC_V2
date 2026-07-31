@@ -122,7 +122,7 @@ function MenuBar() {
                 <Link className={`nav-link ${isActive('/soft-gcc/evaluations/historique') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/historique" onClick={() => setOpenMenu(null)}>Historique d'évaluations</Link>
               </li>
               <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/objectifs') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/objectifs" onClick={() => setOpenMenu(null)}>Récapitulatif des objectifs</Link>
+                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/objectifs') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/objectifs" onClick={() => setOpenMenu(null)}>Récap objectifs</Link>
               </li>
             </ul>
           )}

@@ -17,6 +17,21 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
 		public string Status { get; set; } = "Non commencé";
 		public int CompletionRate { get; set; }
 		public int ObjectiveIndex { get; set; }
+		public string? LastModified { get; set; }
+		public int ProgressHistoryCount { get; set; }
+		public List<ProgressHistoryEntryDto>? ProgressHistory { get; set; }
+	}
+
+	/// <summary>
+	/// Entrée d'historique de progression d'un objectif
+	/// </summary>
+	public class ProgressHistoryEntryDto
+	{
+		public string Date { get; set; } = string.Empty;
+		public string OldStatus { get; set; } = string.Empty;
+		public string NewStatus { get; set; } = string.Empty;
+		public int OldCompletionRate { get; set; }
+		public int NewCompletionRate { get; set; }
 	}
 
 	/// <summary>
@@ -40,5 +55,7 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
 		public int NotStartedObjectives { get; set; }
 		public int NotAchievedObjectives { get; set; }
 		public double AverageCompletionRate { get; set; }
+		/// <summary>Taux global de réalisation (objectifs atteints / total)</summary>
+		public double GlobalAchievementRate { get; set; }
 	}
 }

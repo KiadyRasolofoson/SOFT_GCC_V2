@@ -911,7 +911,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             // Get employee name
             string employeeName = "Unknown";
             var employeeRows = await _dataService.ExecuteReaderAsync(
-                "SELECT FirstName, Name FROM Employee WHERE EmployeeId = @p0", evaluation.EmployeeId);
+                "SELECT FirstName, Name FROM Employee WHERE Employee_id = @p0", evaluation.EmployeeId);
             if (employeeRows.Count > 0)
             {
                 employeeName = $"{employeeRows[0]["FirstName"]} {employeeRows[0]["Name"]}";
@@ -1215,7 +1215,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             // Récupérer l'employé associé
             var employeeRows = await _dataService.ExecuteReaderAsync(
-                "SELECT FirstName, Name, Email FROM Employee WHERE EmployeeId = @p0", evaluation.EmployeeId);
+                "SELECT FirstName, Name, Email FROM Employee WHERE Employee_id = @p0", evaluation.EmployeeId);
             string employeeName = "Un employé";
             if (employeeRows.Count > 0)
             {

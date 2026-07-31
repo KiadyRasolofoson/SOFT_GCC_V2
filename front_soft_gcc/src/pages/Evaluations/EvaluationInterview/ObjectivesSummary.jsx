@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import Template from '../../Template';
 import api from '../../../helpers/api';
 import '../../../assets/css/Evaluations/SalaryListPlanning.css';
 import { useUser } from '../../Authentification/UserContext';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faFilter, faUndo, faCheckCircle, faSpinner, faClock, faTimesCircle, faHourglassStart, faEdit, faSave, faBullseye, faChartBar } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faFilter, faUndo, faCheckCircle, faSpinner, faClock, faTimesCircle, faHourglassStart, faEdit, faSave, faBullseye, faChartBar, faHistory, faChevronDown, faChevronUp, faTrophy } from '@fortawesome/free-solid-svg-icons';
 import PermissionService from '../../../services/PermissionService';
 
 const OBJECTIVE_STATUS = {
@@ -35,6 +36,7 @@ function ObjectivesSummary() {
     notStartedObjectives: 0,
     notAchievedObjectives: 0,
     averageCompletionRate: 0,
+    globalAchievementRate: 0,
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -55,6 +57,11 @@ function ObjectivesSummary() {
   const [editStatus, setEditStatus] = useState('');
   const [editCompletionRate, setEditCompletionRate] = useState(0);
   const [savingObjective, setSavingObjective] = useState(null);
+
+  // Historique de progression
+  const [expandedHistory, setExpandedHistory] = useState({});
+  const [loadingHistory, setLoadingHistory] = useState({});
+  const [progressHistoryCache, setProgressHistoryCache] = useState({});
 
   // ====== FONCTIONS DE RÉCUPÉRATION ======
 
@@ -148,15 +155,45 @@ function ObjectivesSummary() {
     setEditCompletionRate(0);
   };
 
+  // Gestion du changement de statut avec auto-synchro
+  const handleStatusChange = (newStatus) => {
+    setEditStatus(newStatus);
+    // Auto-synchro : statut → taux
+    if (newStatus === OBJECTIVE_STATUS.ACHIEVED) {
+      setEditCompletionRate(100);
+    } else if (newStatus === OBJECTIVE_STATUS.NOT_STARTED || newStatus === OBJECTIVE_STATUS.NOT_ACHIEVED) {
+      setEditCompletionRate(0);
+    }
+  };
+
+  // Gestion du changement de taux avec auto-synchro
+  const handleRateChange = (newRate) => {
+    setEditCompletionRate(newRate);
+    // Auto-synchro : taux → statut
+    if (newRate >= 100) {
+      setEditStatus(OBJECTIVE_STATUS.ACHIEVED);
+    } else if (newRate > 0 && editStatus === OBJECTIVE_STATUS.NOT_STARTED) {
+      setEditStatus(OBJECTIVE_STATUS.IN_PROGRESS);
+    } else if (newRate === 0 && editStatus === OBJECTIVE_STATUS.ACHIEVED) {
+      setEditStatus(OBJECTIVE_STATUS.IN_PROGRESS);
+    }
+  };
+
   const saveObjectiveStatus = async (objective) => {
     setSavingObjective(objective.interviewId + '_' + objective.objectiveIndex);
     try {
-      await api.put(`/EvaluationInterview/objectives/${objective.interviewId}`, {
+      const response = await api.put(`/EvaluationInterview/objectives/${objective.interviewId}`, {
         objectiveIndex: objective.objectiveIndex,
         status: editStatus,
         completionRate: editCompletionRate,
       });
-      toast.success('Objectif mis à jour avec succès.');
+      
+      // Utiliser les valeurs effectives retournées par le backend (après auto-synchro)
+      if (response.data) {
+        toast.success(`Objectif mis à jour : ${response.data.status} (${response.data.completionRate}%)`);
+      } else {
+        toast.success('Objectif mis à jour avec succès.');
+      }
       cancelEditing();
       fetchObjectives(); // Rafraîchir la liste
     } catch (error) {
@@ -164,6 +201,37 @@ function ObjectivesSummary() {
       toast.error('Erreur lors de la mise à jour de l\'objectif.');
     } finally {
       setSavingObjective(null);
+    }
+  };
+
+  // Charger l'historique de progression d'un objectif
+  const toggleHistory = async (objective) => {
+    const key = `${objective.interviewId}_${objective.objectiveIndex}`;
+    
+    if (expandedHistory[key]) {
+      setExpandedHistory(prev => ({ ...prev, [key]: false }));
+      return;
+    }
+
+    // Si déjà en cache, on affiche directement
+    if (progressHistoryCache[key]) {
+      setExpandedHistory(prev => ({ ...prev, [key]: true }));
+      return;
+    }
+
+    // Charger depuis l'API
+    setLoadingHistory(prev => ({ ...prev, [key]: true }));
+    try {
+      const response = await api.get(`/EvaluationInterview/objectives/${objective.interviewId}/history/${objective.objectiveIndex}`);
+      if (response.data) {
+        setProgressHistoryCache(prev => ({ ...prev, [key]: response.data }));
+        setExpandedHistory(prev => ({ ...prev, [key]: true }));
+      }
+    } catch (error) {
+      console.error('Erreur chargement historique:', error);
+      toast.error('Impossible de charger l\'historique de progression.');
+    } finally {
+      setLoadingHistory(prev => ({ ...prev, [key]: false }));
     }
   };
 
@@ -353,30 +421,15 @@ function ObjectivesSummary() {
             </div>
           </div>
           <div className="col-xl-2 col-lg-4 col-md-6 mb-3">
-            <div className="card border-left-secondary shadow-sm h-100">
+            <div className="card border-left-warning shadow-sm h-100">
               <div className="card-body py-3">
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
-                    <p className="text-muted mb-1" style={{ fontSize: '0.75rem' }}>NON COMMENCÉS</p>
-                    <h4 className="mb-0 fw-bold text-secondary">{statistics.notStartedObjectives}</h4>
+                    <p className="text-muted mb-1" style={{ fontSize: '0.75rem' }}>TAUX RÉUSSITE</p>
+                    <h4 className="mb-0 fw-bold text-warning">{statistics.globalAchievementRate}%</h4>
                   </div>
-                  <div className="rounded-circle bg-secondary bg-opacity-10 p-2">
-                    <FontAwesomeIcon icon={faHourglassStart} className="text-secondary" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-xl-2 col-lg-4 col-md-6 mb-3">
-            <div className="card border-left-danger shadow-sm h-100">
-              <div className="card-body py-3">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <p className="text-muted mb-1" style={{ fontSize: '0.75rem' }}>NON ATTEINTS</p>
-                    <h4 className="mb-0 fw-bold text-danger">{statistics.notAchievedObjectives}</h4>
-                  </div>
-                  <div className="rounded-circle bg-danger bg-opacity-10 p-2">
-                    <FontAwesomeIcon icon={faTimesCircle} className="text-danger" />
+                  <div className="rounded-circle bg-warning bg-opacity-10 p-2">
+                    <FontAwesomeIcon icon={faTrophy} className="text-warning" />
                   </div>
                 </div>
               </div>
@@ -486,20 +539,21 @@ function ObjectivesSummary() {
               <table className="table table-bordered table-hover mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th style={{ width: '18%' }}>Employé</th>
-                    <th style={{ width: '12%' }}>Département</th>
-                    <th style={{ width: '10%' }}>Poste</th>
-                    <th style={{ width: '22%' }}>Objectif</th>
-                    <th style={{ width: '8%' }}>Échéance</th>
-                    <th style={{ width: '12%' }}>Statut</th>
+                    <th style={{ width: '16%' }}>Employé</th>
+                    <th style={{ width: '10%' }}>Département</th>
+                    <th style={{ width: '8%' }}>Poste</th>
+                    <th style={{ width: '20%' }}>Objectif</th>
+                    <th style={{ width: '7%' }}>Échéance</th>
+                    <th style={{ width: '10%' }}>Statut</th>
                     <th style={{ width: '8%' }}>Progression</th>
-                    <th style={{ width: '10%' }}>Actions</th>
+                    <th style={{ width: '9%' }}>Modifié le</th>
+                    <th style={{ width: '12%' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {objectives.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="text-center py-5 text-muted">
+                      <td colSpan="9" className="text-center py-5 text-muted">
                         <FontAwesomeIcon icon={faBullseye} style={{ fontSize: '2rem' }} className="mb-2 d-block" />
                         Aucun objectif trouvé.
                         {searchQuery || filters.departmentId || filters.employeeId || filters.statusFilter
@@ -513,9 +567,14 @@ function ObjectivesSummary() {
                         editingObjective.interviewId === obj.interviewId &&
                         editingObjective.objectiveIndex === obj.objectiveIndex;
                       const isSaving = savingObjective === obj.interviewId + '_' + obj.objectiveIndex;
+                      const historyKey = `${obj.interviewId}_${obj.objectiveIndex}`;
+                      const isHistoryExpanded = expandedHistory[historyKey];
+                      const isLoadingHistory = loadingHistory[historyKey];
+                      const historyData = progressHistoryCache[historyKey];
 
                       return (
-                        <tr key={`${obj.interviewId}_${obj.objectiveIndex}`}>
+                        <React.Fragment key={historyKey}>
+                        <tr>
                           <td>
                             <span className="fw-semibold">{obj.employeeName}</span>
                           </td>
@@ -542,14 +601,7 @@ function ObjectivesSummary() {
                               <select
                                 className="form-select form-select-sm"
                                 value={editStatus}
-                                onChange={(e) => {
-                                  setEditStatus(e.target.value);
-                                  if (e.target.value === OBJECTIVE_STATUS.ACHIEVED) {
-                                    setEditCompletionRate(100);
-                                  } else if (e.target.value === OBJECTIVE_STATUS.NOT_STARTED) {
-                                    setEditCompletionRate(0);
-                                  }
-                                }}
+                                onChange={(e) => handleStatusChange(e.target.value)}
                               >
                                 <option value={OBJECTIVE_STATUS.NOT_STARTED}>Non commencé</option>
                                 <option value={OBJECTIVE_STATUS.IN_PROGRESS}>En cours</option>
@@ -570,7 +622,7 @@ function ObjectivesSummary() {
                                   max="100"
                                   step="5"
                                   value={editCompletionRate}
-                                  onChange={(e) => setEditCompletionRate(Number(e.target.value))}
+                                  onChange={(e) => handleRateChange(Number(e.target.value))}
                                   style={{ width: '80px' }}
                                 />
                                 <small className="fw-bold">{editCompletionRate}%</small>
@@ -583,6 +635,13 @@ function ObjectivesSummary() {
                                 </div>
                               </div>
                             )}
+                          </td>
+                          <td>
+                            <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                              {obj.lastModified
+                                ? new Date(obj.lastModified).toLocaleDateString('fr-FR')
+                                : '-'}
+                            </small>
                           </td>
                           <td>
                             {isEditing ? (
@@ -609,16 +668,80 @@ function ObjectivesSummary() {
                                 </button>
                               </div>
                             ) : (
-                              <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => startEditing(obj)}
-                                title="Modifier le statut"
-                              >
-                                <FontAwesomeIcon icon={faEdit} />
-                              </button>
+                              <div className="d-flex gap-1">
+                                <button
+                                  className="btn btn-sm btn-outline-primary"
+                                  onClick={() => startEditing(obj)}
+                                  title="Modifier le statut"
+                                >
+                                  <FontAwesomeIcon icon={faEdit} />
+                                </button>
+                                <button
+                                  className={`btn btn-sm ${isHistoryExpanded ? 'btn-info' : 'btn-outline-info'}`}
+                                  onClick={() => toggleHistory(obj)}
+                                  title="Historique de progression"
+                                  disabled={isLoadingHistory}
+                                >
+                                  {isLoadingHistory ? (
+                                    <span className="spinner-border spinner-border-sm"></span>
+                                  ) : (
+                                    <>
+                                      <FontAwesomeIcon icon={faHistory} />
+                                      {obj.progressHistoryCount > 0 && (
+                                        <span className="badge bg-info ms-1" style={{ fontSize: '0.6rem' }}>
+                                          {obj.progressHistoryCount}
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
+                        {/* Ligne d'historique de progression (expandable) */}
+                        {isHistoryExpanded && historyData && (
+                          <tr key={`${historyKey}_history`}>
+                            <td colSpan="9" className="bg-light p-0">
+                              <div className="p-3">
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                  <h6 className="mb-0">
+                                    <FontAwesomeIcon icon={faHistory} className="me-2 text-info" />
+                                    Historique de progression
+                                  </h6>
+                                  <small className="text-muted">
+                                    Statut actuel : {renderStatusBadge(historyData.currentStatus)} — {historyData.currentCompletionRate}%
+                                  </small>
+                                </div>
+                                {historyData.progressHistory && historyData.progressHistory.length > 0 ? (
+                                  <div className="timeline">
+                                    {historyData.progressHistory.map((entry, i) => (
+                                      <div key={i} className="d-flex align-items-start mb-2 pb-2 border-bottom">
+                                        <div className="me-3 text-muted" style={{ minWidth: '130px', fontSize: '0.8rem' }}>
+                                          <FontAwesomeIcon icon={faClock} className="me-1" />
+                                          {new Date(entry.date).toLocaleDateString('fr-FR')} {new Date(entry.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                        <div className="d-flex align-items-center gap-2 flex-wrap">
+                                          {renderStatusBadge(entry.oldStatus)}
+                                          <FontAwesomeIcon icon={faChevronDown} className="text-muted" style={{ transform: 'rotate(-90deg)' }} />
+                                          <span className="text-muted" style={{ fontSize: '0.8rem' }}>{entry.oldCompletionRate}%</span>
+                                          <span className="fw-bold text-primary mx-1">→</span>
+                                          {renderStatusBadge(entry.newStatus)}
+                                          <span className="fw-semibold" style={{ fontSize: '0.8rem' }}>{entry.newCompletionRate}%</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
+                                    Aucun changement enregistré. L'historique sera créé lors de la première modification.
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       );
                     })
                   )}
