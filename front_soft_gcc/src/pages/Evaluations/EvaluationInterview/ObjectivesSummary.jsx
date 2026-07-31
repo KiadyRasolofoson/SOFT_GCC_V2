@@ -2,12 +2,33 @@ import { useState, useEffect, useCallback } from 'react';
 import React from 'react';
 import Template from '../../Template';
 import api from '../../../helpers/api';
-import '../../../assets/css/Evaluations/SalaryListPlanning.css';
+import '../../../assets/css/Evaluations/ObjectivesSummary.css';
 import { useUser } from '../../Authentification/UserContext';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faFilter, faUndo, faCheckCircle, faSpinner, faClock, faTimesCircle, faHourglassStart, faEdit, faSave, faBullseye, faChartBar, faHistory, faChevronDown, faChevronUp, faTrophy } from '@fortawesome/free-solid-svg-icons';
-import PermissionService from '../../../services/PermissionService';
+import {
+  faSearch,
+  faFilter,
+  faUndo,
+  faCheckCircle,
+  faSpinner,
+  faClock,
+  faTimesCircle,
+  faHourglassStart,
+  faEdit,
+  faSave,
+  faBullseye,
+  faChartBar,
+  faHistory,
+  faChevronDown,
+  faTrophy,
+  faSyncAlt,
+  faCalendarAlt,
+  faArrowRight,
+  faTasks,
+  faBuilding,
+  faUser
+} from '@fortawesome/free-solid-svg-icons';
 
 const OBJECTIVE_STATUS = {
   NOT_STARTED: 'Non commencé',
@@ -16,19 +37,43 @@ const OBJECTIVE_STATUS = {
   NOT_ACHIEVED: 'Non atteint',
 };
 
-const STATUS_COLORS = {
-  [OBJECTIVE_STATUS.ACHIEVED]: 'success',
-  [OBJECTIVE_STATUS.IN_PROGRESS]: 'primary',
-  [OBJECTIVE_STATUS.NOT_STARTED]: 'secondary',
-  [OBJECTIVE_STATUS.NOT_ACHIEVED]: 'danger',
-};
+// Colors helper for avatar generation
+const AVATAR_COLORS = [
+  'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+  'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+  'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+  'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)',
+  'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+  'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
+];
+
+function getInitials(name) {
+  if (!name) return '??';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
+function getAvatarBackground(name) {
+  if (!name) return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+}
 
 function ObjectivesSummary() {
-  const { user, hasPermission, loading: userLoading } = useUser();
+  const { user, loading: userLoading } = useUser();
 
   // États
   const [loading, setLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [objectives, setObjectives] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [statistics, setStatistics] = useState({
     totalObjectives: 0,
     achievedObjectives: 0,
@@ -65,9 +110,11 @@ function ObjectivesSummary() {
 
   // ====== FONCTIONS DE RÉCUPÉRATION ======
 
-  const fetchObjectives = useCallback(async () => {
+  const fetchObjectives = useCallback(async (showRefreshing = false) => {
     if (!user) return;
-    setLoading(true);
+    if (showRefreshing) setIsRefreshing(true);
+    else setLoading(true);
+
     try {
       const params = {
         pageNumber: currentPage,
@@ -79,13 +126,14 @@ function ObjectivesSummary() {
       };
 
       const response = await api.get('/EvaluationInterview/objectives-summary', { params });
-      
+
       if (response.data) {
         setObjectives(response.data.objectives || []);
         if (response.data.statistics) {
           setStatistics(response.data.statistics);
         }
         const total = response.data.totalCount || response.data.statistics?.totalObjectives || 0;
+        setTotalCount(total);
         setTotalPages(Math.max(1, Math.ceil(total / pageSize)));
       }
     } catch (error) {
@@ -93,6 +141,7 @@ function ObjectivesSummary() {
       toast.error('Erreur lors du chargement des objectifs.');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, [currentPage, pageSize, filters, searchQuery, user]);
 
@@ -128,7 +177,12 @@ function ObjectivesSummary() {
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    setCurrentPage(1);
+  };
+
+  const handleQuickStatusFilter = (status) => {
+    setFilters((prev) => ({ ...prev, statusFilter: prev.statusFilter === status ? '' : status }));
     setCurrentPage(1);
   };
 
@@ -155,10 +209,8 @@ function ObjectivesSummary() {
     setEditCompletionRate(0);
   };
 
-  // Gestion du changement de statut avec auto-synchro
   const handleStatusChange = (newStatus) => {
     setEditStatus(newStatus);
-    // Auto-synchro : statut → taux
     if (newStatus === OBJECTIVE_STATUS.ACHIEVED) {
       setEditCompletionRate(100);
     } else if (newStatus === OBJECTIVE_STATUS.NOT_STARTED || newStatus === OBJECTIVE_STATUS.NOT_ACHIEVED) {
@@ -166,10 +218,8 @@ function ObjectivesSummary() {
     }
   };
 
-  // Gestion du changement de taux avec auto-synchro
   const handleRateChange = (newRate) => {
     setEditCompletionRate(newRate);
-    // Auto-synchro : taux → statut
     if (newRate >= 100) {
       setEditStatus(OBJECTIVE_STATUS.ACHIEVED);
     } else if (newRate > 0 && editStatus === OBJECTIVE_STATUS.NOT_STARTED) {
@@ -187,15 +237,14 @@ function ObjectivesSummary() {
         status: editStatus,
         completionRate: editCompletionRate,
       });
-      
-      // Utiliser les valeurs effectives retournées par le backend (après auto-synchro)
+
       if (response.data) {
         toast.success(`Objectif mis à jour : ${response.data.status} (${response.data.completionRate}%)`);
       } else {
         toast.success('Objectif mis à jour avec succès.');
       }
       cancelEditing();
-      fetchObjectives(); // Rafraîchir la liste
+      fetchObjectives();
     } catch (error) {
       console.error('Erreur lors de la mise à jour:', error);
       toast.error('Erreur lors de la mise à jour de l\'objectif.');
@@ -204,38 +253,92 @@ function ObjectivesSummary() {
     }
   };
 
-  // Charger l'historique de progression d'un objectif
+  // Charger l'historique de progression
   const toggleHistory = async (objective) => {
     const key = `${objective.interviewId}_${objective.objectiveIndex}`;
-    
+
     if (expandedHistory[key]) {
-      setExpandedHistory(prev => ({ ...prev, [key]: false }));
+      setExpandedHistory((prev) => ({ ...prev, [key]: false }));
       return;
     }
 
-    // Si déjà en cache, on affiche directement
     if (progressHistoryCache[key]) {
-      setExpandedHistory(prev => ({ ...prev, [key]: true }));
+      setExpandedHistory((prev) => ({ ...prev, [key]: true }));
       return;
     }
 
-    // Charger depuis l'API
-    setLoadingHistory(prev => ({ ...prev, [key]: true }));
+    setLoadingHistory((prev) => ({ ...prev, [key]: true }));
     try {
       const response = await api.get(`/EvaluationInterview/objectives/${objective.interviewId}/history/${objective.objectiveIndex}`);
       if (response.data) {
-        setProgressHistoryCache(prev => ({ ...prev, [key]: response.data }));
-        setExpandedHistory(prev => ({ ...prev, [key]: true }));
+        setProgressHistoryCache((prev) => ({ ...prev, [key]: response.data }));
+        setExpandedHistory((prev) => ({ ...prev, [key]: true }));
       }
     } catch (error) {
       console.error('Erreur chargement historique:', error);
       toast.error('Impossible de charger l\'historique de progression.');
     } finally {
-      setLoadingHistory(prev => ({ ...prev, [key]: false }));
+      setLoadingHistory((prev) => ({ ...prev, [key]: false }));
     }
   };
 
-  // Pagination
+  // Rendu du Badge de Statut
+  const renderStatusBadge = (status) => {
+    switch (status) {
+      case OBJECTIVE_STATUS.ACHIEVED:
+        return (
+          <span className="obj-status-badge achieved">
+            <FontAwesomeIcon icon={faCheckCircle} />
+            {OBJECTIVE_STATUS.ACHIEVED}
+          </span>
+        );
+      case OBJECTIVE_STATUS.IN_PROGRESS:
+        return (
+          <span className="obj-status-badge in-progress">
+            <FontAwesomeIcon icon={faSpinner} spin />
+            {OBJECTIVE_STATUS.IN_PROGRESS}
+          </span>
+        );
+      case OBJECTIVE_STATUS.NOT_ACHIEVED:
+        return (
+          <span className="obj-status-badge not-achieved">
+            <FontAwesomeIcon icon={faTimesCircle} />
+            {OBJECTIVE_STATUS.NOT_ACHIEVED}
+          </span>
+        );
+      case OBJECTIVE_STATUS.NOT_STARTED:
+      default:
+        return (
+          <span className="obj-status-badge not-started">
+            <FontAwesomeIcon icon={faHourglassStart} />
+            {status || OBJECTIVE_STATUS.NOT_STARTED}
+          </span>
+        );
+    }
+  };
+
+  // Rendu de la barre de progression
+  const renderProgressBar = (rate) => {
+    const numRate = Number(rate) || 0;
+    let fillClass = 'fill-zero';
+    if (numRate >= 80) fillClass = 'fill-high';
+    else if (numRate >= 40) fillClass = 'fill-mid';
+    else if (numRate > 0) fillClass = 'fill-low';
+
+    return (
+      <div className="obj-progress-wrapper">
+        <div className="obj-progress-track">
+          <div
+            className={`obj-progress-fill ${fillClass}`}
+            style={{ width: `${Math.min(100, Math.max(0, numRate))}%` }}
+          />
+        </div>
+        <span className="obj-progress-percent">{numRate}%</span>
+      </div>
+    );
+  };
+
+  // Rendu de la pagination
   const renderPagination = () => {
     const pages = [];
     const maxVisiblePages = 5;
@@ -250,48 +353,80 @@ function ObjectivesSummary() {
       pages.push(i);
     }
 
+    const startItem = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+    const endItem = Math.min(currentPage * pageSize, totalCount);
+
     return (
-      <div className="pagination-controls d-flex justify-content-between align-items-center mt-3">
-        <div className="d-flex align-items-center">
-          <span className="me-2">Lignes par page:</span>
-          <select
-            className="form-select form-select-sm"
-            style={{ width: '80px' }}
-            value={pageSize}
-            onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
+      <div className="obj-pagination-footer">
+        <div className="d-flex align-items-center gap-3">
+          <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+            Affichage de <strong>{startItem}</strong> à <strong>{endItem}</strong> sur <strong>{totalCount}</strong> objectifs
+          </span>
+          <div className="d-flex align-items-center gap-2">
+            <span className="text-muted" style={{ fontSize: '0.8rem' }}>Lignes:</span>
+            <select
+              className="form-select form-select-sm custom-select"
+              style={{ width: '75px', padding: '0.2rem 0.5rem' }}
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
+
         <nav>
           <ul className="pagination pagination-sm mb-0">
             <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => handlePageChange(1)} disabled={currentPage === 1}>
+              <button
+                className="page-link page-link-custom"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+                title="Première page"
+              >
                 &laquo;
               </button>
             </li>
             <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+              <button
+                className="page-link page-link-custom"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                title="Page précédente"
+              >
                 &lsaquo;
               </button>
             </li>
-            {pages.map(page => (
+            {pages.map((page) => (
               <li key={page} className={`page-item ${page === currentPage ? 'active' : ''}`}>
-                <button className="page-link" onClick={() => handlePageChange(page)}>
+                <button className="page-link page-link-custom" onClick={() => handlePageChange(page)}>
                   {page}
                 </button>
               </li>
             ))}
             <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+              <button
+                className="page-link page-link-custom"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                title="Page suivante"
+              >
                 &rsaquo;
               </button>
             </li>
             <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>
+              <button
+                className="page-link page-link-custom"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+                title="Dernière page"
+              >
                 &raquo;
               </button>
             </li>
@@ -301,49 +436,19 @@ function ObjectivesSummary() {
     );
   };
 
-  // Barre de progression
-  const renderProgressBar = (rate) => {
-    const color = rate >= 80 ? 'bg-success' : rate >= 40 ? 'bg-primary' : rate > 0 ? 'bg-warning' : 'bg-secondary';
-    return (
-      <div className="progress" style={{ height: '6px', minWidth: '60px' }}>
-        <div
-          className={`progress-bar ${color}`}
-          role="progressbar"
-          style={{ width: `${rate}%` }}
-          aria-valuenow={rate}
-          aria-valuemin="0"
-          aria-valuemax="100"
-        ></div>
-      </div>
-    );
-  };
-
-  // Badge de statut
-  const renderStatusBadge = (status) => {
-    const color = STATUS_COLORS[status] || 'secondary';
-    const icons = {
-      [OBJECTIVE_STATUS.ACHIEVED]: faCheckCircle,
-      [OBJECTIVE_STATUS.IN_PROGRESS]: faSpinner,
-      [OBJECTIVE_STATUS.NOT_STARTED]: faHourglassStart,
-      [OBJECTIVE_STATUS.NOT_ACHIEVED]: faTimesCircle,
-    };
-    return (
-      <span className={`badge bg-${color} bg-opacity-75`} style={{ fontSize: '0.8rem' }}>
-        <FontAwesomeIcon icon={icons[status] || faBullseye} className="me-1" />
-        {status}
-      </span>
-    );
-  };
+  const hasActiveFilters = searchQuery !== '' || filters.departmentId !== '' || filters.employeeId !== '' || filters.statusFilter !== '';
 
   if (userLoading || loading) {
     return (
       <Template>
-        <div className="container mt-4">
-          <div className="loading-spinner text-center py-5">
-            <div className="spinner-border text-primary" role="status">
+        <div className="objectives-summary-container">
+          <div className="d-flex flex-column align-items-center justify-content-center py-5 my-5">
+            <div className="spinner-border text-primary" style={{ width: '3rem', height: '3rem' }} role="status">
               <span className="visually-hidden">Chargement...</span>
             </div>
-            <p className="mt-2 text-muted">Chargement des objectifs...</p>
+            <p className="mt-3 text-muted fw-semibold" style={{ fontSize: '0.95rem' }}>
+              Chargement des objectifs et statistiques...
+            </p>
           </div>
         </div>
       </Template>
@@ -353,9 +458,10 @@ function ObjectivesSummary() {
   if (!user) {
     return (
       <Template>
-        <div className="container mt-4">
-          <div className="alert alert-danger">
-            Vous devez être connecté pour accéder à cette page.
+        <div className="objectives-summary-container">
+          <div className="alert alert-danger shadow-sm border-0 rounded-4 p-4 text-center">
+            <h5 className="alert-heading fw-bold">Accès restreint</h5>
+            <p className="mb-0">Vous devez être connecté pour accéder au suivi des objectifs.</p>
           </div>
         </div>
       </Template>
@@ -364,242 +470,372 @@ function ObjectivesSummary() {
 
   return (
     <Template>
-      <div className="salary-list-planning">
-        {/* En-tête */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h4 className="title mb-0">
-            <FontAwesomeIcon icon={faBullseye} className="me-2 text-primary" />
-            Récapitulatif des objectifs
-          </h4>
-        </div>
-
-        {/* Cartes de statistiques */}
-        <div className="row mb-4">
-          <div className="col-xl-2 col-lg-4 col-md-6 mb-3">
-            <div className="card border-left-primary shadow-sm h-100">
-              <div className="card-body py-3">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <p className="text-muted mb-1" style={{ fontSize: '0.75rem' }}>TOTAL</p>
-                    <h4 className="mb-0 fw-bold">{statistics.totalObjectives}</h4>
-                  </div>
-                  <div className="rounded-circle bg-primary bg-opacity-10 p-2">
-                    <FontAwesomeIcon icon={faBullseye} className="text-primary" />
-                  </div>
-                </div>
+      <div className="objectives-summary-container">
+        {/* Page Header */}
+        <div className="obj-header-card mb-4">
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div className="d-flex align-items-center gap-3">
+              <div className="obj-header-icon">
+                <FontAwesomeIcon icon={faBullseye} />
+              </div>
+              <div>
+                <h4 className="obj-header-title">Récapitulatif & Suivi des Objectifs</h4>
+                <p className="obj-header-subtitle">
+                  Suivi des performances, indicateurs d'atteinte et gestion de la progression des collaborateurs
+                </p>
               </div>
             </div>
-          </div>
-          <div className="col-xl-2 col-lg-4 col-md-6 mb-3">
-            <div className="card border-left-success shadow-sm h-100">
-              <div className="card-body py-3">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <p className="text-muted mb-1" style={{ fontSize: '0.75rem' }}>ATTEINTS</p>
-                    <h4 className="mb-0 fw-bold text-success">{statistics.achievedObjectives}</h4>
-                  </div>
-                  <div className="rounded-circle bg-success bg-opacity-10 p-2">
-                    <FontAwesomeIcon icon={faCheckCircle} className="text-success" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-xl-2 col-lg-4 col-md-6 mb-3">
-            <div className="card border-left-primary shadow-sm h-100">
-              <div className="card-body py-3">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <p className="text-muted mb-1" style={{ fontSize: '0.75rem' }}>EN COURS</p>
-                    <h4 className="mb-0 fw-bold text-primary">{statistics.inProgressObjectives}</h4>
-                  </div>
-                  <div className="rounded-circle bg-primary bg-opacity-10 p-2">
-                    <FontAwesomeIcon icon={faSpinner} className="text-primary" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-xl-2 col-lg-4 col-md-6 mb-3">
-            <div className="card border-left-warning shadow-sm h-100">
-              <div className="card-body py-3">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <p className="text-muted mb-1" style={{ fontSize: '0.75rem' }}>TAUX RÉUSSITE</p>
-                    <h4 className="mb-0 fw-bold text-warning">{statistics.globalAchievementRate}%</h4>
-                  </div>
-                  <div className="rounded-circle bg-warning bg-opacity-10 p-2">
-                    <FontAwesomeIcon icon={faTrophy} className="text-warning" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-xl-2 col-lg-4 col-md-6 mb-3">
-            <div className="card border-left-info shadow-sm h-100">
-              <div className="card-body py-3">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <p className="text-muted mb-1" style={{ fontSize: '0.75rem' }}>TAUX MOYEN</p>
-                    <h4 className="mb-0 fw-bold text-info">{statistics.averageCompletionRate}%</h4>
-                  </div>
-                  <div className="rounded-circle bg-info bg-opacity-10 p-2">
-                    <FontAwesomeIcon icon={faChartBar} className="text-info" />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <button
+              className="btn btn-sm btn-outline-primary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2"
+              onClick={() => fetchObjectives(true)}
+              disabled={isRefreshing}
+            >
+              <FontAwesomeIcon icon={faSyncAlt} spin={isRefreshing} />
+              {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+            </button>
           </div>
         </div>
 
-        {/* Filtres */}
-        <div className="card p-3 mb-4">
-          <div className="row g-3 align-items-end">
-            <div className="col-lg-3 col-md-6">
-              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>
-                <FontAwesomeIcon icon={faSearch} className="me-1" /> Recherche
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Nom, description, indicateur..."
-                value={searchQuery}
-                onChange={handleSearch}
+        {/* KPI Cards Grid */}
+        <div className="kpi-grid">
+          {/* Total Objectifs */}
+          <div className="kpi-card">
+            <div className="kpi-card-header">
+              <span className="kpi-title">Total Objectifs</span>
+              <div className="kpi-icon-box total">
+                <FontAwesomeIcon icon={faTasks} />
+              </div>
+            </div>
+            <div className="kpi-value-row">
+              <span className="kpi-value">{statistics.totalObjectives}</span>
+            </div>
+            <div className="kpi-mini-bar">
+              <div className="kpi-mini-bar-fill" style={{ width: '100%', backgroundColor: '#6366f1' }} />
+            </div>
+          </div>
+
+          {/* Atteints */}
+          <div className="kpi-card">
+            <div className="kpi-card-header">
+              <span className="kpi-title">Atteints</span>
+              <div className="kpi-icon-box achieved">
+                <FontAwesomeIcon icon={faCheckCircle} />
+              </div>
+            </div>
+            <div className="kpi-value-row">
+              <span className="kpi-value text-achieved">{statistics.achievedObjectives}</span>
+              {statistics.totalObjectives > 0 && (
+                <small className="text-muted fw-semibold" style={{ fontSize: '0.8rem' }}>
+                  ({Math.round((statistics.achievedObjectives / statistics.totalObjectives) * 100)}%)
+                </small>
+              )}
+            </div>
+            <div className="kpi-mini-bar">
+              <div
+                className="kpi-mini-bar-fill"
+                style={{
+                  width: statistics.totalObjectives > 0 ? `${(statistics.achievedObjectives / statistics.totalObjectives) * 100}%` : '0%',
+                  backgroundColor: '#10b981',
+                }}
               />
             </div>
-            <div className="col-lg-2 col-md-6">
-              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>
-                <FontAwesomeIcon icon={faFilter} className="me-1" /> Département
+          </div>
+
+          {/* En cours */}
+          <div className="kpi-card">
+            <div className="kpi-card-header">
+              <span className="kpi-title">En Cours</span>
+              <div className="kpi-icon-box in-progress">
+                <FontAwesomeIcon icon={faSpinner} spin />
+              </div>
+            </div>
+            <div className="kpi-value-row">
+              <span className="kpi-value text-in-progress">{statistics.inProgressObjectives}</span>
+              {statistics.totalObjectives > 0 && (
+                <small className="text-muted fw-semibold" style={{ fontSize: '0.8rem' }}>
+                  ({Math.round((statistics.inProgressObjectives / statistics.totalObjectives) * 100)}%)
+                </small>
+              )}
+            </div>
+            <div className="kpi-mini-bar">
+              <div
+                className="kpi-mini-bar-fill"
+                style={{
+                  width: statistics.totalObjectives > 0 ? `${(statistics.inProgressObjectives / statistics.totalObjectives) * 100}%` : '0%',
+                  backgroundColor: '#0284c7',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Taux Réussite Global */}
+          <div className="kpi-card">
+            <div className="kpi-card-header">
+              <span className="kpi-title">Taux Réussite</span>
+              <div className="kpi-icon-box achievement-rate">
+                <FontAwesomeIcon icon={faTrophy} />
+              </div>
+            </div>
+            <div className="kpi-value-row">
+              <span className="kpi-value text-rate">{statistics.globalAchievementRate}%</span>
+            </div>
+            <div className="kpi-mini-bar">
+              <div
+                className="kpi-mini-bar-fill"
+                style={{
+                  width: `${Math.min(100, Math.max(0, statistics.globalAchievementRate))}%`,
+                  backgroundColor: '#f59e0b',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Taux Moyen */}
+          <div className="kpi-card">
+            <div className="kpi-card-header">
+              <span className="kpi-title">Taux Moyen</span>
+              <div className="kpi-icon-box avg-rate">
+                <FontAwesomeIcon icon={faChartBar} />
+              </div>
+            </div>
+            <div className="kpi-value-row">
+              <span className="kpi-value text-avg">{statistics.averageCompletionRate}%</span>
+            </div>
+            <div className="kpi-mini-bar">
+              <div
+                className="kpi-mini-bar-fill"
+                style={{
+                  width: `${Math.min(100, Math.max(0, statistics.averageCompletionRate))}%`,
+                  backgroundColor: '#8b5cf6',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Card */}
+        <div className="filter-card">
+          {/* Quick Filter Status Pills */}
+          <div className="quick-status-pills">
+            <button
+              className={`status-pill-btn ${filters.statusFilter === '' ? 'active' : ''}`}
+              onClick={() => handleQuickStatusFilter('')}
+            >
+              Tous
+              <span className="status-pill-count">{statistics.totalObjectives}</span>
+            </button>
+            <button
+              className={`status-pill-btn ${filters.statusFilter === OBJECTIVE_STATUS.ACHIEVED ? 'active' : ''}`}
+              onClick={() => handleQuickStatusFilter(OBJECTIVE_STATUS.ACHIEVED)}
+            >
+              <FontAwesomeIcon icon={faCheckCircle} className="text-success ms-1" />
+              Atteints
+              <span className="status-pill-count">{statistics.achievedObjectives}</span>
+            </button>
+            <button
+              className={`status-pill-btn ${filters.statusFilter === OBJECTIVE_STATUS.IN_PROGRESS ? 'active' : ''}`}
+              onClick={() => handleQuickStatusFilter(OBJECTIVE_STATUS.IN_PROGRESS)}
+            >
+              <FontAwesomeIcon icon={faSpinner} className="text-primary ms-1" />
+              En cours
+              <span className="status-pill-count">{statistics.inProgressObjectives}</span>
+            </button>
+            <button
+              className={`status-pill-btn ${filters.statusFilter === OBJECTIVE_STATUS.NOT_STARTED ? 'active' : ''}`}
+              onClick={() => handleQuickStatusFilter(OBJECTIVE_STATUS.NOT_STARTED)}
+            >
+              <FontAwesomeIcon icon={faHourglassStart} className="text-secondary ms-1" />
+              Non commencés
+              <span className="status-pill-count">{statistics.notStartedObjectives}</span>
+            </button>
+            <button
+              className={`status-pill-btn ${filters.statusFilter === OBJECTIVE_STATUS.NOT_ACHIEVED ? 'active' : ''}`}
+              onClick={() => handleQuickStatusFilter(OBJECTIVE_STATUS.NOT_ACHIEVED)}
+            >
+              <FontAwesomeIcon icon={faTimesCircle} className="text-danger ms-1" />
+              Non atteints
+              <span className="status-pill-count">{statistics.notAchievedObjectives}</span>
+            </button>
+          </div>
+
+          {/* Form Inputs Grid */}
+          <div className="row g-3 align-items-end">
+            {/* Recherche */}
+            <div className="col-lg-4 col-md-6">
+              <label className="form-label fw-semibold text-muted d-flex align-items-center" style={{ fontSize: '0.8rem' }}>
+                <FontAwesomeIcon icon={faSearch} className="filter-label-icon" />
+                Recherche par mot-clé
+              </label>
+              <div className="custom-input-group">
+                <FontAwesomeIcon icon={faSearch} className="obj-search-input-icon" />
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Rechercher par employé, description, indicateur..."
+                  value={searchQuery}
+                  onChange={handleSearch}
+                />
+              </div>
+            </div>
+
+            {/* Département */}
+            <div className="col-lg-3 col-md-6">
+              <label className="form-label fw-semibold text-muted d-flex align-items-center" style={{ fontSize: '0.8rem' }}>
+                <FontAwesomeIcon icon={faBuilding} className="filter-label-icon" />
+                Département
               </label>
               <select
-                className="form-select"
+                className="form-select custom-select"
                 name="departmentId"
                 value={filters.departmentId}
                 onChange={handleFilterChange}
               >
-                <option value="">Tous</option>
-                {departments.map(dept => (
+                <option value="">Tous les départements</option>
+                {departments.map((dept) => (
                   <option key={dept.departmentId} value={dept.departmentId}>
                     {dept.name}
                   </option>
                 ))}
               </select>
             </div>
-            <div className="col-lg-2 col-md-6">
-              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>
-                <FontAwesomeIcon icon={faFilter} className="me-1" /> Employé
+
+            {/* Employé */}
+            <div className="col-lg-3 col-md-6">
+              <label className="form-label fw-semibold text-muted d-flex align-items-center" style={{ fontSize: '0.8rem' }}>
+                <FontAwesomeIcon icon={faUser} className="filter-label-icon" />
+                Employé
               </label>
               <select
-                className="form-select"
+                className="form-select custom-select"
                 name="employeeId"
                 value={filters.employeeId}
                 onChange={handleFilterChange}
               >
-                <option value="">Tous</option>
-                {employees.map(emp => (
+                <option value="">Tous les employés</option>
+                {employees.map((emp) => (
                   <option key={emp.employeeId} value={emp.employeeId}>
                     {emp.firstName} {emp.name}
                   </option>
                 ))}
               </select>
             </div>
+
+            {/* Reset Button */}
             <div className="col-lg-2 col-md-6">
-              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>
-                <FontAwesomeIcon icon={faFilter} className="me-1" /> Statut
-              </label>
-              <select
-                className="form-select"
-                name="statusFilter"
-                value={filters.statusFilter}
-                onChange={handleFilterChange}
-              >
-                <option value="">Tous</option>
-                <option value={OBJECTIVE_STATUS.NOT_STARTED}>Non commencé</option>
-                <option value={OBJECTIVE_STATUS.IN_PROGRESS}>En cours</option>
-                <option value={OBJECTIVE_STATUS.ACHIEVED}>Atteint</option>
-                <option value={OBJECTIVE_STATUS.NOT_ACHIEVED}>Non atteint</option>
-              </select>
-            </div>
-            <div className="col-lg-3 col-md-6 d-flex align-items-end">
               <button
-                className="btn btn-outline-secondary"
+                className={`btn btn-reset-filters w-100 d-inline-flex align-items-center justify-content-center gap-2 ${hasActiveFilters ? 'border-primary text-primary' : ''}`}
                 onClick={handleResetFilters}
-                title="Réinitialiser les filtres"
+                disabled={!hasActiveFilters}
+                title="Réinitialiser tous les filtres"
               >
-                <FontAwesomeIcon icon={faUndo} className="me-1" /> Réinitialiser
+                <FontAwesomeIcon icon={faUndo} />
+                Réinitialiser
               </button>
             </div>
           </div>
         </div>
 
-        {/* Tableau des objectifs */}
-        <div className="card">
-          <div className="card-body p-0">
-            <div className="table-responsive">
-              <table className="table table-bordered table-hover mb-0">
-                <thead className="table-light">
-                  <tr>
-                    <th style={{ width: '16%' }}>Employé</th>
-                    <th style={{ width: '10%' }}>Département</th>
-                    <th style={{ width: '8%' }}>Poste</th>
-                    <th style={{ width: '20%' }}>Objectif</th>
-                    <th style={{ width: '7%' }}>Échéance</th>
-                    <th style={{ width: '10%' }}>Statut</th>
-                    <th style={{ width: '8%' }}>Progression</th>
-                    <th style={{ width: '9%' }}>Modifié le</th>
-                    <th style={{ width: '12%' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {objectives.length === 0 ? (
-                    <tr>
-                      <td colSpan="9" className="text-center py-5 text-muted">
-                        <FontAwesomeIcon icon={faBullseye} style={{ fontSize: '2rem' }} className="mb-2 d-block" />
-                        Aucun objectif trouvé.
-                        {searchQuery || filters.departmentId || filters.employeeId || filters.statusFilter
-                          ? ' Essayez de modifier vos filtres.'
-                          : ' Les objectifs seront affichés ici une fois les entretiens complétés.'}
-                      </td>
-                    </tr>
-                  ) : (
-                    objectives.map((obj) => {
-                      const isEditing = editingObjective &&
-                        editingObjective.interviewId === obj.interviewId &&
-                        editingObjective.objectiveIndex === obj.objectiveIndex;
-                      const isSaving = savingObjective === obj.interviewId + '_' + obj.objectiveIndex;
-                      const historyKey = `${obj.interviewId}_${obj.objectiveIndex}`;
-                      const isHistoryExpanded = expandedHistory[historyKey];
-                      const isLoadingHistory = loadingHistory[historyKey];
-                      const historyData = progressHistoryCache[historyKey];
+        {/* Table Container Card */}
+        <div className="obj-table-card">
+          <div className="obj-table-header">
+            <h5 className="obj-table-title">Liste des Objectifs</h5>
+            <span className="obj-table-count-badge">
+              {objectives.length} objectif{objectives.length > 1 ? 's' : ''} affiché{objectives.length > 1 ? 's' : ''}
+            </span>
+          </div>
 
-                      return (
-                        <React.Fragment key={historyKey}>
+          <div className="table-responsive">
+            <table className="obj-custom-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '22%' }}>Collaborateur</th>
+                  <th style={{ width: '28%' }}>Objectif & Indicateur</th>
+                  <th style={{ width: '10%' }}>Échéance</th>
+                  <th style={{ width: '13%' }}>Statut</th>
+                  <th style={{ width: '14%' }}>Progression</th>
+                  <th style={{ width: '8%' }}>Modifié le</th>
+                  <th style={{ width: '5%', textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {objectives.length === 0 ? (
+                  <tr>
+                    <td colSpan="7">
+                      <div className="empty-state-container">
+                        <div className="empty-state-icon">
+                          <FontAwesomeIcon icon={faBullseye} />
+                        </div>
+                        <h6 className="empty-state-title">Aucun objectif trouvé</h6>
+                        <p className="empty-state-desc">
+                          {hasActiveFilters
+                            ? 'Aucun résultat ne correspond aux filtres appliqués. Essayez de réinitialiser votre recherche.'
+                            : 'Aucun objectif n\'a encore été défini dans les entretiens d\'évaluation.'}
+                        </p>
+                        {hasActiveFilters && (
+                          <button className="btn btn-sm btn-outline-primary mt-3 rounded-pill px-4" onClick={handleResetFilters}>
+                            Réinitialiser les filtres
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  objectives.map((obj) => {
+                    const isEditing =
+                      editingObjective &&
+                      editingObjective.interviewId === obj.interviewId &&
+                      editingObjective.objectiveIndex === obj.objectiveIndex;
+                    const isSaving = savingObjective === obj.interviewId + '_' + obj.objectiveIndex;
+                    const historyKey = `${obj.interviewId}_${obj.objectiveIndex}`;
+                    const isHistoryExpanded = expandedHistory[historyKey];
+                    const isLoadingHistory = loadingHistory[historyKey];
+                    const historyData = progressHistoryCache[historyKey];
+
+                    return (
+                      <React.Fragment key={historyKey}>
                         <tr>
+                          {/* Collaborateur (Name, Department, Position) */}
                           <td>
-                            <span className="fw-semibold">{obj.employeeName}</span>
+                            <div className="employee-cell">
+                              <div
+                                className="employee-avatar"
+                                style={{ background: getAvatarBackground(obj.employeeName) }}
+                              >
+                                {getInitials(obj.employeeName)}
+                              </div>
+                              <div className="d-flex flex-column justify-content-center">
+                                <div className="employee-name">{obj.employeeName}</div>
+                                <div className="employee-dept-tag">
+                                  {obj.position ? `${obj.position}${obj.department ? ` (${obj.department})` : ''}` : (obj.department || '')}
+                                </div>
+                              </div>
+                            </div>
                           </td>
+
+                          {/* Objectif & Indicateur */}
                           <td>
-                            <span className="text-muted" style={{ fontSize: '0.85rem' }}>{obj.department}</span>
-                          </td>
-                          <td>
-                            <span className="text-muted" style={{ fontSize: '0.85rem' }}>{obj.position}</span>
-                          </td>
-                          <td>
-                            <div className="fw-medium" style={{ fontSize: '0.9rem' }}>{obj.description}</div>
+                            <div className="objective-desc">{obj.description}</div>
                             {obj.indicator && (
-                              <small className="text-muted">
-                                <i className="mdi mdi-target me-1"></i>
+                              <div className="objective-indicator">
+                                <FontAwesomeIcon icon={faBullseye} className="text-primary me-1" />
                                 {obj.indicator}
-                              </small>
+                              </div>
                             )}
                           </td>
+
+                          {/* Échéance */}
                           <td>
-                            <small>{obj.dueDate ? new Date(obj.dueDate).toLocaleDateString('fr-FR') : '-'}</small>
+                            <div className="d-flex align-items-center text-muted" style={{ fontSize: '0.825rem' }}>
+                              <FontAwesomeIcon icon={faCalendarAlt} className="text-primary opacity-75 me-2" />
+                              <span>{obj.dueDate ? new Date(obj.dueDate).toLocaleDateString('fr-FR') : '-'}</span>
+                            </div>
                           </td>
+
+                          {/* Statut */}
                           <td>
                             {isEditing ? (
                               <select
-                                className="form-select form-select-sm"
+                                className="form-select form-select-sm custom-select"
                                 value={editStatus}
                                 onChange={(e) => handleStatusChange(e.target.value)}
                               >
@@ -612,42 +848,59 @@ function ObjectivesSummary() {
                               renderStatusBadge(obj.status)
                             )}
                           </td>
+
+                          {/* Progression */}
                           <td>
                             {isEditing ? (
-                              <div className="d-flex align-items-center gap-2">
-                                <input
-                                  type="range"
-                                  className="form-range form-range-sm"
-                                  min="0"
-                                  max="100"
-                                  step="5"
-                                  value={editCompletionRate}
-                                  onChange={(e) => handleRateChange(Number(e.target.value))}
-                                  style={{ width: '80px' }}
-                                />
-                                <small className="fw-bold">{editCompletionRate}%</small>
-                              </div>
-                            ) : (
                               <div>
-                                <div className="d-flex align-items-center gap-2">
-                                  {renderProgressBar(obj.completionRate)}
-                                  <small className="fw-semibold" style={{ fontSize: '0.8rem' }}>{obj.completionRate}%</small>
+                                <div className="d-flex align-items-center gap-2 mb-1">
+                                  <input
+                                    type="range"
+                                    className="form-range form-range-sm"
+                                    min="0"
+                                    max="100"
+                                    step="5"
+                                    value={editCompletionRate}
+                                    onChange={(e) => handleRateChange(Number(e.target.value))}
+                                  />
+                                  <span className="fw-bold text-primary" style={{ fontSize: '0.85rem', width: '35px' }}>
+                                    {editCompletionRate}%
+                                  </span>
+                                </div>
+                                {/* Presets rapides */}
+                                <div className="d-flex gap-1 flex-wrap">
+                                  {[0, 25, 50, 75, 100].map((preset) => (
+                                    <button
+                                      key={preset}
+                                      type="button"
+                                      className={`rate-preset-btn ${editCompletionRate === preset ? 'active' : ''}`}
+                                      onClick={() => handleRateChange(preset)}
+                                    >
+                                      {preset}%
+                                    </button>
+                                  ))}
                                 </div>
                               </div>
+                            ) : (
+                              renderProgressBar(obj.completionRate)
                             )}
                           </td>
+
+                          {/* Modifié le */}
                           <td>
-                            <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                            <span className="text-muted" style={{ fontSize: '0.785rem' }}>
                               {obj.lastModified
                                 ? new Date(obj.lastModified).toLocaleDateString('fr-FR')
                                 : '-'}
-                            </small>
+                            </span>
                           </td>
+
+                          {/* Actions */}
                           <td>
                             {isEditing ? (
-                              <div className="d-flex gap-1">
+                              <div className="d-flex gap-1 justify-content-center">
                                 <button
-                                  className="btn btn-sm btn-success"
+                                  className="btn btn-sm btn-success p-1 px-2"
                                   onClick={() => saveObjectiveStatus(obj)}
                                   disabled={isSaving}
                                   title="Sauvegarder"
@@ -659,7 +912,7 @@ function ObjectivesSummary() {
                                   )}
                                 </button>
                                 <button
-                                  className="btn btn-sm btn-outline-secondary"
+                                  className="btn btn-sm btn-outline-secondary p-1 px-2"
                                   onClick={cancelEditing}
                                   disabled={isSaving}
                                   title="Annuler"
@@ -668,92 +921,96 @@ function ObjectivesSummary() {
                                 </button>
                               </div>
                             ) : (
-                              <div className="d-flex gap-1">
+                              <div className="d-flex gap-1 justify-content-center">
                                 <button
-                                  className="btn btn-sm btn-outline-primary"
+                                  className="obj-action-btn"
                                   onClick={() => startEditing(obj)}
                                   title="Modifier le statut"
                                 >
                                   <FontAwesomeIcon icon={faEdit} />
                                 </button>
                                 <button
-                                  className={`btn btn-sm ${isHistoryExpanded ? 'btn-info' : 'btn-outline-info'}`}
+                                  className={`obj-action-btn btn-history ${isHistoryExpanded ? 'active-history' : ''}`}
                                   onClick={() => toggleHistory(obj)}
                                   title="Historique de progression"
                                   disabled={isLoadingHistory}
                                 >
                                   {isLoadingHistory ? (
-                                    <span className="spinner-border spinner-border-sm"></span>
+                                    <span className="spinner-border spinner-border-sm" style={{ width: '12px', height: '12px' }}></span>
                                   ) : (
-                                    <>
-                                      <FontAwesomeIcon icon={faHistory} />
-                                      {obj.progressHistoryCount > 0 && (
-                                        <span className="badge bg-info ms-1" style={{ fontSize: '0.6rem' }}>
-                                          {obj.progressHistoryCount}
-                                        </span>
-                                      )}
-                                    </>
+                                    <FontAwesomeIcon icon={faHistory} />
                                   )}
                                 </button>
                               </div>
                             )}
                           </td>
                         </tr>
+
                         {/* Ligne d'historique de progression (expandable) */}
                         {isHistoryExpanded && historyData && (
-                          <tr key={`${historyKey}_history`}>
-                            <td colSpan="9" className="bg-light p-0">
-                              <div className="p-3">
-                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                  <h6 className="mb-0">
-                                    <FontAwesomeIcon icon={faHistory} className="me-2 text-info" />
-                                    Historique de progression
+                          <tr key={`${historyKey}_history`} className="history-expanded-row">
+                            <td colSpan="7">
+                              <div className="history-timeline-box">
+                                <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                  <h6 className="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                    <FontAwesomeIcon icon={faHistory} className="text-info" />
+                                    Historique de progression de l'objectif
                                   </h6>
-                                  <small className="text-muted">
-                                    Statut actuel : {renderStatusBadge(historyData.currentStatus)} — {historyData.currentCompletionRate}%
-                                  </small>
+                                  <div className="d-flex align-items-center gap-2">
+                                    <span className="text-muted" style={{ fontSize: '0.8rem' }}>État actuel :</span>
+                                    {renderStatusBadge(historyData.currentStatus)}
+                                    <span className="fw-bold text-primary" style={{ fontSize: '0.85rem' }}>
+                                      {historyData.currentCompletionRate}%
+                                    </span>
+                                  </div>
                                 </div>
+
                                 {historyData.progressHistory && historyData.progressHistory.length > 0 ? (
-                                  <div className="timeline">
+                                  <div className="mt-2">
                                     {historyData.progressHistory.map((entry, i) => (
-                                      <div key={i} className="d-flex align-items-start mb-2 pb-2 border-bottom">
-                                        <div className="me-3 text-muted" style={{ minWidth: '130px', fontSize: '0.8rem' }}>
+                                      <div key={i} className="timeline-item">
+                                        <div className="timeline-dot" />
+                                        <div className="timeline-date">
                                           <FontAwesomeIcon icon={faClock} className="me-1" />
-                                          {new Date(entry.date).toLocaleDateString('fr-FR')} {new Date(entry.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                          {new Date(entry.date).toLocaleDateString('fr-FR')} à{' '}
+                                          {new Date(entry.date).toLocaleTimeString('fr-FR', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                          })}
                                         </div>
-                                        <div className="d-flex align-items-center gap-2 flex-wrap">
+                                        <div className="timeline-change-card">
                                           {renderStatusBadge(entry.oldStatus)}
-                                          <FontAwesomeIcon icon={faChevronDown} className="text-muted" style={{ transform: 'rotate(-90deg)' }} />
-                                          <span className="text-muted" style={{ fontSize: '0.8rem' }}>{entry.oldCompletionRate}%</span>
-                                          <span className="fw-bold text-primary mx-1">→</span>
+                                          <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                                            ({entry.oldCompletionRate}%)
+                                          </span>
+                                          <FontAwesomeIcon icon={faArrowRight} className="text-muted mx-1" style={{ fontSize: '0.75rem' }} />
                                           {renderStatusBadge(entry.newStatus)}
-                                          <span className="fw-semibold" style={{ fontSize: '0.8rem' }}>{entry.newCompletionRate}%</span>
+                                          <span className="fw-bold text-primary" style={{ fontSize: '0.8rem' }}>
+                                            ({entry.newCompletionRate}%)
+                                          </span>
                                         </div>
                                       </div>
                                     ))}
                                   </div>
                                 ) : (
-                                  <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
-                                    Aucun changement enregistré. L'historique sera créé lors de la première modification.
+                                  <p className="text-muted mb-0 py-2" style={{ fontSize: '0.85rem' }}>
+                                    Aucun changement précédent enregistré. L'historique conserve le détail des modifications futures.
                                   </p>
                                 )}
                               </div>
                             </td>
                           </tr>
                         )}
-                        </React.Fragment>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-          {totalPages > 1 && (
-            <div className="card-footer bg-white">
-              {renderPagination()}
-            </div>
-          )}
+
+          {/* Footer & Pagination */}
+          {totalPages > 0 && renderPagination()}
         </div>
       </div>
     </Template>
