@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import React from 'react';
 import Template from '../../Template';
 import api from '../../../helpers/api';
@@ -88,7 +88,9 @@ function ObjectivesSummary() {
   const [totalPages, setTotalPages] = useState(0);
 
   // Filtres
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');   // valeur instantanée (affichée dans le champ)
+  const [searchQuery, setSearchQuery] = useState('');   // valeur déboncée (envoyée à l'API)
+  const debounceRef = useRef(null);
   const [filters, setFilters] = useState({
     departmentId: '',
     employeeId: '',
@@ -171,8 +173,20 @@ function ObjectivesSummary() {
   // ====== GESTION DES ÉVÉNEMENTS ======
 
   const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
+    // Met à jour uniquement l'affichage du champ — pas d'appel API
+    setSearchInput(e.target.value);
+  };
+
+  // Déclenche la recherche (bouton ou touche Entrée uniquement)
+  const handleSearchSubmit = () => {
+    setSearchQuery(searchInput);
     setCurrentPage(1);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit();
+    }
   };
 
   const handleFilterChange = (e) => {
@@ -187,6 +201,7 @@ function ObjectivesSummary() {
   };
 
   const handleResetFilters = () => {
+    setSearchInput('');
     setSearchQuery('');
     setFilters({ departmentId: '', employeeId: '', statusFilter: '' });
     setCurrentPage(1);
@@ -436,7 +451,7 @@ function ObjectivesSummary() {
     );
   };
 
-  const hasActiveFilters = searchQuery !== '' || filters.departmentId !== '' || filters.employeeId !== '' || filters.statusFilter !== '';
+  const hasActiveFilters = searchInput !== '' || filters.departmentId !== '' || filters.employeeId !== '' || filters.statusFilter !== '';
 
   if (userLoading || loading) {
     return (
@@ -666,15 +681,43 @@ function ObjectivesSummary() {
                 <FontAwesomeIcon icon={faSearch} className="filter-label-icon" />
                 Recherche par mot-clé
               </label>
-              <div className="custom-input-group">
-                <FontAwesomeIcon icon={faSearch} className="obj-search-input-icon" />
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Rechercher par employé, description, indicateur..."
-                  value={searchQuery}
-                  onChange={handleSearch}
-                />
+              <div className="search-field-row">
+                <div className="custom-input-group flex-grow-1">
+                  <FontAwesomeIcon icon={faSearch} className="obj-search-input-icon" />
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Rechercher par employé, description, indicateur..."
+                    value={searchInput}
+                    onChange={handleSearch}
+                    onKeyDown={handleSearchKeyDown}
+                  />
+                  {searchInput && (
+                    <button
+                      type="button"
+                      className="search-clear-btn"
+                      onClick={() => {
+                        if (debounceRef.current) clearTimeout(debounceRef.current);
+                        setSearchInput('');
+                        setSearchQuery('');
+                        setCurrentPage(1);
+                      }}
+                      title="Effacer la recherche"
+                      aria-label="Effacer"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn-search-submit"
+                  onClick={handleSearchSubmit}
+                  title="Lancer la recherche"
+                  aria-label="Rechercher"
+                >
+                  <FontAwesomeIcon icon={faSearch} />
+                </button>
               </div>
             </div>
 
