@@ -33,6 +33,7 @@ import UploadImage from '../pages/settings/UploadImage';
 import CreateEmployeePage from '../pages/settings/employeeManagement/CreateEmployeePage';
 import ListEmployeePage from '../pages/settings/employeeManagement/ListEmployeePage';
 import EvaluationInterviewHome from '../pages/Evaluations/EvaluationInterview/EvaluationInterviewHome';
+import ObjectivesSummary from '../pages/Evaluations/EvaluationInterview/ObjectivesSummary';
 import ProtectedRoute from '../pages/Authentification/ProtectedRoute';
 import Evaluations from '../pages/settings/evaluations/Evaluations';
 import QuestionEvaluation from '../pages/settings/evaluations/Questionnaires/QuestionEvaluation';
@@ -107,6 +108,7 @@ function AppRouter() {
         <Route path="/soft-gcc/evaluations/historique" element={<EvalHistory />} />
         <Route path="/soft-gcc/evaluations/entretiens" element={<EvaluationInterviews />} />
         <Route path="/soft-gcc/evaluations/accueil" element={<EvaluationInterviewHome />} />
+        <Route path="/soft-gcc/evaluations/objectifs" element={<ObjectivesSummary />} />
         <Route path="/soft-gcc/evaluations/details" element={<EvaluationDetails />} />
         <Route path="/soft-gcc/evaluations/details/:interviewId" element={<EvaluationDetails />} />
         <Route path="/soft-gcc/evaluations/notation/employe/:employeeId" element={<EvaluationNotation />} />
