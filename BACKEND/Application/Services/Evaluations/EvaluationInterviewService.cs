@@ -4,6 +4,7 @@ using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.AuthInterface;
 using soft_carriere_competence.Core.Interface.DataService;
+using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using Microsoft.Extensions.Configuration;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
@@ -751,7 +752,255 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return validationStatus;
         }
 
+		/// <summary>
+		/// Récupère tous les objectifs extraits des entretiens d'évaluation avec informations employé
+		/// </summary>
+		public async Task<(List<ObjectiveSummaryDto> Objectives, ObjectivesStatisticsDto Statistics)> GetObjectivesSummaryAsync(
+			int? departmentId = null,
+			int? employeeId = null,
+			string? statusFilter = null,
+			string? searchQuery = null,
+			int pageNumber = 1,
+			int pageSize = 20)
+		{
+			var objectives = new List<ObjectiveSummaryDto>();
 
+			// Récupérer tous les entretiens qui ont des notes
+			var interviews = (await _interviewRepository.GetAllAsync())
+				.Where(i => !string.IsNullOrEmpty(i.notes))
+				.ToList();
+
+			// Récupérer la vue des employés avec évaluations terminées pour les infos employé
+			var employeesView = _dataService.GetEmployeesFinishedEvalQuery().ToList();
+
+			foreach (var interview in interviews)
+			{
+				try
+				{
+					// Parser le JSON des notes
+					var parsedNotes = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(interview.notes);
+
+					// Vérifier si le JSON contient un tableau "objectives"
+					if (parsedNotes.TryGetProperty("objectives", out var objectivesArray) && objectivesArray.ValueKind == System.Text.Json.JsonValueKind.Array)
+					{
+						// Trouver les infos employé via la vue
+						var employeeInfo = employeesView.FirstOrDefault(e => e.evaluationId == interview.EvaluationId);
+
+						int objIndex = 0;
+						foreach (var obj in objectivesArray.EnumerateArray())
+						{
+							var description = obj.TryGetProperty("description", out var desc) ? desc.GetString() ?? "" : "";
+							var dueDate = obj.TryGetProperty("dueDate", out var dd) ? dd.GetString() : null;
+							var indicator = obj.TryGetProperty("indicator", out var ind) ? ind.GetString() : null;
+							var status = obj.TryGetProperty("status", out var st) ? st.GetString() ?? "Non commencé" : "Non commencé";
+							var completionRate = obj.TryGetProperty("completionRate", out var cr) && cr.TryGetInt32(out var rate) ? rate : 0;
+							var lastModified = obj.TryGetProperty("lastModified", out var lm) ? lm.GetString() : null;
+
+							// Extraire l'historique de progression
+							var progressHistory = new List<ProgressHistoryEntryDto>();
+							int progressHistoryCount = 0;
+							if (obj.TryGetProperty("progressHistory", out var phArray) && phArray.ValueKind == System.Text.Json.JsonValueKind.Array)
+							{
+								foreach (var entry in phArray.EnumerateArray())
+								{
+									progressHistory.Add(new ProgressHistoryEntryDto
+									{
+										Date = entry.TryGetProperty("date", out var d) ? d.GetString() ?? "" : "",
+										OldStatus = entry.TryGetProperty("oldStatus", out var os) ? os.GetString() ?? "" : "",
+										NewStatus = entry.TryGetProperty("newStatus", out var ns) ? ns.GetString() ?? "" : "",
+										OldCompletionRate = entry.TryGetProperty("oldCompletionRate", out var ocr) && ocr.TryGetInt32(out var orv) ? orv : 0,
+										NewCompletionRate = entry.TryGetProperty("newCompletionRate", out var ncr) && ncr.TryGetInt32(out var nrv) ? nrv : 0,
+									});
+								}
+								progressHistoryCount = progressHistory.Count;
+							}
+
+							// Ne pas inclure les objectifs sans description
+							if (string.IsNullOrWhiteSpace(description))
+							{
+								objIndex++;
+								continue;
+							}
+
+							objectives.Add(new ObjectiveSummaryDto
+							{
+								InterviewId = interview.InterviewId,
+								EvaluationId = interview.EvaluationId,
+								EmployeeId = employeeInfo?.EmployeeId ?? 0,
+								EmployeeName = employeeInfo != null
+									? $"{employeeInfo.FirstName} {employeeInfo.LastName}"
+									: "Employé inconnu",
+								Department = employeeInfo?.Department ?? "N/A",
+								Position = employeeInfo?.Position ?? "N/A",
+								Description = description,
+								DueDate = dueDate,
+								Indicator = indicator,
+								Status = status,
+								CompletionRate = completionRate,
+								ObjectiveIndex = objIndex,
+								LastModified = lastModified,
+								ProgressHistoryCount = progressHistoryCount,
+								ProgressHistory = progressHistory
+							});
+							objIndex++;
+						}
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"Erreur lors du parsing des notes pour l'interview {interview.InterviewId}: {ex.Message}");
+				}
+			}
+
+			// Appliquer les filtres
+			var filteredObjectives = objectives.AsEnumerable();
+
+			if (departmentId.HasValue)
+			{
+				filteredObjectives = filteredObjectives.Where(o =>
+					employeesView.Any(e => e.EmployeeId == o.EmployeeId && e.DepartmentId == departmentId.Value));
+			}
+
+			if (employeeId.HasValue)
+			{
+				filteredObjectives = filteredObjectives.Where(o => o.EmployeeId == employeeId.Value);
+			}
+
+			if (!string.IsNullOrEmpty(statusFilter))
+			{
+				filteredObjectives = filteredObjectives.Where(o => o.Status == statusFilter);
+			}
+
+			if (!string.IsNullOrEmpty(searchQuery))
+			{
+				var search = searchQuery.ToLower();
+				filteredObjectives = filteredObjectives.Where(o =>
+					o.Description.ToLower().Contains(search) ||
+					o.EmployeeName.ToLower().Contains(search) ||
+					(o.Indicator ?? "").ToLower().Contains(search) ||
+					o.Department.ToLower().Contains(search));
+			}
+
+			var filteredList = filteredObjectives.ToList();
+
+			// Calculer les statistiques
+			var statistics = new ObjectivesStatisticsDto
+			{
+				TotalObjectives = filteredList.Count,
+				AchievedObjectives = filteredList.Count(o => o.Status == "Atteint"),
+				InProgressObjectives = filteredList.Count(o => o.Status == "En cours"),
+				NotStartedObjectives = filteredList.Count(o => o.Status == "Non commencé"),
+				NotAchievedObjectives = filteredList.Count(o => o.Status == "Non atteint"),
+				AverageCompletionRate = filteredList.Any()
+					? Math.Round(filteredList.Average(o => o.CompletionRate), 1)
+					: 0,
+				GlobalAchievementRate = filteredList.Any()
+					? Math.Round((double)filteredList.Count(o => o.Status == "Atteint") / filteredList.Count * 100, 1)
+					: 0
+			};
+
+			// Paginer
+			var totalItems = filteredList.Count;
+			var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+			var pagedObjectives = filteredList
+				.Skip((pageNumber - 1) * pageSize)
+				.Take(pageSize)
+				.ToList();
+
+			return (pagedObjectives, statistics);
+		}
+
+		/// <summary>
+		/// Met à jour le statut et le taux de complétion d'un objectif dans les notes d'un entretien.
+		/// Inclut l'auto-synchronisation statut ↔ taux et l'historique de progression.
+		/// Utilise System.Text.Json.Nodes pour manipuler le JSON sans corruption.
+		/// </summary>
+		public async Task<bool> UpdateObjectiveStatusAsync(int interviewId, int objectiveIndex, string? status, int? completionRate)
+		{
+			var interview = await _interviewRepository.GetByIdAsync(interviewId);
+			if (interview == null || string.IsNullOrEmpty(interview.notes))
+				return false;
+
+			try
+			{
+				// Parser le JSON avec JsonNode (DOM mutable)
+				var rootNode = System.Text.Json.Nodes.JsonNode.Parse(interview.notes);
+				if (rootNode == null) return false;
+
+				var objectivesArray = rootNode["objectives"]?.AsArray();
+				if (objectivesArray == null || objectiveIndex < 0 || objectiveIndex >= objectivesArray.Count)
+					return false;
+
+				var targetObjective = objectivesArray[objectiveIndex];
+				if (targetObjective == null) return false;
+
+				// Déterminer le taux de complétion auto-calculé selon le statut
+				string newStatus = status ?? "Non commencé";
+				int newCompletionRate = completionRate ?? 0;
+
+				// Auto-synchronisation : si seul le statut change, dériver le taux
+				if (!string.IsNullOrEmpty(status) && (completionRate == null || completionRate == 0))
+				{
+					newCompletionRate = newStatus switch
+					{
+						"Atteint" => 100,
+						"Non commencé" => 0,
+						"Non atteint" => 0,
+						_ => completionRate ?? 0
+					};
+				}
+
+				// Si le taux est mis à 100 manuellement, suggérer le statut "Atteint"
+				if (completionRate >= 100 && newStatus != "Atteint" && newStatus != "Non atteint")
+				{
+					newStatus = "Atteint";
+					newCompletionRate = 100;
+				}
+
+				var nowString = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss");
+
+				// Lire les anciennes valeurs pour l'historique
+				var oldStatus = targetObjective["status"]?.GetValue<string>() ?? "Non commencé";
+				var oldRate = targetObjective["completionRate"]?.GetValue<int>() ?? 0;
+				bool hasChanged = oldStatus != newStatus || oldRate != newCompletionRate;
+
+				// Appliquer les nouvelles valeurs
+				targetObjective["status"] = newStatus;
+				targetObjective["completionRate"] = newCompletionRate;
+				targetObjective["lastModified"] = nowString;
+
+				// Gérer l'historique de progression
+				var progressHistoryArray = targetObjective["progressHistory"]?.AsArray();
+				if (progressHistoryArray == null)
+				{
+					progressHistoryArray = new System.Text.Json.Nodes.JsonArray();
+					targetObjective["progressHistory"] = progressHistoryArray;
+				}
+
+				// Ajouter la nouvelle entrée d'historique si changement
+				if (hasChanged)
+				{
+					progressHistoryArray.Add(new System.Text.Json.Nodes.JsonObject
+					{
+						["date"] = nowString,
+						["oldStatus"] = oldStatus,
+						["newStatus"] = newStatus,
+						["oldCompletionRate"] = oldRate,
+						["newCompletionRate"] = newCompletionRate
+					});
+				}
+
+				// Sérialiser le JSON modifié
+				interview.notes = rootNode.ToJsonString();
+				await _interviewRepository.UpdateAsync(interview);
+				return true;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Erreur lors de la mise à jour des objectifs: {ex.Message}");
+				return false;
+			}
+		}
 
 
 

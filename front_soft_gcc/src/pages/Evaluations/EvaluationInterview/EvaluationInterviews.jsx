@@ -47,6 +47,10 @@ const EvaluationInterviews = () => {
       description: '',
       dueDate: '',
       indicator: '',
+      status: 'Non commencé',
+      completionRate: 0,
+      lastModified: new Date().toISOString(),
+      progressHistory: [],
     }],
     // Plan de développement
     developmentPlan: {
@@ -276,7 +280,7 @@ const EvaluationInterviews = () => {
       ...prev,
       objectives: [
         ...prev.objectives,
-        { description: '', dueDate: '', indicator: '' }
+        { description: '', dueDate: '', indicator: '', status: 'Non commencé', completionRate: 0, lastModified: new Date().toISOString(), progressHistory: [] }
       ]
     }));
   };
@@ -296,6 +300,24 @@ const EvaluationInterviews = () => {
   const handleObjectiveChange = (index, field, value) => {
     const newObjectives = [...formData.objectives];
     newObjectives[index][field] = value;
+    
+    // Auto-synchro statut ↔ taux
+    if (field === 'status') {
+      if (value === 'Atteint') {
+        newObjectives[index].completionRate = 100;
+      } else if (value === 'Non commencé' || value === 'Non atteint') {
+        newObjectives[index].completionRate = 0;
+      }
+    }
+    if (field === 'completionRate') {
+      if (value >= 100) {
+        newObjectives[index].status = 'Atteint';
+      } else if (value > 0 && newObjectives[index].status === 'Non commencé') {
+        newObjectives[index].status = 'En cours';
+      }
+    }
+    // Mettre à jour la date de dernière modification
+    newObjectives[index].lastModified = new Date().toISOString();
     
     setFormData(prev => ({
       ...prev,
@@ -740,6 +762,38 @@ const EvaluationInterviews = () => {
                                       value={objective.indicator}
                                       onChange={e => handleObjectiveChange(index, 'indicator', e.target.value)}
                                     />
+                                  </div>
+                                </div>
+
+                                <div className="row">
+                                  <div className="col-md-6 mb-3">
+                                    <label className="form-label">Statut</label>
+                                    <select
+                                      className="form-select"
+                                      value={objective.status || 'Non commencé'}
+                                      onChange={e => handleObjectiveChange(index, 'status', e.target.value)}
+                                    >
+                                      <option value="Non commencé">Non commencé</option>
+                                      <option value="En cours">En cours</option>
+                                      <option value="Atteint">Atteint</option>
+                                      <option value="Non atteint">Non atteint</option>
+                                    </select>
+                                  </div>
+
+                                  <div className="col-md-6 mb-3">
+                                    <label className="form-label">Taux de réalisation (%)</label>
+                                    <div className="d-flex align-items-center gap-2">
+                                      <input
+                                        type="range"
+                                        className="form-range"
+                                        min="0"
+                                        max="100"
+                                        step="5"
+                                        value={objective.completionRate || 0}
+                                        onChange={e => handleObjectiveChange(index, 'completionRate', Number(e.target.value))}
+                                      />
+                                      <span className="fw-bold" style={{ minWidth: '40px' }}>{objective.completionRate || 0}%</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>

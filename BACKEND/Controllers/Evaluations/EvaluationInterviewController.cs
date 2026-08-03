@@ -231,5 +231,151 @@ namespace soft_carriere_competence.Controllers.Evaluations
 			}
 		}
 
+		/// <summary>
+		/// Récupère le récapitulatif de tous les objectifs extraits des entretiens d'évaluation
+		/// </summary>
+		[HttpGet("objectives-summary")]
+		public async Task<IActionResult> GetObjectivesSummary(
+			[FromQuery] int? departmentId = null,
+			[FromQuery] int? employeeId = null,
+			[FromQuery] string? statusFilter = null,
+			[FromQuery] string? searchQuery = null,
+			[FromQuery] int pageNumber = 1,
+			[FromQuery] int pageSize = 20)
+		{
+			try
+			{
+				var (objectives, statistics) = await _evaluationInterviewService.GetObjectivesSummaryAsync(
+					departmentId, employeeId, statusFilter, searchQuery, pageNumber, pageSize);
+
+				return Ok(new
+				{
+					Objectives = objectives,
+					Statistics = statistics,
+					TotalCount = statistics.TotalObjectives,
+					CurrentPage = pageNumber,
+					PageSize = pageSize
+				});
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Erreur lors de la récupération du récapitulatif des objectifs");
+				return StatusCode(500, new { message = $"Erreur lors de la récupération des objectifs : {ex.Message}" });
+			}
+		}
+
+		/// <summary>
+		/// Met à jour le statut et le taux de complétion d'un objectif.
+		/// Inclut l'auto-synchronisation : statut "Atteint" → 100%, taux 100% → "Atteint".
+		/// </summary>
+		[HttpPut("objectives/{interviewId}")]
+		public async Task<IActionResult> UpdateObjectiveStatus(int interviewId, [FromBody] UpdateObjectiveStatusDto dto)
+		{
+			if (dto == null)
+				return BadRequest(new { message = "Données invalides." });
+
+			try
+			{
+				var result = await _evaluationInterviewService.UpdateObjectiveStatusAsync(
+					interviewId, dto.ObjectiveIndex, dto.Status, dto.CompletionRate);
+
+				if (!result)
+					return NotFound(new { message = "Entretien ou objectif introuvable." });
+
+				// Déterminer les valeurs effectives après auto-synchro
+				string effectiveStatus = dto.Status ?? "Non commencé";
+				int effectiveRate = dto.CompletionRate ?? 0;
+				if (dto.CompletionRate >= 100 && effectiveStatus != "Non atteint")
+				{
+					effectiveStatus = "Atteint";
+					effectiveRate = 100;
+				}
+				else if (dto.Status == "Atteint")
+				{
+					effectiveRate = 100;
+				}
+				else if (dto.Status == "Non commencé" || dto.Status == "Non atteint")
+				{
+					effectiveRate = 0;
+				}
+
+				return Ok(new {
+					message = "Statut de l'objectif mis à jour avec succès.",
+					status = effectiveStatus,
+					completionRate = effectiveRate
+				});
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Erreur lors de la mise à jour du statut de l'objectif");
+				return StatusCode(500, new { message = $"Erreur : {ex.Message}" });
+			}
+		}
+
+		/// <summary>
+		/// Récupère l'historique de progression d'un objectif spécifique
+		/// </summary>
+		[HttpGet("objectives/{interviewId}/history/{objectiveIndex}")]
+		public async Task<IActionResult> GetObjectiveProgressHistory(int interviewId, int objectiveIndex)
+		{
+			try
+			{
+				var interview = await _evaluationInterviewService.GetInterviewDetailsAsync(interviewId);
+				if (interview == null || string.IsNullOrEmpty(interview.notes))
+					return NotFound(new { message = "Entretien introuvable ou sans notes." });
+
+				var parsedNotes = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(interview.notes);
+				if (!parsedNotes.TryGetProperty("objectives", out var objectivesArray) ||
+				    objectivesArray.ValueKind != System.Text.Json.JsonValueKind.Array)
+					return NotFound(new { message = "Aucun objectif trouvé dans cet entretien." });
+
+				int idx = 0;
+				foreach (var obj in objectivesArray.EnumerateArray())
+				{
+					if (idx == objectiveIndex)
+					{
+						var history = new List<object>();
+						if (obj.TryGetProperty("progressHistory", out var phArray) &&
+						    phArray.ValueKind == System.Text.Json.JsonValueKind.Array)
+						{
+							foreach (var entry in phArray.EnumerateArray())
+							{
+								history.Add(new
+								{
+									date = entry.TryGetProperty("date", out var d) ? d.GetString() : "",
+									oldStatus = entry.TryGetProperty("oldStatus", out var os) ? os.GetString() : "",
+									newStatus = entry.TryGetProperty("newStatus", out var ns) ? ns.GetString() : "",
+									oldCompletionRate = entry.TryGetProperty("oldCompletionRate", out var ocr) && ocr.TryGetInt32(out var orv) ? orv : 0,
+									newCompletionRate = entry.TryGetProperty("newCompletionRate", out var ncr) && ncr.TryGetInt32(out var nrv) ? nrv : 0,
+								});
+							}
+						}
+
+						var currentStatus = obj.TryGetProperty("status", out var st) ? st.GetString() ?? "Non commencé" : "Non commencé";
+						var currentRate = obj.TryGetProperty("completionRate", out var cr) && cr.TryGetInt32(out var r) ? r : 0;
+						var lastModified = obj.TryGetProperty("lastModified", out var lm) ? lm.GetString() : null;
+
+						return Ok(new
+						{
+							interviewId,
+							objectiveIndex,
+							currentStatus,
+							currentCompletionRate = currentRate,
+							lastModified,
+							progressHistory = history
+						});
+					}
+					idx++;
+				}
+
+				return NotFound(new { message = "Objectif non trouvé à cet index." });
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Erreur lors de la récupération de l'historique de progression");
+				return StatusCode(500, new { message = $"Erreur : {ex.Message}" });
+			}
+		}
+
 	}
 }
