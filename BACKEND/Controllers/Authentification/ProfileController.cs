@@ -19,11 +19,16 @@ namespace soft_carriere_competence.Controllers.Authentification
     {
         private readonly ApplicationDbContext _context;
         private readonly IManagerHierarchyService _hierarchyService;
+        private readonly IModuleService _moduleService;
 
-        public ProfileController(ApplicationDbContext context, IManagerHierarchyService hierarchyService)
+        public ProfileController(
+            ApplicationDbContext context,
+            IManagerHierarchyService hierarchyService,
+            IModuleService moduleService)
         {
             _context = context;
             _hierarchyService = hierarchyService;
+            _moduleService = moduleService;
         }
 
         /// <summary>
@@ -76,8 +81,19 @@ namespace soft_carriere_competence.Controllers.Authentification
                     (rp, p) => p.Name)
                 .ToListAsync();
 
-            // Construire la liste des modules visibles à partir des permissions
-            var visibleModules = DetermineVisibleModules(permissions, user.RoleId);
+            // Construire la liste des modules visibles depuis la DB (Role_Modules)
+            // Fallback : si les tables n'existent pas encore, utiliser l'ancienne logique hardcodée
+            List<string> moduleNames;
+            try
+            {
+                var visibleModules = await _moduleService.GetMyModulesAsync(user.Id);
+                moduleNames = visibleModules.Select(m => m.Name).Distinct().ToList();
+            }
+            catch (Exception)
+            {
+                // Fallback : les tables Modules/Role_Modules n'existent pas encore
+                moduleNames = DetermineVisibleModulesFallback(permissions, user.RoleId);
+            }
 
             var profile = new UserProfileDto
             {
@@ -91,7 +107,7 @@ namespace soft_carriere_competence.Controllers.Authentification
                 EmployeeId = employeeId,
                 RegistrationNumber = registrationNumber,
                 DepartmentName = departmentName,
-                VisibleModules = visibleModules,
+                VisibleModules = moduleNames,
                 Permissions = permissions
             };
 
@@ -99,36 +115,23 @@ namespace soft_carriere_competence.Controllers.Authentification
         }
 
         /// <summary>
-        /// Détermine les modules visibles dans la navbar à partir des permissions RBAC et du rôle.
-        /// Les modules cœur de métier (compétences, carrières, etc.) sont visibles par tous les rôles.
-        /// Seuls les modules d'administration sont filtrés.
+        /// Fallback : détermine les modules visibles à partir des permissions RBAC et du rôle.
+        /// Utilisé uniquement quand les tables Modules/Role_Modules n'existent pas encore.
         /// </summary>
-        private static List<string> DetermineVisibleModules(List<string> permissions, int roleId)
+        private static List<string> DetermineVisibleModulesFallback(List<string> permissions, int roleId)
         {
-            var modules = new List<string>();
+            var modules = new List<string>
+            {
+                "dashboard", "competences", "carrieres", "retraite",
+                "souhaits", "organigramme", "historique"
+            };
 
-            // Dashboard — visible pour tous les utilisateurs authentifiés
-            modules.Add("dashboard");
-
-            // Modules cœur de métier — visibles pour tous les rôles (RH, Manager, Admin, Directeur)
-            // La sécurité fine est gérée par les policies ABAC côté serveur, pas par la navbar
-            modules.Add("competences");
-            modules.Add("carrieres");
-            modules.Add("retraite");
-            modules.Add("souhaits");
-            modules.Add("organigramme");
-            modules.Add("historique");
-
-            // Module Évaluations — visible si l'utilisateur a une permission liée aux évaluations
-            // ou si c'est un Manager (qui a des droits contextuels ABAC sans permissions RBAC explicites)
             if (permissions.Any(p => p.Contains("EVALUATION")) || roleId == 2)
                 modules.Add("evaluations");
 
-            // Module Paramétrage — réservé aux rôles Admin(3), RH(1), Directeur(4)
             if (roleId == 1 || roleId == 3 || roleId == 4)
                 modules.Add("parametrage");
 
-            // Module Attestations
             if (permissions.Any(p => p.Contains("CERTIFICATE") || p.Contains("ATTESTATION")))
                 modules.Add("attestations");
 
