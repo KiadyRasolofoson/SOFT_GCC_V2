@@ -42,6 +42,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             existingPermission.Name = permission.Name;
             existingPermission.Description = permission.Description;
             existingPermission.State = permission.State;
+            existingPermission.ModuleId = permission.ModuleId;
             await _dataService.UpdatePermissionAsync(existingPermission);
             return existingPermission;
         }

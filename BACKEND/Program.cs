@@ -154,6 +154,7 @@ builder.Services.AddScoped<EvaluationPlanningService>();
 builder.Services.AddScoped<EvaluationInterviewService>();
 builder.Services.AddScoped<RoleService>();
 builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<CompetenceLineService>();
 builder.Services.AddScoped<CompetenceTrainingService>();
 builder.Services.AddScoped<EvaluationResponseService>();

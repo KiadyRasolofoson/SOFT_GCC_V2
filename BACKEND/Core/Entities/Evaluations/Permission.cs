@@ -21,5 +21,15 @@ namespace soft_carriere_competence.Core.Entities.Evaluations
 
         [Column("state")]
         public int State { get; set; } = 1;
+
+        /// <summary>FK vers le module auquel cette permission appartient (nullable pour rétrocompatibilité)</summary>
+        [Column("module_id")]
+        public int? ModuleId { get; set; }
+
+        // Navigation properties
+        [ForeignKey("ModuleId")]
+        public Module? Module { get; set; }
+
+        public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
     }
 } 

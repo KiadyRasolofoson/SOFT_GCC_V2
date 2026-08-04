@@ -1,24 +1,26 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
+using soft_carriere_competence.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 
 namespace soft_carriere_competence.Controllers.Evaluations
 {
-    // Classe pour la désérialisation
     public class PermissionUpdateModel
     {
         public List<int> permissionIds { get; set; } = new List<int>();
     }
 
-    // Nouvelle classe DTO pour retourner les permissions avec leur module
     public class PermissionDto
     {
         public int PermissionId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int State { get; set; }
-        public string Module { get; set; } = string.Empty;
+        public int? ModuleId { get; set; }
+        public string ModuleName { get; set; } = string.Empty;
     }
 
     [Route("api/[controller]")]
@@ -27,109 +29,106 @@ namespace soft_carriere_competence.Controllers.Evaluations
     public class PermissionController : ControllerBase
     {
         private readonly PermissionService _permissionService;
+        private readonly ApplicationDbContext _context;
 
-        public PermissionController(PermissionService permissionService)
+        public PermissionController(PermissionService permissionService, ApplicationDbContext context)
         {
             _permissionService = permissionService;
+            _context = context;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PermissionDto>>> GetAll()
         {
-            var permissions = await _permissionService.GetAllAsync();
-            var permissionDtos = permissions.Select(p => new PermissionDto
+            try
             {
-                PermissionId = p.PermissionId,
-                Name = p.Name,
-                Description = p.Description,
-                State = p.State,
-                Module = DetermineModule(p.Name)
-            }).ToList();
-            
-            return Ok(permissionDtos);
+                var permissions = await _context.Permissions
+                    .Where(p => p.State == 1)
+                    .Include(p => p.Module)
+                    .ToListAsync();
+                return Ok(permissions.Select(p => MapToDto(p)).ToList());
+            }
+            catch (Exception ex)
+            {
+                // Tables/colonnes manquantes (migration non appliquée)
+                return Ok(new { message = "Permissions chargées en mode dégradé.", error = ex.Message, data = Array.Empty<object>() });
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<PermissionDto>> GetById(int id)
         {
-            var permission = await _permissionService.GetByIdAsync(id);
-            if (permission == null)
-                return NotFound();
-                
-            var permissionDto = new PermissionDto
+            try
             {
-                PermissionId = permission.PermissionId,
-                Name = permission.Name,
-                Description = permission.Description,
-                State = permission.State,
-                Module = DetermineModule(permission.Name)
-            };
-            
-            return Ok(permissionDto);
+                var permission = await _context.Permissions
+                    .Include(p => p.Module)
+                    .FirstOrDefaultAsync(p => p.PermissionId == id);
+                if (permission == null) return NotFound();
+                return Ok(MapToDto(permission));
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { message = "Permission non disponible.", error = ex.Message });
+            }
+        }
+
+        [HttpGet("by-module/{moduleId}")]
+        public async Task<ActionResult<IEnumerable<PermissionDto>>> GetByModule(int moduleId)
+        {
+            try
+            {
+                var permissions = await _context.Permissions
+                    .Where(p => p.State == 1 && p.ModuleId == moduleId)
+                    .Include(p => p.Module)
+                    .ToListAsync();
+                return Ok(permissions.Select(p => MapToDto(p)).ToList());
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { message = "Permissions par module non disponibles.", error = ex.Message, data = Array.Empty<object>() });
+            }
         }
 
         [HttpPost]
-        public async Task<ActionResult<PermissionDto>> Create(Permission permission)
+        public async Task<ActionResult<PermissionDto>> Create([FromBody] PermissionCreateRequest request)
         {
             try
             {
-                permission.State = 1; // Définir l'état par défaut
-                var createdPermission = await _permissionService.CreateAsync(permission);
-                
-                var permissionDto = new PermissionDto
+                var permission = new Permission
                 {
-                    PermissionId = createdPermission.PermissionId,
-                    Name = createdPermission.Name,
-                    Description = createdPermission.Description,
-                    State = createdPermission.State,
-                    Module = DetermineModule(createdPermission.Name)
+                    Name = request.Name,
+                    Description = request.Description,
+                    State = 1,
+                    ModuleId = request.ModuleId
                 };
-                
-                return CreatedAtAction(nameof(GetById), new { id = permissionDto.PermissionId }, permissionDto);
+                var created = await _permissionService.CreateAsync(permission);
+                return CreatedAtAction(nameof(GetById), new { id = created.PermissionId }, MapToDto(created));
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, PermissionUpdateDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] PermissionUpdateDto dto)
         {
-            if (id != dto.PermissionId)
-                return BadRequest("ID mismatch");
-
+            if (id != dto.PermissionId) return BadRequest(new { message = "ID mismatch" });
             try
             {
-                var existingPermission = await _permissionService.GetByIdAsync(id);
-                if (existingPermission == null)
-                    return NotFound();
-
-                // Fusionne les données
-                existingPermission.Name = dto.Name;
-                existingPermission.Description = dto.Description;
-                await _permissionService.UpdateAsync(existingPermission);
-
+                var existing = await _permissionService.GetByIdAsync(id);
+                if (existing == null) return NotFound(new { message = "Permission non trouvée." });
+                existing.Name = dto.Name;
+                existing.Description = dto.Description;
+                existing.ModuleId = dto.ModuleId;
+                await _permissionService.UpdateAsync(existing);
                 return NoContent();
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                await _permissionService.DeleteAsync(id);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            try { await _permissionService.DeleteAsync(id); return NoContent(); }
+            catch (Exception ex) { return NotFound(new { message = ex.Message }); }
         }
 
         [HttpGet("role/{roleId}")]
@@ -137,51 +136,40 @@ namespace soft_carriere_competence.Controllers.Evaluations
         {
             try
             {
-                Console.WriteLine($"Récupération des permissions pour le rôle {roleId}");
                 var permissions = await _permissionService.GetPermissionsByRoleIdAsync(roleId);
-                Console.WriteLine($"Nombre de permissions trouvées: {permissions.Count()}");
-                
                 if (!permissions.Any())
-                {
-                    Console.WriteLine("Aucune permission trouvée pour ce rôle");
                     return NotFound(new { message = "Aucune permission trouvée pour ce rôle." });
-                }
-                
-                var permissionDtos = permissions.Select(p => new PermissionDto
-                {
-                    PermissionId = p.PermissionId,
-                    Name = p.Name,
-                    Description = p.Description,
-                    State = p.State,
-                    Module = DetermineModule(p.Name)
-                }).ToList();
-                
-                Console.WriteLine($"Nombre de DTOs créés: {permissionDtos.Count}");
-                return Ok(permissionDtos);
+
+                Dictionary<int, string>? modules = null;
+                try { modules = await LoadModuleDictionaryAsync(permissions); }
+                catch { /* modules null → fallback DetermineModuleFallback */ }
+
+                return Ok(permissions.Select(p => MapToDto(p, modules)).ToList());
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la récupération des permissions: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                return BadRequest(new { message = ex.Message });
-            }
+            catch (Exception ex) { return Ok(new { message = "Permissions du rôle non disponibles.", error = ex.Message, data = Array.Empty<object>() }); }
         }
 
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<IEnumerable<PermissionDto>>> GetUserPermissions(int userId)
         {
-            var permissions = await _permissionService.GetUserPermissionsAsync(userId);
-            
-            var permissionDtos = permissions.Select(p => new PermissionDto
+            try
             {
-                PermissionId = p.PermissionId,
-                Name = p.Name,
-                Description = p.Description,
-                State = p.State,
-                Module = DetermineModule(p.Name)
-            }).ToList();
-            
-            return Ok(permissionDtos);
+                var permissions = await _permissionService.GetUserPermissionsAsync(userId);
+                Dictionary<int, string>? modules = null;
+                try { modules = await LoadModuleDictionaryAsync(permissions); }
+                catch { /* fallback */ }
+
+                return Ok(permissions.Select(p => MapToDto(p, modules)).ToList());
+            }
+            catch (Exception ex) { return Ok(new { message = "Permissions utilisateur non disponibles.", error = ex.Message, data = Array.Empty<object>() }); }
+        }
+
+        private async Task<Dictionary<int, string>> LoadModuleDictionaryAsync(IEnumerable<Permission> permissions)
+        {
+            var moduleIds = permissions.Select(p => p.ModuleId).Where(id => id.HasValue).Distinct().ToList();
+            return await _context.Modules
+                .Where(m => moduleIds.Contains(m.ModuleId))
+                .ToDictionaryAsync(m => m.ModuleId, m => m.Name);
         }
 
         [HttpPut("role/{roleId}")]
@@ -189,53 +177,31 @@ namespace soft_carriere_competence.Controllers.Evaluations
         {
             try
             {
-                Console.WriteLine($"=== Mise à jour des permissions pour le rôle {roleId} ===");
-                Console.WriteLine($"Nombre de permissions reçues: {request?.permissionIds?.Count ?? 0}");
-                
-                if (request == null || request.permissionIds == null || !request.permissionIds.Any())
-                {
-                    Console.WriteLine("Erreur: Liste de permissions vide");
+                if (request?.permissionIds == null || !request.permissionIds.Any())
                     return BadRequest(new { message = "La liste des permissions ne peut pas être vide." });
-                }
 
-                // Vérifier si toutes les permissions existent et sont actives
                 var invalidPermissions = new List<int>();
-                foreach (var permissionId in request.permissionIds)
+                foreach (var pid in request.permissionIds)
                 {
-                    var permission = await _permissionService.GetByIdAsync(permissionId);
-                    if (permission == null || permission.State != 1)
-                    {
-                        Console.WriteLine($"Permission invalide trouvée: {permissionId}");
-                        invalidPermissions.Add(permissionId);
-                    }
+                    var p = await _permissionService.GetByIdAsync(pid);
+                    if (p == null || p.State != 1) invalidPermissions.Add(pid);
                 }
-
                 if (invalidPermissions.Any())
-                {
-                    Console.WriteLine($"Erreur: Permissions invalides trouvées: {string.Join(", ", invalidPermissions)}");
-                    return BadRequest(new { 
-                        message = "Certaines permissions n'existent pas ou ne sont pas actives.",
-                        invalidPermissions = invalidPermissions
-                    });
-                }
+                    return BadRequest(new { message = "Permissions invalides.", invalidPermissions });
 
-                // Supprimer les anciennes permissions
-                Console.WriteLine("Suppression des anciennes permissions...");
                 await _permissionService.DeleteRolePermissionsAsync(roleId);
-
-                // Ajouter les nouvelles permissions
-                Console.WriteLine("Ajout des nouvelles permissions...");
                 await _permissionService.UpdateRolePermissionsAsync(roleId, request.permissionIds);
-
-                Console.WriteLine("Mise à jour terminée avec succès");
                 return Ok(new { message = "Permissions mises à jour avec succès." });
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la mise à jour des permissions: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                return BadRequest(new { message = ex.Message });
-            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        // DTOs
+        public class PermissionCreateRequest
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public int? ModuleId { get; set; }
         }
 
         public class PermissionUpdateDto
@@ -243,35 +209,44 @@ namespace soft_carriere_competence.Controllers.Evaluations
             public int PermissionId { get; set; }
             public string Name { get; set; } = string.Empty;
             public string Description { get; set; } = string.Empty;
-            // Exclure 'State' si nécessaire
+            public int? ModuleId { get; set; }
         }
-        
-        // Méthode pour déterminer le module d'une permission en fonction de son nom
-        private string DetermineModule(string permissionName)
+
+        // Helpers
+        private static PermissionDto MapToDto(Permission p, Dictionary<int, string>? moduleDict = null)
         {
-            if (string.IsNullOrEmpty(permissionName))
-                return "Autre";
-                
-            if (permissionName.Contains("_USERS"))
-                return "Utilisateurs";
-                
-            if (permissionName.Contains("_ROLES"))
-                return "Rôles";
-                
-            if (permissionName.Contains("_PERMISSIONS"))
-                return "Permissions";
-                
-            if (permissionName.Contains("_EVALUATIONS"))
-                return "Évaluations";
-                
-            if (permissionName.Contains("_DEPARTMENTS") || permissionName.Contains("_POSITIONS") || 
-                permissionName.Contains("_CAREER") || permissionName.Contains("_RETIREMENT"))
-                return "Paramétrage";
-                
-            if (permissionName.Contains("_REPORTS"))
-                return "Statistique";
-                
+            string moduleName;
+            if (p.ModuleId != null && moduleDict != null && moduleDict.ContainsKey(p.ModuleId.Value))
+                moduleName = moduleDict[p.ModuleId.Value];
+            else if (p.Module != null)
+                moduleName = p.Module.Name;
+            else
+                moduleName = DetermineModuleFallback(p.Name);
+
+            return new PermissionDto
+            {
+                PermissionId = p.PermissionId,
+                Name = p.Name,
+                Description = p.Description,
+                State = p.State,
+                ModuleId = p.ModuleId,
+                ModuleName = moduleName
+            };
+        }
+
+        private static string DetermineModuleFallback(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "Autre";
+            if (name.Contains("_USERS") || name.Contains("_ROLES") || name.Contains("_PERMISSIONS"))
+                return "param_utilisateurs";
+            if (name.Contains("_EVALUATIONS") || name.Contains("EVALUATION_") || name.Contains("VALIDATE_"))
+                return "evaluations";
+            if (name.Contains("_DEPARTMENTS") || name.Contains("_POSITIONS"))
+                return "param_employes";
+            if (name.Contains("_CAREER")) return "carrieres";
+            if (name.Contains("_RETIREMENT")) return "retraite";
+            if (name.Contains("_REPORTS")) return "dashboard";
             return "Autre";
         }
     }
-} 
+}

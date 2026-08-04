@@ -48,6 +48,7 @@ import UserManagement from '../pages/settings/UserManagement/UserManagement';
 import UsersList from '../pages/settings/UserManagement/UsersList';
 import RolesManagement from '../pages/settings/UserManagement/RolesManagement';
 import PermissionsManagement from '../pages/settings/UserManagement/PermissionsManagement';
+import AdminAccessManagement from '../pages/settings/UserManagement/AdminAccessManagement';
 import Unauthorized from '../pages/Authentification/Unauthorized';
 import EvaluationNotation from '../pages/Evaluations/Notations/EvaluationNotation';
 import VerifyAttestationPage from '../pages/certificateManagement/VerifyAttestationPage';
@@ -129,6 +130,7 @@ function AppRouter() {
         <Route path="/soft-gcc/parametres/utilisateurs/liste" element={<UsersList />} />
         <Route path="/soft-gcc/parametres/utilisateurs/roles" element={<RolesManagement />} />
         <Route path="/soft-gcc/parametres/utilisateurs/permissions" element={<PermissionsManagement />} />
+        <Route path="/soft-gcc/parametres/utilisateurs/administration" element={<AdminAccessManagement />} />
 
         {/* Paramètres - Évaluations */}
         <Route path="/soft-gcc/evaluations/parametres" element={<Evaluations />} />
