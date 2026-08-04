@@ -82,6 +82,8 @@ namespace soft_carriere_competence.Infrastructure.Data
 		public DbSet<EvaluationSupervisors> EvaluationSupervisors { get; set; }
 		public DbSet<Permission> Permissions { get; set; }
 		public DbSet<RolePermission> rolePermissions { get; set; }
+		public DbSet<Module> Modules { get; set; }
+		public DbSet<RoleModule> RoleModules { get; set; }
 		public DbSet<CompetenceLine> competenceLines { get; set; }
 		public DbSet<CompetenceTraining> competenceTrainings { get; set; }
 		public DbSet<EvaluationSelectedQuestions> evaluationSelectedQuestions { get; set; }
@@ -138,6 +140,35 @@ namespace soft_carriere_competence.Infrastructure.Data
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 			base.OnModelCreating(modelBuilder);
+
+			// Module self-referencing relationship (parent → children)
+			modelBuilder.Entity<Module>()
+				.HasOne(m => m.ParentModule)
+				.WithMany(m => m.ChildModules)
+				.HasForeignKey(m => m.ParentModuleId)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			// Permission → Module relationship
+			modelBuilder.Entity<Permission>()
+				.HasOne(p => p.Module)
+				.WithMany(m => m.Permissions)
+				.HasForeignKey(p => p.ModuleId)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			// RoleModule → Role relationship
+			modelBuilder.Entity<RoleModule>()
+				.HasOne(rm => rm.Role)
+				.WithMany()
+				.HasForeignKey(rm => rm.RoleId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			// RoleModule → Module relationship
+			modelBuilder.Entity<RoleModule>()
+				.HasOne(rm => rm.Module)
+				.WithMany(m => m.RoleModules)
+				.HasForeignKey(rm => rm.ModuleId)
+				.OnDelete(DeleteBehavior.Cascade);
+
 			modelBuilder.Entity<CareerPlan>()
 			.ToTable(tb => tb.HasTrigger("trg_AfterInsert_CareerPlan"));
 
