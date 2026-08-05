@@ -88,10 +88,16 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task<IEnumerable<Module>> GetModulesByRoleIdAsync(int roleId)
         {
-            return await _context.RoleModules
+            var moduleIds = await _context.RoleModules
                 .Where(rm => rm.RoleId == roleId)
-                .Select(rm => rm.Module)
-                .Where(m => m.State == 1)
+                .Select(rm => rm.ModuleId)
+                .ToListAsync();
+
+            if (!moduleIds.Any())
+                return Enumerable.Empty<Module>();
+
+            return await _context.Modules
+                .Where(m => moduleIds.Contains(m.ModuleId) && m.State == 1)
                 .OrderBy(m => m.SortOrder)
                 .ToListAsync();
         }
@@ -124,12 +130,19 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             if (user == null)
                 return Enumerable.Empty<Module>();
 
-            // Récupère les modules racines visibles pour le rôle
-            var modules = await _context.RoleModules
+            // Récupère les IDs des modules assignés au rôle
+            var moduleIds = await _context.RoleModules
                 .Where(rm => rm.RoleId == user.RoleId)
-                .Select(rm => rm.Module)
-                .Where(m => m.State == 1 && m.ParentModuleId == null)
-                .Include(m => m.ChildModules.OrderBy(c => c.SortOrder))
+                .Select(rm => rm.ModuleId)
+                .ToListAsync();
+
+            if (!moduleIds.Any())
+                return Enumerable.Empty<Module>();
+
+            // Récupère les modules racines avec leurs enfants
+            var modules = await _context.Modules
+                .Where(m => moduleIds.Contains(m.ModuleId) && m.State == 1 && m.ParentModuleId == null)
+                .Include(m => m.ChildModules.Where(c => c.State == 1).OrderBy(c => c.SortOrder))
                 .OrderBy(m => m.SortOrder)
                 .ToListAsync();
 
