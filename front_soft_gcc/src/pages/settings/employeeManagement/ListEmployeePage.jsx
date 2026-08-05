@@ -22,6 +22,7 @@ const departmentImages = {
 
 // Fonction pour obtenir le chemin de l'image
 const getDepartmentImage = (departmentName) => {
+    if (!departmentName) return departmentImages.default;
     return departmentImages[departmentName.toLowerCase()] || departmentImages.default;
 };
 

@@ -9,7 +9,7 @@ namespace soft_carriere_competence.Core.Entities.career_plan
 		public string? RegistrationNumber { get; set; }
 
         [Column("civilite_name")]
-        public string CiviliteName { get; set; } = string.Empty;
+        public string? CiviliteName { get; set; }
 
         [Column("Name")]
 		public string? Name { get; set; }
@@ -18,7 +18,7 @@ namespace soft_carriere_competence.Core.Entities.career_plan
 		public string? FirstName { get; set; }
 
 		[Column("Birthday")]
-		public DateTime Birthday { get; set; }
+		public DateTime? Birthday { get; set; }
 
 		[Column("hiring_date")]
 		public DateTime? HiringDate { get; set; }

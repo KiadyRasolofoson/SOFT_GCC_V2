@@ -17,8 +17,7 @@ public string RegistrationNumber { get; set; } = string.Empty;
         public string FirstName { get; set; } = string.Empty;
 
 		[Column("Department_id")]
-		public int DepartmentId { get; set; }
-
+public int? DepartmentId { get; set; }
 		[Column("Department_name")]
 		public string DepartmentName { get; set; } = string.Empty;
 

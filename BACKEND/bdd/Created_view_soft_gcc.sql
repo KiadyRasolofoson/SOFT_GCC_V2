@@ -19,11 +19,11 @@ SELECT
 	email
 FROM 
     Employee e 
-JOIN 
+LEFT JOIN 
     Department d 
 ON 
     d.Department_id = e.department_id
-JOIN 
+LEFT JOIN 
 	Civilite c
 ON c.civilite_id=e.civilite_id
 
