@@ -21,7 +21,7 @@ namespace soft_carriere_competence.Core.Entities.salary_skills
 		public DateTime? Birthday { get; set; }
 
 		[Column("Department_id")]
-		public int DepartmentId { get; set; }
+		public int? DepartmentId { get; set; }
 
 		[Column("Department_name")]
 		public String? DepartmentName { get; set; }
