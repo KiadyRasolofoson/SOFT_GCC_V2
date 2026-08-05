@@ -196,6 +196,11 @@ builder.Services.AddSingleton<RsaPublicKeyProvider>();
 builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddMemoryCache();
 
+// Employee Sync (T_SAL p_sw → Employee Soft_GCC)
+builder.Services.AddScoped<soft_carriere_competence.Core.Interface.ServiceInterface.IEmployeeSyncService, soft_carriere_competence.Application.Services.EmployeeSync.EmployeeSyncService>();
+builder.Services.AddScoped<IGenericRepository<SyncLog>, GenericRepository<SyncLog>>();
+builder.Services.AddHostedService<soft_carriere_competence.Application.Services.EmployeeSync.EmployeeSyncBackgroundService>();
+
 // ========================================
 // ABAC Authorization — Module Évaluation
 // ========================================
@@ -232,6 +237,7 @@ builder.Services.AddCors(options =>
 
 #region dbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration["ConnectionStrings:DefaultConnection"]), ServiceLifetime.Scoped);
+builder.Services.AddDbContext<P_SWDbContext>(options => options.UseSqlServer(builder.Configuration["ConnectionStrings:P_SWConnection"]), ServiceLifetime.Scoped);
 
 #endregion
 

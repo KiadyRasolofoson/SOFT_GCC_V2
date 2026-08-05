@@ -1,0 +1,145 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using soft_carriere_competence.Core.Entities.salary_skills;
+using soft_carriere_competence.Core.Interface;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
+using soft_carriere_competence.Infrastructure.Data;
+
+namespace soft_carriere_competence.Application.Services.EmployeeSync
+{
+    /// <summary>
+    /// Service de synchronisation unidirectionnelle : T_SAL (p_sw) → Employee (Soft_GCC).
+    /// La correspondance se fait par Registration_number = MatriculeSalarie.
+    /// </summary>
+    public class EmployeeSyncService : IEmployeeSyncService
+    {
+        private readonly P_SWDbContext _pSwContext;
+        private readonly IGenericRepository<Employee> _employeeRepo;
+        private readonly IGenericRepository<SyncLog> _syncLogRepo;
+        private readonly ILogger<EmployeeSyncService> _logger;
+
+        public EmployeeSyncService(
+            P_SWDbContext pSwContext,
+            IGenericRepository<Employee> employeeRepo,
+            IGenericRepository<SyncLog> syncLogRepo,
+            ILogger<EmployeeSyncService> logger)
+        {
+            _pSwContext = pSwContext;
+            _employeeRepo = employeeRepo;
+            _syncLogRepo = syncLogRepo;
+            _logger = logger;
+        }
+
+        /// <inheritdoc/>
+        public async Task<SyncLog> SyncFromTSalAsync()
+        {
+            var syncLog = new SyncLog
+            {
+                SyncDate = DateTime.Now,
+                Status = "Success",
+                RecordsUpdated = 0,
+                RecordsInserted = 0,
+                RecordsFailed = 0
+            };
+
+            try
+            {
+                // Lecture de tous les salariés de T_SAL
+                var salaries = await _pSwContext.TSalarie
+                    .AsNoTracking()
+                    .Where(s => !string.IsNullOrEmpty(s.MatriculeSalarie))
+                    .ToListAsync();
+
+                _logger.LogInformation("[EmployeeSync] {Count} salariés trouvés dans T_SAL (p_sw)", salaries.Count);
+
+                // Récupération des employés existants (indexés par Registration_number)
+                var existingEmployees = await _employeeRepo.GetAllAsync();
+                var employeeByMatricule = existingEmployees
+                    .Where(e => !string.IsNullOrEmpty(e.RegistrationNumber))
+                    .ToDictionary(e => e.RegistrationNumber!.Trim());
+
+                foreach (var salarie in salaries)
+                {
+                    try
+                    {
+                        var matricule = salarie.MatriculeSalarie.Trim();
+
+                        // Mapping Civilite (tinyint 0/1/2) → CiviliteId
+                        int? civiliteId = salarie.Civilite switch
+                        {
+                            1 => 1, // Monsieur
+                            2 => 2, // Madame
+                            _ => null
+                        };
+
+                        if (employeeByMatricule.TryGetValue(matricule, out var existingEmployee))
+                        {
+                            // UPDATE : l'employé existe déjà → mise à jour
+                            bool changed = false;
+
+                            if (existingEmployee.Name != salarie.Nom) { existingEmployee.Name = salarie.Nom; changed = true; }
+                            if (existingEmployee.FirstName != salarie.Prenom) { existingEmployee.FirstName = salarie.Prenom; changed = true; }
+                            if (existingEmployee.Birthday != salarie.DateNaissance) { existingEmployee.Birthday = salarie.DateNaissance; changed = true; }
+                            if (existingEmployee.CiviliteId != civiliteId) { existingEmployee.CiviliteId = civiliteId; changed = true; }
+                            if (existingEmployee.Email != salarie.EMail) { existingEmployee.Email = salarie.EMail; changed = true; }
+
+                            if (changed)
+                            {
+                                await _employeeRepo.UpdateAsync(existingEmployee);
+                                syncLog.RecordsUpdated++;
+                            }
+                        }
+                        else
+                        {
+                            // INSERT : nouvel employé
+                            var newEmployee = new Employee
+                            {
+                                RegistrationNumber = matricule,
+                                Name = salarie.Nom,
+                                FirstName = salarie.Prenom,
+                                Birthday = salarie.DateNaissance,
+                                CiviliteId = civiliteId,
+                                Email = salarie.EMail
+                            };
+
+                            await _employeeRepo.CreateAsync(newEmployee);
+                            syncLog.RecordsInserted++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[EmployeeSync] Erreur pour le matricule {Matricule}", salarie.MatriculeSalarie);
+                        syncLog.RecordsFailed++;
+                    }
+                }
+
+                if (syncLog.RecordsFailed > 0)
+                    syncLog.Status = syncLog.RecordsFailed == salaries.Count ? "Failed" : "Partial";
+
+                _logger.LogInformation(
+                    "[EmployeeSync] Terminé — Insertions: {Inserted}, MàJ: {Updated}, Échecs: {Failed}",
+                    syncLog.RecordsInserted, syncLog.RecordsUpdated, syncLog.RecordsFailed);
+            }
+            catch (Exception ex)
+            {
+                syncLog.Status = "Failed";
+                syncLog.ErrorMessage = ex.Message;
+                _logger.LogError(ex, "[EmployeeSync] Échec de la synchronisation");
+            }
+
+            // Sauvegarde du log
+            await _syncLogRepo.CreateAsync(syncLog);
+            return syncLog;
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<SyncLog>> GetSyncLogsAsync(int page = 1, int pageSize = 20)
+        {
+            var allLogs = await _syncLogRepo.GetAllAsync();
+            return allLogs
+                .OrderByDescending(l => l.SyncDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize);
+        }
+    }
+}
