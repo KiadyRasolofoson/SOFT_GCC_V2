@@ -326,7 +326,7 @@ function RolesTab() {
                     <div className="admin-card">
                         <div className="admin-card-body d-flex flex-column align-items-center justify-content-center py-5">
                             <div className="p-4 bg-light rounded-circle mb-3">
-                                <FaShieldAlt size={56} className="text-muted opacity-50" />
+                                <FaUserShield size={56} className="text-muted opacity-50" />
                             </div>
                             <h5 className="fw-bold text-center mb-1">Sélectionnez un rôle</h5>
                             <p className="text-muted small text-center max-w-320">
