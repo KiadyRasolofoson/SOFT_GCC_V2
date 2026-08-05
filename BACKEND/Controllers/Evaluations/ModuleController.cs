@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
+using System.Text.Json.Serialization;
 
 namespace soft_carriere_competence.Controllers.Evaluations
 {
@@ -122,8 +123,15 @@ namespace soft_carriere_competence.Controllers.Evaluations
         [Authorize(Policy = "RequireAdminRole")]
         public async Task<ActionResult<IEnumerable<Module>>> GetByRole(int roleId)
         {
-            var modules = await _moduleService.GetModulesByRoleIdAsync(roleId);
-            return Ok(modules);
+            try
+            {
+                var modules = await _moduleService.GetModulesByRoleIdAsync(roleId);
+                return Ok(modules);
+            }
+            catch (Exception)
+            {
+                return Ok(Array.Empty<Module>());
+            }
         }
 
         /// <summary>PUT /api/Module/role/{roleId} — Mettre à jour les modules d'un rôle</summary>
@@ -131,8 +139,9 @@ namespace soft_carriere_competence.Controllers.Evaluations
         [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> UpdateRoleModules(int roleId, [FromBody] ModuleAssignmentRequest request)
         {
-            if (request?.ModuleIds == null || !request.ModuleIds.Any())
-                return BadRequest(new { message = "La liste des modules ne peut pas être vide." });
+            // Autoriser une liste vide : un rôle peut n'avoir aucun module visible
+            if (request?.ModuleIds == null)
+                return BadRequest(new { message = "Le corps de la requête est invalide." });
 
             try
             {
@@ -182,6 +191,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
     /// <summary>Modèle de requête pour l'assignation des modules à un rôle</summary>
     public class ModuleAssignmentRequest
     {
+        [JsonPropertyName("moduleIds")]
         public List<int> ModuleIds { get; set; } = new List<int>();
     }
 }
