@@ -75,7 +75,7 @@ function UserManagement() {
                         <div className="card settings-card" onClick={handleAdminAccessClick} style={{ borderLeft: '4px solid #4B49AC' }}>
                             <div className="card-body">
                                 <h5 className="card-text">
-                                    <i className="mdi mdi-shield-key settings-icon"></i>
+                                    <i className="mdi mdi-shield-lock settings-icon"></i>
                                     <span className='settings-title'>Administration des Accès</span>
                                     <br /><small className="text-muted">Rôles, Modules & Permissions</small>
                                 </h5>

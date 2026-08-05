@@ -137,8 +137,9 @@ namespace soft_carriere_competence.Controllers.Evaluations
             try
             {
                 var permissions = await _permissionService.GetPermissionsByRoleIdAsync(roleId);
+                // Retourner une liste vide plutôt que 404 quand le rôle n'a aucune permission
                 if (!permissions.Any())
-                    return NotFound(new { message = "Aucune permission trouvée pour ce rôle." });
+                    return Ok(Array.Empty<PermissionDto>());
 
                 Dictionary<int, string>? modules = null;
                 try { modules = await LoadModuleDictionaryAsync(permissions); }
@@ -177,8 +178,9 @@ namespace soft_carriere_competence.Controllers.Evaluations
         {
             try
             {
-                if (request?.permissionIds == null || !request.permissionIds.Any())
-                    return BadRequest(new { message = "La liste des permissions ne peut pas être vide." });
+                // Autoriser une liste vide : un rôle peut n'avoir aucune permission
+                if (request?.permissionIds == null)
+                    return BadRequest(new { message = "Le corps de la requête est invalide." });
 
                 var invalidPermissions = new List<int>();
                 foreach (var pid in request.permissionIds)
