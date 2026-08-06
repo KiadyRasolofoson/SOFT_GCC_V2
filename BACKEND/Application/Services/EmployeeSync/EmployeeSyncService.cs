@@ -52,6 +52,23 @@ namespace soft_carriere_competence.Application.Services.EmployeeSync
 
                 _logger.LogInformation("[EmployeeSync] {Count} salariés trouvés dans T_SAL (p_sw)", salaries.Count);
 
+                // Diagnostic : vérification brute des DateNaissance via SQL direct (bypass mapping EF)
+                var rawDates = await _pSwContext.Database
+                    .SqlQueryRaw<DateNaissanceDto>("SELECT MatriculeSalarie, DateNaissance FROM p_sw.dbo.T_SAL WHERE MatriculeSalarie IS NOT NULL AND MatriculeSalarie != ''")
+                    .ToListAsync();
+                var rawAvecDate = rawDates.Count(d => d.DateNaissance != null);
+                var rawSansDate = rawDates.Count(d => d.DateNaissance == null);
+                _logger.LogInformation("[EmployeeSync] [SQL Direct] DateNaissance présentes: {Avec}, NULL: {Sans}", rawAvecDate, rawSansDate);
+                foreach (var d in rawDates.Where(d => d.DateNaissance != null).Take(5))
+                    _logger.LogInformation("[EmployeeSync]   [SQL] Matricule {M} → DateNaissance = {D}", d.MatriculeSalarie, d.DateNaissance);
+
+                // Diagnostic : échantillon via EF
+                var echantillon = salaries.Where(s => s.DateNaissance != null).Take(5).ToList();
+                var nbDatesNull = salaries.Count(s => s.DateNaissance == null);
+                _logger.LogInformation("[EmployeeSync] [EF] DateNaissance présentes: {AvecDate}, NULL: {SansDate}", salaries.Count - nbDatesNull, nbDatesNull);
+                foreach (var s in echantillon)
+                    _logger.LogInformation("[EmployeeSync]   Matricule {Mat} → DateNaissance = {Date}", s.MatriculeSalarie, s.DateNaissance);
+
                 // Récupération des employés existants (indexés par Registration_number)
                 var existingEmployees = await _employeeRepo.GetAllAsync();
                 var employeeByMatricule = existingEmployees
@@ -79,7 +96,10 @@ namespace soft_carriere_competence.Application.Services.EmployeeSync
 
                             if (existingEmployee.Name != salarie.Nom) { existingEmployee.Name = salarie.Nom; changed = true; }
                             if (existingEmployee.FirstName != salarie.Prenom) { existingEmployee.FirstName = salarie.Prenom; changed = true; }
-                            if (existingEmployee.Birthday != salarie.DateNaissance) { existingEmployee.Birthday = salarie.DateNaissance; changed = true; }
+                            if (existingEmployee.Birthday != salarie.DateNaissance) { 
+                                _logger.LogDebug("[EmployeeSync] MàJ Birthday matricule {Mat}: {Ancien} → {Nouveau}", matricule, existingEmployee.Birthday, salarie.DateNaissance);
+                                existingEmployee.Birthday = salarie.DateNaissance; changed = true; 
+                            }
                             if (existingEmployee.CiviliteId != civiliteId) { existingEmployee.CiviliteId = civiliteId; changed = true; }
                             if (existingEmployee.Email != salarie.EMail) { existingEmployee.Email = salarie.EMail; changed = true; }
 
@@ -101,6 +121,7 @@ namespace soft_carriere_competence.Application.Services.EmployeeSync
                                 CiviliteId = civiliteId,
                                 Email = salarie.EMail
                             };
+                            _logger.LogDebug("[EmployeeSync] INSERT matricule {Mat}, Birthday={Bday}", matricule, salarie.DateNaissance);
 
                             await _employeeRepo.CreateAsync(newEmployee);
                             syncLog.RecordsInserted++;
