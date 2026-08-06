@@ -205,7 +205,8 @@ function buildFallbackMenu(visibleModules) {
             { moduleId: 'param_carrieres', name: 'param_carrieres', displayName: 'Gestion Carrières', route: '/soft-gcc/parametres/carrieres' },
             { moduleId: 'param_employes', name: 'param_employes', displayName: 'Gestion employés', route: '/soft-gcc/parametres/employes/liste' },
             { moduleId: 'param_evaluations', name: 'param_evaluations', displayName: 'Gestion des évaluations', route: '/soft-gcc/evaluations/parametres' },
-            { moduleId: 'param_utilisateurs', name: 'param_utilisateurs', displayName: 'Gestion des utilisateurs', route: '/soft-gcc/parametres/utilisateurs' }
+            { moduleId: 'param_utilisateurs', name: 'param_utilisateurs', displayName: 'Gestion des utilisateurs', route: '/soft-gcc/parametres/utilisateurs' },
+            { moduleId: 'param_synchronisation', name: 'param_synchronisation', displayName: 'Synchro. Employés (T_SAL)', route: '/soft-gcc/parametres/synchronisation' }
         ]},
 
         // 8. Attestations

@@ -54,6 +54,7 @@ import EvaluationNotation from '../pages/Evaluations/Notations/EvaluationNotatio
 import VerifyAttestationPage from '../pages/certificateManagement/VerifyAttestationPage';
 import EvaluationTypesSettings from '../pages/settings/evaluations/EvaluationTypesSettings';
 import BulletinCompetencesPage from '../pages/Evaluations/Bulletin/BulletinCompetencesPage';
+import EmployeeSyncPage from '../pages/settings/EmployeeSyncPage';
 
 function AppRouter() {
   return (
@@ -131,6 +132,9 @@ function AppRouter() {
         <Route path="/soft-gcc/parametres/utilisateurs/roles" element={<RolesManagement />} />
         <Route path="/soft-gcc/parametres/utilisateurs/permissions" element={<PermissionsManagement />} />
         <Route path="/soft-gcc/parametres/utilisateurs/administration" element={<AdminAccessManagement />} />
+
+        {/* Paramètres - Synchro employés */}
+        <Route path="/soft-gcc/parametres/synchronisation" element={<EmployeeSyncPage />} />
 
         {/* Paramètres - Évaluations */}
         <Route path="/soft-gcc/evaluations/parametres" element={<Evaluations />} />
