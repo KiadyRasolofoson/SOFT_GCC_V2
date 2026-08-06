@@ -97,6 +97,7 @@ namespace soft_carriere_competence.Infrastructure.Data
 		public DbSet<TemporaryAccount> temporaryAccounts { get; set; }
 		public DbSet<LoginAttempt> loginAttempts { get; set; }
 		public DbSet<EvaluationQuestionConfig> evaluationQuestionConfigs { get; set; }
+		public DbSet<SyncLog> SyncLogs { get; set; }
 
 		public DbSet<EvaluationStatusLog> EvaluationStatusLogs { get; set; }
 		public DbSet<EvaluationDelegation> EvaluationDelegations { get; set; }
