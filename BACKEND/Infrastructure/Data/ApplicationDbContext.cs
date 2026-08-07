@@ -11,6 +11,7 @@ using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Entities.wish_evolution;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using soft_carriere_competence.Core.Entities;
 
 namespace soft_carriere_competence.Infrastructure.Data
 {
@@ -138,8 +139,22 @@ namespace soft_carriere_competence.Infrastructure.Data
 		// Licence
 		public DbSet<License> Licenses { get; set; }
 
+		// Notifications
+		public DbSet<Notification> Notifications { get; set; }
+
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
+		// Notification → User relationship
+		modelBuilder.Entity<Notification>()
+			.HasOne(n => n.User)
+			.WithMany()
+			.HasForeignKey(n => n.UserId)
+			.OnDelete(DeleteBehavior.Cascade);
+
+			// Index composite pour les requêtes de notifications non lues
+			modelBuilder.Entity<Notification>()
+				.HasIndex(n => new { n.UserId, n.IsRead });
+
 			base.OnModelCreating(modelBuilder);
 
 			// Module self-referencing relationship (parent → children)

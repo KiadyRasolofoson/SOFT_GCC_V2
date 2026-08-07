@@ -36,6 +36,10 @@ using soft_carriere_competence.Application.Services.history;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using System.Configuration;
+using soft_carriere_competence.Hubs;
+using soft_carriere_competence.Core.Interface.ServiceInterface;
+using soft_carriere_competence.Application.Services;
+using soft_carriere_competence.Core.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 //Connect base SQLSERVER
@@ -196,6 +200,13 @@ builder.Services.AddSingleton<RsaPublicKeyProvider>();
 builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddMemoryCache();
 
+// ========================================
+// SignalR — Notifications temps réel
+// ========================================
+builder.Services.AddSignalR();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IGenericRepository<Notification>, GenericRepository<Notification>>();
+
 // Employee Sync (T_SAL p_sw → Employee Soft_GCC)
 builder.Services.AddScoped<soft_carriere_competence.Core.Interface.ServiceInterface.IEmployeeSyncService, soft_carriere_competence.Application.Services.EmployeeSync.EmployeeSyncService>();
 builder.Services.AddScoped<IGenericRepository<SyncLog>, GenericRepository<SyncLog>>();
@@ -344,6 +355,9 @@ app.UseAuthentication();
 app.UseMiddleware<LicenseCheckMiddleware>();
 
 app.UseAuthorization();
+
+// SignalR Hub — Notifications temps réel
+app.MapHub<NotificationHub>("/hubs/notification");
 
 app.MapControllers();
 

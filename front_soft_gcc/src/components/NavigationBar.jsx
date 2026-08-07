@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import { useUser } from "../pages/Authentification/UserContext"; // Importez le hook useUser
 import { Dropdown, Image } from 'react-bootstrap';
+import NotificationBell from './NotificationBell';
 
 // Affichage de la barre de navigation
 function NavigationBar({ task }) {
@@ -39,6 +40,7 @@ function NavigationBar({ task }) {
         </button>
 
         <ul className="navbar-nav ml-auto">
+          <NotificationBell />
           <li className="nav-item nav-profile">
             <Dropdown align="end">
               <Dropdown.Toggle
