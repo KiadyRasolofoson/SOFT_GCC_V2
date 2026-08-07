@@ -484,49 +484,60 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     var employeeFirstName = employeeRow.GetValueOrDefault("FirstName")?.ToString() ?? "";
                     var employeeLastName = employeeRow.GetValueOrDefault("Name")?.ToString() ?? employeeRow.GetValueOrDefault("LastName")?.ToString() ?? "";
 
-                    // Utiliser l'email de l'employé s'il est disponible
-                    if (!string.IsNullOrEmpty(employeeEmail))
+                    // Envoi des emails de notification — NON BLOQUANT : un échec SMTP ne doit pas
+                    // annuler la création de l'évaluation (déjà persistée en base).
+                    try
                     {
-                        // Envoyer l'email de notification à l'employé
-                        await _emailService.SendEmailAsync(
-                            employeeEmail,
-                            $"{evaluationTypeName} - Planification",
-                            $"Bonjour {employeeFirstName} {employeeLastName},<br><br>" +
-                            $"Nous vous informons qu'une {evaluationTypeName.ToLower()} a été planifiée à votre attention.<br><br>" +
-                            $"<strong>Période d'évaluation :</strong> Du {startDate.ToShortDateString()} au {endDate.ToShortDateString()}<br><br>" +
-                            $"<div class='credentials'>" +
-                            $"<strong>Vos identifiants de connexion :</strong><br>" +
-                            $"<strong>Login :</strong> {tempAccount.TempLogin}<br>" +
-                            $"<strong>Mot de passe :</strong> {tempAccount.TempPassword}<br>" +
-                            $"</div><br>" +
-                            $"Ces identifiants seront valides à partir du {startDate.ToShortDateString()}.<br><br>" +
-                            $"<a href='{_configuration["FrontendBaseUrl"]}/soft-gcc/evaluation/connexion' class='button'>Accéder à l'évaluation</a><br><br>" +
-                            $"Cordialement,<br>" +
-                            $"L'équipe Gestion des Carrières et Compétences"
-                        );
-                    }
-
-                    // Envoyer des notifications par email à tous les superviseurs
-                    foreach (var supervisorId in supervisorIds)
-                    {
-                        var supervisor = await _userRepository.GetByIdAsync(supervisorId);
-                        if (supervisor != null && !string.IsNullOrEmpty(supervisor.Email))
+                        // Utiliser l'email de l'employé s'il est disponible
+                        if (!string.IsNullOrEmpty(employeeEmail))
                         {
-                            string employeeName = !string.IsNullOrEmpty(employeeFirstName) ? $"{employeeFirstName} {employeeLastName}" : "Un employé";
-                            
+                            // Envoyer l'email de notification à l'employé
                             await _emailService.SendEmailAsync(
-                                supervisor.Email,
-                                $"{evaluationTypeName} - Planification à superviser",
-                                $"Bonjour {supervisor.FirstName} {supervisor.LastName},<br><br>" +
-                                $"Vous avez été désigné comme superviseur pour une {evaluationTypeName.ToLower()}.<br><br>" +
-                                $"<strong>Employé concerné :</strong> {employeeName}<br>" +
+                                employeeEmail,
+                                $"{evaluationTypeName} - Planification",
+                                $"Bonjour {employeeFirstName} {employeeLastName},<br><br>" +
+                                $"Nous vous informons qu'une {evaluationTypeName.ToLower()} a été planifiée à votre attention.<br><br>" +
                                 $"<strong>Période d'évaluation :</strong> Du {startDate.ToShortDateString()} au {endDate.ToShortDateString()}<br><br>" +
-                                $"Veuillez vous connecter à votre compte pour consulter et gérer cette évaluation.<br><br>" +
-                                $"<a href='{_configuration["FrontendBaseUrl"]}/soft-gcc/evaluations/liste' class='button'>Accéder au système</a><br><br>" +
+                                $"<div class='credentials'>" +
+                                $"<strong>Vos identifiants de connexion :</strong><br>" +
+                                $"<strong>Login :</strong> {tempAccount.TempLogin}<br>" +
+                                $"<strong>Mot de passe :</strong> {tempAccount.TempPassword}<br>" +
+                                $"</div><br>" +
+                                $"Ces identifiants seront valides à partir du {startDate.ToShortDateString()}.<br><br>" +
+                                $"<a href='{_configuration["FrontendBaseUrl"]}/soft-gcc/evaluation/connexion' class='button'>Accéder à l'évaluation</a><br><br>" +
                                 $"Cordialement,<br>" +
                                 $"L'équipe Gestion des Carrières et Compétences"
                             );
                         }
+
+                        // Envoyer des notifications par email à tous les superviseurs
+                        foreach (var supervisorId in supervisorIds)
+                        {
+                            var supervisor = await _userRepository.GetByIdAsync(supervisorId);
+                            if (supervisor != null && !string.IsNullOrEmpty(supervisor.Email))
+                            {
+                                string employeeName = !string.IsNullOrEmpty(employeeFirstName) ? $"{employeeFirstName} {employeeLastName}" : "Un employé";
+                                
+                                await _emailService.SendEmailAsync(
+                                    supervisor.Email,
+                                    $"{evaluationTypeName} - Planification à superviser",
+                                    $"Bonjour {supervisor.FirstName} {supervisor.LastName},<br><br>" +
+                                    $"Vous avez été désigné comme superviseur pour une {evaluationTypeName.ToLower()}.<br><br>" +
+                                    $"<strong>Employé concerné :</strong> {employeeName}<br>" +
+                                    $"<strong>Période d'évaluation :</strong> Du {startDate.ToShortDateString()} au {endDate.ToShortDateString()}<br><br>" +
+                                    $"Veuillez vous connecter à votre compte pour consulter et gérer cette évaluation.<br><br>" +
+                                    $"<a href='{_configuration["FrontendBaseUrl"]}/soft-gcc/evaluations/liste' class='button'>Accéder au système</a><br><br>" +
+                                    $"Cordialement,<br>" +
+                                    $"L'équipe Gestion des Carrières et Compétences"
+                                );
+                            }
+                        }
+                    }
+                    catch (Exception emailEx)
+                    {
+                        // Un problème SMTP (ex. identifiants invalides) ne doit pas bloquer la création de l'évaluation.
+                        Console.WriteLine($"Erreur envoi email de planification (ignorée, l'évaluation est conservée) : {emailEx.Message}");
+                        Console.WriteLine($"Inner exception: {emailEx.InnerException?.Message}");
                     }
 
                     await _dataService.CommitTransactionAsync();

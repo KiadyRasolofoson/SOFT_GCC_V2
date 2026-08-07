@@ -25,7 +25,7 @@ function AffectationList({ dataAssignmentAppointment, dataAssignmentAdvancement,
 
     // Click sur le bouton edit 
     const handleClickEdit = (item) => {
-        navigate(`/soft-gcc/carrieres/fiche/edit/${item.careerPlanId}`); 
+        navigate(`/soft-gcc/carrieres/fiche/modifier/${item.careerPlanId}`); 
     };
 
     // Click sur le bouton détails
