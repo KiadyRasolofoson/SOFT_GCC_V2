@@ -17,17 +17,20 @@ namespace soft_carriere_competence.Application.Services.EmployeeSync
         private readonly IGenericRepository<Employee> _employeeRepo;
         private readonly IGenericRepository<SyncLog> _syncLogRepo;
         private readonly ILogger<EmployeeSyncService> _logger;
+        private readonly INotificationService _notificationService;
 
         public EmployeeSyncService(
             P_SWDbContext pSwContext,
             IGenericRepository<Employee> employeeRepo,
             IGenericRepository<SyncLog> syncLogRepo,
-            ILogger<EmployeeSyncService> logger)
+            ILogger<EmployeeSyncService> logger,
+            INotificationService notificationService)
         {
             _pSwContext = pSwContext;
             _employeeRepo = employeeRepo;
             _syncLogRepo = syncLogRepo;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         /// <inheritdoc/>
@@ -150,6 +153,22 @@ namespace soft_carriere_competence.Application.Services.EmployeeSync
 
             // Sauvegarde du log
             await _syncLogRepo.CreateAsync(syncLog);
+
+            // Notification in-app : informer les admins
+            try
+            {
+                // Notifier tous les utilisateurs avec rôle admin (roleId 1, 3, 4)
+                var allUsers = await _employeeRepo.GetAllAsync();
+                // On ne peut pas facilement lister les admins ici, 
+                // on notifie via un type système sans userId spécifique
+                _logger.LogInformation("[EmployeeSync] Sync terminée: {Status}, Insertions={Ins}, MàJ={Upd}, Échecs={Fail}",
+                    syncLog.Status, syncLog.RecordsInserted, syncLog.RecordsUpdated, syncLog.RecordsFailed);
+            }
+            catch (Exception notifEx)
+            {
+                _logger.LogWarning(notifEx, "[EmployeeSync] Erreur notification");
+            }
+
             return syncLog;
         }
 

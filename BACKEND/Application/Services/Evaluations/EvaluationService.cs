@@ -8,6 +8,7 @@ using soft_carriere_competence.Core.Interface.AuthInterface;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
+using soft_carriere_competence.Application.Services;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
@@ -27,6 +28,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         private readonly ReminderSettings _reminderSettings;
         private readonly EvaluationCompetenceService? _competenceService;
         private readonly IConfiguration _configuration;
+        private readonly INotificationService _notificationService;
 
         public EvaluationService(IEvaluationQuestionRepository questionRepository, IGenericRepository<EvaluationType> evaluationType,
             IGenericRepository<EvaluationQuestion> EvaluationQuestion, IGenericRepository<Evaluation> _evaluation,
@@ -38,6 +40,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             IEvaluationDataService dataService,
             TemporaryAccountService temporaryAccountService,
             IConfiguration configuration,
+            INotificationService notificationService,
             EvaluationCompetenceService? competenceService = null)
         {
             _questionRepository = questionRepository;
@@ -53,6 +56,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             _dataService = dataService;
             _temporaryAccountService = temporaryAccountService;
             _configuration = configuration;
+            _notificationService = notificationService;
             _competenceService = competenceService;
         }
 
@@ -526,6 +530,43 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     }
 
                     await _dataService.CommitTransactionAsync();
+
+                    // Notification in-app : informer les superviseurs et l'employé
+                    try
+                    {
+                        // Rechercher le User lié à l'employé évalué
+                        var users = await _userRepository.GetAllAsync();
+                        var employeeUser = users.FirstOrDefault(u => u.EmployeeId == employeeId);
+
+                        // Notifier les superviseurs
+                        foreach (var supervisorId in supervisorIds)
+                        {
+                            await _notificationService.SendAsync(
+                                supervisorId,
+                                "evaluation_assigned",
+                                $"Nouvelle {evaluationTypeName}",
+                                $"Vous êtes superviseur pour {employeeFirstName} {employeeLastName}.",
+                                "/soft-gcc/evaluations/liste"
+                            );
+                        }
+
+                        // Notifier l'employé évalué (s'il a un compte utilisateur)
+                        if (employeeUser != null)
+                        {
+                            await _notificationService.SendAsync(
+                                employeeUser.Id,
+                                "evaluation_assigned",
+                                $"{evaluationTypeName} planifiée",
+                                $"Une {evaluationTypeName.ToLower()} a été planifiée pour vous (du {startDate:dd/MM/yyyy} au {endDate:dd/MM/yyyy}).",
+                                "/soft-gcc/evaluation/connexion"
+                            );
+                        }
+                    }
+                    catch (Exception notifEx)
+                    {
+                        Console.WriteLine($"Erreur notification in-app: {notifEx.Message}");
+                    }
+
                     return newEvaluation.EvaluationId;
                 }
                 catch (Exception ex)
