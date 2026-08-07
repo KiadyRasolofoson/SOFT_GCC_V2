@@ -74,9 +74,16 @@ namespace soft_carriere_competence.Application.Services.EmployeeSync
 
                 // Récupération des employés existants (indexés par Registration_number)
                 var existingEmployees = await _employeeRepo.GetAllAsync();
-                var employeeByMatricule = existingEmployees
-                    .Where(e => !string.IsNullOrEmpty(e.RegistrationNumber))
-                    .ToDictionary(e => e.RegistrationNumber!.Trim());
+                var employeeByMatricule = new Dictionary<string, Employee>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var existingEmployee in existingEmployees)
+                {
+                    var existingMatricule = existingEmployee.RegistrationNumber?.Trim();
+                    if (!string.IsNullOrEmpty(existingMatricule) && !employeeByMatricule.ContainsKey(existingMatricule))
+                    {
+                        employeeByMatricule[existingMatricule] = existingEmployee;
+                    }
+                }
 
                 foreach (var salarie in salaries)
                 {
@@ -127,6 +134,7 @@ namespace soft_carriere_competence.Application.Services.EmployeeSync
                             _logger.LogDebug("[EmployeeSync] INSERT matricule {Mat}, Birthday={Bday}", matricule, salarie.DateNaissance);
 
                             await _employeeRepo.CreateAsync(newEmployee);
+                            employeeByMatricule[matricule] = newEmployee;
                             syncLog.RecordsInserted++;
                         }
                     }
