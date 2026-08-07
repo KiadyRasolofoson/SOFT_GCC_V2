@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import {
-  IconButton,
-  Badge,
   Drawer,
   Box,
   Typography,
@@ -16,7 +14,6 @@ import {
   CircularProgress,
 } from '@mui/material';
 import {
-  NotificationsNone as BellIcon,
   Assignment as EvalIcon,
   SwapHoriz as CareerIcon,
   Star as WishIcon,
@@ -79,14 +76,24 @@ export default function NotificationBell() {
 
   return (
     <>
-      {/* Cloche avec badge */}
-      <IconButton color="inherit" onClick={toggleDrawer} sx={{ mr: 1 }}>
-        <Badge badgeContent={unreadCount} color="error" invisible={unreadCount === 0}>
-          <BellIcon sx={{ color: 'white' }} />
-        </Badge>
-      </IconButton>
+      {/* Cloche avec badge — style Bootstrap cohérent avec le template */}
+      <li className="nav-item">
+        <span
+          className="nav-link count-indicator"
+          onClick={toggleDrawer}
+          style={{ cursor: 'pointer' }}
+        >
+          <i className="mdi mdi-bell" style={{ fontSize: '1.25rem' }}></i>
+          {unreadCount > 0 && (
+            <span className="count-symbol bg-danger" style={{ top: 18, right: 0 }}></span>
+          )}
+          {unreadCount > 0 && (
+            <span className="count-number bg-danger">{unreadCount}</span>
+          )}
+        </span>
+      </li>
 
-      {/* Drawer latéral */}
+      {/* Drawer latéral — MUI (overlay, pas de conflit avec Bootstrap) */}
       <Drawer
         anchor="right"
         open={drawerOpen}
@@ -124,7 +131,9 @@ export default function NotificationBell() {
           </Box>
         ) : notifications.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 6, px: 3 }}>
-            <BellIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+            <Typography variant="h3" sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }}>
+              🔔
+            </Typography>
             <Typography color="text.secondary">Aucune notification</Typography>
           </Box>
         ) : (
