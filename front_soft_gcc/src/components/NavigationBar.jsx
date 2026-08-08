@@ -105,28 +105,29 @@ function NavigationBar() {
                 </div>
               </Dropdown.Toggle>
 
-              <Dropdown.Menu className="p-0 border-0 font-size-sm">
-                <div className="p-3 text-center bg-primary">
+              <Dropdown.Menu className="p-0 border-0 font-size-sm shadow-sm rounded-lg">
+                <div className="p-3 text-center" style={{ backgroundColor: '#f8f9fa', borderBottom: '1px solid #eee' }}>
                   <Image
-                    src="/src/assets/images/faces/user.png"
+                    src="/images/user.png"
                     alt="Avatar"
                     roundedCircle
-                    width={48}
-                    height={48}
+                    width={56}
+                    height={56}
+                    className="mb-2 shadow-sm"
                   />
+                  <h6 className="mb-0 font-weight-bold text-dark">{userName}</h6>
                 </div>
                 <div className="p-2">
-                  <Dropdown.Divider />
-                  <Dropdown.Header className="text-uppercase text-dark pl-2 mt-2">
+                  <Dropdown.Header className="text-uppercase text-muted pl-2 mt-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>
                     Actions
                   </Dropdown.Header>
                   {!userLoading && user && (
                     <Dropdown.Item
-                      className="py-1 d-flex align-items-center justify-content-between"
+                      className="py-2 d-flex align-items-center justify-content-between rounded"
                       onClick={handleLogout}
                     >
-                      <span>Déconnexion</span>
-                      <i className="mdi mdi-logout ml-1" />
+                      <span className="font-weight-medium">Déconnexion</span>
+                      <i className="mdi mdi-logout ml-1 text-danger" />
                     </Dropdown.Item>
                   )}
                 </div>

@@ -167,9 +167,11 @@
         .nav-item {
           position: relative;
           padding: 0;
+          margin: 4px 10px; // adjusted margin for icon-only mode
           .nav-link {
             display: block;
             text-align: center;
+            padding: 0.5rem 0;
             .menu-title,
             .badge,.menu-sub-title {
               display: none;

@@ -19,10 +19,12 @@
     margin-bottom: 60px;
 
     .nav-item {
-      padding:0 $sidebar-menu-padding-x;
+      padding: 0 1rem;
+      margin: 4px 15px;
+      border-radius: 8px;
       @include transition-duration(0.25s);
-      transition-property: background;
-      -webkit-transition-property: background;
+      transition-property: background, box-shadow;
+      -webkit-transition-property: background, box-shadow;
       position: relative;
       .collapse {
         z-index: 999;
@@ -32,7 +34,7 @@
         @include display-flex;
         @include align-items(center);
         white-space: nowrap;
-        padding:$sidebar-menu-padding-y 0 $sidebar-menu-padding-y 0;
+        padding: $sidebar-menu-padding-y 0.5rem;
         color: $sidebar-dark-menu-color;
         @include transition-duration(0.45s);
         transition-property: color;
@@ -41,15 +43,18 @@
         .icon-bg {
           margin-right: 0.875rem;
           background: $sidebar-dark-icon-bg;
-          height: 24px;
-          width: 24px;
+          height: 30px;
+          width: 30px;
+          min-width: 30px;
+          flex-shrink: 0;
+          border-radius: 8px;
           position: relative;
           z-index: 2;
           @include display-flex;
           @include align-items(center);
           @include justify-content(center);
-          @include border-radius(3px);
           text-align: center;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           .rtl & {
             margin-left: 1rem;
             margin-right: 0;
@@ -59,7 +64,7 @@
 
             &:after,
             &:before {
-              font-size: 1rem;
+              font-size: 1.1rem;
               color: inherit;
             }
           }
@@ -111,8 +116,11 @@
           color: inherit;
           display: inline-block;
           font-size: $sidebar-menu-font-size;
-          line-height: 1;
+          line-height: 1.2;
           vertical-align: middle;
+          font-weight: 600;
+          letter-spacing: 0.3px;
+          white-space: nowrap;
         }
 
         .badge {
@@ -130,33 +138,40 @@
       }
 
       &.active {
-        background: $sidebar-dark-menu-active-bg;
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         > .nav-link {
           &:before {
             content: "";
             position: absolute;
-            left: 0;
-            top: .5rem;
-            bottom: 0;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
             background: theme-color(success);
-            height: 24px;
+            height: 60%;
             width: 4px;
+            border-radius: 0 4px 4px 0;
             .rtl & {
               left: auto;
-              right: 0;
+              right: -15px;
+              border-radius: 4px 0 0 4px;
             }
           }
           .menu-title {
             color: $sidebar-dark-menu-active-color;
-            font-family: $type1-medium;            
+            font-family: $type1-bold;            
           }
           i {
             color: theme-color(success);
           }
+          .icon-bg {
+             background: rgba(68, 206, 66, 0.15); // #44ce42
+             box-shadow: 0 2px 6px rgba(68, 206, 66, 0.2);
+          }
         }
       }
       &:hover{
-        background: $sidebar-dark-menu-hover-bg;
+        background: rgba(255, 255, 255, 0.03);
       }
       &.nav-profile {
         .nav-link {
@@ -299,44 +314,55 @@
     }
     &.sub-menu {
       margin-bottom: 20px;
-      margin-top:0;
+      margin-top: 5px;
       list-style: none;
+      padding-left: 2.5rem; // add padding to align with parent text
 
       .nav-item {
         padding: 0;
+        margin: 2px 0; // reduce margin for sub-items
+        border-radius: 6px;
         .nav-link {
           color: $sidebar-dark-submenu-color;
-          padding: $sidebar-submenu-item-padding;
+          padding: 0.6rem 1rem; // adjust padding
           position: relative;
           font-size: $sidebar-submenu-font-size;
           line-height: 1;
           height: auto;
           border-top: 0;
+          border-radius: 6px;
+          transition: all 0.3s ease;
           &:before {
-            content: "\F054";
-            font-family: "Material Design Icons";
+            content: "";
             display: block;
             position: absolute;
-            left:0px;
+            left: -10px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: lighten($sidebar-dark-submenu-color, 10%);
+            top: 50%;
+            @include transform(translateY(-50%));
             .rtl & {
               left: auto;
-              right: 0;
-              content: "\F04D";
+              right: -10px;
             }
-            top:50%;
-            @include transform(translateY(-50%));
-            color: lighten($sidebar-dark-submenu-color, 10%);
-            font-size: .75rem;
           }
           &.active {
             color: $sidebar-dark-menu-active-color;
-            background: transparent;
+            background: rgba(255, 255, 255, 0.05); // soft background for active sub-item
+            font-weight: 600;
             &:before {
-              color: theme-color(success);
+              background: theme-color(success);
+              box-shadow: 0 0 4px theme-color(success);
             }
           }
           &:hover {
             color: $sidebar-dark-submenu-hover-color;
+            background: rgba(255, 255, 255, 0.02);
+            &:before {
+              background: $sidebar-dark-submenu-hover-color;
+            }
           }
         }
         &:hover {
