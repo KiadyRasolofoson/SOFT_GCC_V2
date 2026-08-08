@@ -58,7 +58,7 @@ front_soft_gcc/.history/
 # === IDE / Éditeurs ===
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
+# settings.json local (SQLTools credentials, etc.) — ne jamais versionner
 .idea/
 *.suo
 *.user

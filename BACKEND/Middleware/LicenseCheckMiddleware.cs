@@ -16,7 +16,8 @@ namespace soft_carriere_competence.Middleware
             "/api/auth",
             "/api/license",
             "/swagger",
-            "/health"
+            "/health",
+            "/hubs" // SignalR (negotiate / WebSocket) — la licence est déjà vérifiée via les API REST
         };
 
         /// <summary>

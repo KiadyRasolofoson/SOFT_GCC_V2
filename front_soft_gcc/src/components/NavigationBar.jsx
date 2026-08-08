@@ -11,7 +11,7 @@ import NotificationBell from './NotificationBell';
  */
 function NavigationBar() {
   const navigate = useNavigate();
-  const { user, loading: userLoading } = useUser();
+  const { user, loading: userLoading, logout } = useUser();
   const [userName, setUserName] = useState('');
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
 
@@ -38,7 +38,8 @@ function NavigationBar() {
 
   // ─── Logout ───────────────────────────────────────────────
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    // logout() du UserContext remet user à null → NotificationProvider coupe SignalR et réinitialise l'état
+    logout();
     navigate('/login');
   };
 
