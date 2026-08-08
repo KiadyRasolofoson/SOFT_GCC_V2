@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Template from '../../Template';
+import PageHeader from '../../../components/PageHeader';
 import { useUser } from '../../Authentification/UserContext';
 import { toast } from 'react-toastify';
 import {
@@ -10,10 +11,26 @@ import {
 } from '../../../services/ModuleService';
 import {
     FaUserShield, FaCubes, FaLock, FaPlus, FaSave, FaTimes, FaEdit, FaTrash,
-    FaChevronDown, FaChevronRight, FaSearch, FaCheckSquare, FaSquare,
-    FaFolderOpen, FaUserCheck, FaCheckCircle
+    FaChevronDown, FaChevronRight, FaSearch, FaUserCheck, FaCheckCircle,
+    FaFolderOpen, FaFolder, FaExclamationTriangle, FaShieldAlt, FaKey, FaLayerGroup
 } from 'react-icons/fa';
+import axios from 'axios';
+import { urlApi } from '../../../helpers/utils';
 import './AdminAccessManagement.css';
+
+// Helper d'en-tête d'authentification pour les appels API directs
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// Composant Helper pour l'affichage fiable des icônes de module
+function ModuleIcon({ icon, className = '', style = {} }) {
+    if (icon && typeof icon === 'string' && icon.trim() !== '') {
+        return <i className={`${icon} ${className}`} style={{ fontSize: '1.1rem', verticalAlign: 'middle', ...style }} />;
+    }
+    return <FaCubes className={className} style={{ fontSize: '0.95rem', ...style }} />;
+}
 
 // =============================================================================
 // AdminAccessManagement — Interface d'administration unifiée
@@ -25,12 +42,14 @@ function AdminAccessManagement() {
     if (!hasPermission('MANAGE_PERMISSIONS')) {
         return (
             <Template>
-                <div className="container mt-4">
-                    <div className="alert alert-danger shadow-sm border-0 d-flex align-items-center gap-3 p-4 rounded-3">
-                        <FaUserShield size={40} className="text-danger flex-shrink-0" />
+                <div className="container-fluid px-3 py-4">
+                    <div className="alert alert-danger border-0 shadow-sm d-flex align-items-center gap-3 p-4 rounded-3">
+                        <FaExclamationTriangle size={36} className="text-danger flex-shrink-0" />
                         <div>
-                            <h4 className="alert-heading fw-bold mb-1">Accès non autorisé</h4>
-                            <p className="mb-0 text-muted">Cette section est réservée aux administrateurs système uniquement.</p>
+                            <h5 className="alert-heading fw-bold mb-1">Accès non autorisé</h5>
+                            <p className="mb-0 text-secondary">
+                                Cette section est strictement réservée aux administrateurs système du projet.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -39,32 +58,41 @@ function AdminAccessManagement() {
     }
 
     const tabs = [
-        { id: 'roles', icon: <FaUserShield />, label: 'Rôles & Profils' },
-        { id: 'modules', icon: <FaCubes />, label: 'Modules & Pages' },
-        { id: 'permissions', icon: <FaLock />, label: 'Permissions' },
+        { id: 'roles', icon: <FaUserShield size={14} />, label: 'Rôles & Profils' },
+        { id: 'modules', icon: <FaCubes size={14} />, label: 'Modules & Pages' },
+        { id: 'permissions', icon: <FaLock size={14} />, label: 'Permissions' },
     ];
 
     return (
         <Template>
             <div className="admin-management-container px-2 py-3 px-md-4">
-                {/* En-tête de page moderne */}
+                {/* En-tête de page standard du projet */}
+                <PageHeader 
+                    module="Utilisateurs" 
+                    action="Administration des Accès" 
+                    url="/soft-gcc/parametres/utilisateurs" 
+                />
+
+                {/* Bandeau supérieur avec sélecteur d'onglets */}
                 <div className="admin-page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                     <div className="d-flex align-items-center gap-3">
-                        <div className="p-3 bg-primary bg-opacity-10 text-primary rounded-3">
-                            <i className="mdi mdi-shield-lock" style={{ fontSize: '24px' }} />
+                        <div className="admin-header-icon">
+                            <FaShieldAlt />
                         </div>
                         <div>
-                            <h4 className="admin-header-title mb-1">Gestion des Accès &amp; Permissions</h4>
-                            <p className="text-muted small mb-0">Administration globale des rôles, visibilités des modules et règles de permissions.</p>
+                            <h4 className="admin-header-title">Gestion des Accès &amp; Permissions</h4>
+                            <p className="text-muted small mb-0">
+                                Configuration des rôles utilisateurs, de la visibilité des modules et des droits d'accès.
+                            </p>
                         </div>
                     </div>
                     
-                    {/* Sélecteur d'onglets premium */}
                     <div>
                         <ul className="nav admin-custom-tabs">
                             {tabs.map(tab => (
                                 <li key={tab.id} className="nav-item">
                                     <button 
+                                        type="button"
                                         className={`nav-link admin-tab-item ${activeTab === tab.id ? 'active' : ''}`}
                                         onClick={() => setActiveTab(tab.id)}
                                     >
@@ -106,23 +134,17 @@ function RolesTab() {
     const [selectedModuleIds, setSelectedModuleIds] = useState([]);
     const [selectedPermissionIds, setSelectedPermissionIds] = useState([]);
     const [expandedGroups, setExpandedGroups] = useState({});
-    const [popup, setPopup] = useState(null);
-
-    const triggerPopup = (title, message) => {
-        setPopup({ title, message, key: Date.now() });
-        setTimeout(() => setPopup(null), 2500);
-    };
 
     useEffect(() => {
         (async () => {
             try {
                 setLoadingRoles(true);
                 const [r, m, p] = await Promise.all([getAllRoles(), getAllModules(), getAllPermissions()]);
-                setRoles(r);
+                setRoles(r || []);
                 setAllModules(m || []);
                 setAllPermissions(p || []);
                 
-                // Par défaut, ouvrir tous les modules de permissions
+                // Déplier tous les groupes de permissions par défaut
                 const initialExpanded = {};
                 if (p) {
                     p.forEach(perm => {
@@ -132,7 +154,7 @@ function RolesTab() {
                 }
                 setExpandedGroups(initialExpanded);
             } catch { 
-                toast.error('Erreur lors du chargement des données'); 
+                toast.error('Erreur lors du chargement des données système'); 
             } finally { 
                 setLoadingRoles(false); 
             }
@@ -161,9 +183,9 @@ function RolesTab() {
         setSavingModules(true);
         try {
             await updateRoleModules(selectedRole.roleId, [...selectedModuleIds]);
-            triggerPopup('Modules enregistrés', selectedModuleIds.length + ' module(s) configuré(s) pour le rôle « ' + selectedRole.title + ' »');
+            toast.success(`${selectedModuleIds.length} module(s) associés au rôle "${selectedRole.title}"`);
         } catch (err) {
-            toast.error(err.response?.data?.message || err.message || 'Erreur lors de la sauvegarde');
+            toast.error(err.response?.data?.message || err.message || 'Erreur lors de la sauvegarde des modules');
         } finally { 
             setSavingModules(false); 
         }
@@ -174,9 +196,9 @@ function RolesTab() {
         setSavingPerms(true);
         try {
             await updateRolePermissions(selectedRole.roleId, [...selectedPermissionIds]);
-            triggerPopup('Permissions enregistrées', selectedPermissionIds.length + ' permission(s) assignée(s) au rôle « ' + selectedRole.title + ' »');
+            toast.success(`${selectedPermissionIds.length} permission(s) assignée(s) au rôle "${selectedRole.title}"`);
         } catch (err) {
-            toast.error(err.response?.data?.message || err.message || 'Erreur lors de la sauvegarde');
+            toast.error(err.response?.data?.message || err.message || 'Erreur lors de la sauvegarde des permissions');
         } finally { 
             setSavingPerms(false); 
         }
@@ -187,7 +209,7 @@ function RolesTab() {
 
     const toggleAllModules = () => {
         const rootIds = allModules.filter(m => !m.parentModuleId).map(m => m.moduleId);
-        const allSel = rootIds.every(id => selectedModuleIds.includes(id));
+        const allSel = rootIds.length > 0 && rootIds.every(id => selectedModuleIds.includes(id));
         setSelectedModuleIds(prev => allSel ? prev.filter(id => !rootIds.includes(id)) : [...new Set([...prev, ...rootIds])]);
     };
 
@@ -196,29 +218,29 @@ function RolesTab() {
         try {
             if (editingRole) {
                 await updateRoleApi(editingRole.roleId, { title: roleForm.title, state: roleForm.state });
-                triggerPopup('Rôle mis à jour', 'Les informations du rôle « ' + roleForm.title + ' » ont été modifiées.');
+                toast.success(`Le rôle "${roleForm.title}" a été mis à jour`);
             } else {
                 await createRole({ title: roleForm.title, state: 1 });
-                triggerPopup('Rôle créé', 'Le nouveau rôle « ' + roleForm.title + ' » est maintenant actif.');
+                toast.success(`Le rôle "${roleForm.title}" a été créé`);
             }
             setShowRoleModal(false);
             setEditingRole(null);
             setRoleForm({ title: '', state: 1 });
             setRoles(await getAllRoles());
         } catch (err) { 
-            toast.error(err.response?.data?.message || 'Erreur lors de la configuration du rôle'); 
+            toast.error(err.response?.data?.message || 'Erreur lors de la sauvegarde du rôle'); 
         }
     };
 
     const handleDeleteRole = async (role) => {
-        if (!window.confirm('Voulez-vous vraiment supprimer le rôle "' + role.title + '" ? Cette action est irréversible.')) return;
+        if (!window.confirm(`Voulez-vous vraiment supprimer le rôle "${role.title}" ? Cette action est irréversible.`)) return;
         try {
             await deleteRoleApi(role.roleId);
-            triggerPopup('Rôle supprimé', 'Le rôle « ' + role.title + ' » a été définitivement supprimé.');
+            toast.success(`Le rôle "${role.title}" a été supprimé`);
             if (selectedRole?.roleId === role.roleId) setSelectedRole(null);
             setRoles(await getAllRoles());
         } catch (err) { 
-            toast.error(err.response?.data?.message || 'Erreur de suppression'); 
+            toast.error(err.response?.data?.message || 'Erreur de suppression du rôle'); 
         }
     };
 
@@ -237,10 +259,10 @@ function RolesTab() {
     if (loadingRoles) {
         return (
             <div className="text-center py-5">
-                <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+                <div className="spinner-border text-primary" role="status" style={{ width: '2.5rem', height: '2.5rem' }}>
                     <span className="visually-hidden">Chargement...</span>
                 </div>
-                <p className="text-muted mt-3">Chargement des profils d'accès...</p>
+                <p className="text-muted mt-3 small">Chargement des rôles système...</p>
             </div>
         );
     }
@@ -254,14 +276,17 @@ function RolesTab() {
     });
 
     return (
-        <>
         <div className="row g-4">
-            {/* Colonne gauche : Rôles */}
+            {/* Colonne gauche : Liste des Rôles */}
             <div className="col-lg-4">
                 <div className="admin-card">
                     <div className="admin-card-header">
-                        <strong><FaUserShield className="text-primary" />Rôles Système</strong>
-                        <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={() => { setEditingRole(null); setRoleForm({ title: '', state: 1 }); setShowRoleModal(true); }}>
+                        <strong><FaUserShield className="text-primary" /> Rôles Système</strong>
+                        <button 
+                            type="button"
+                            className="admin-btn admin-btn-primary admin-btn-sm" 
+                            onClick={() => { setEditingRole(null); setRoleForm({ title: '', state: 1 }); setShowRoleModal(true); }}
+                        >
                             <FaPlus /> Nouveau Rôle
                         </button>
                     </div>
@@ -269,6 +294,7 @@ function RolesTab() {
                     <div className="admin-card-body d-flex flex-column" style={{ minHeight: 0 }}>
                         <div className="admin-search-wrapper">
                             <input 
+                                type="text"
                                 className="admin-search-input" 
                                 placeholder="Rechercher un rôle..." 
                                 value={searchQuery} 
@@ -278,41 +304,46 @@ function RolesTab() {
                         </div>
                         
                         <div className="admin-scrollable-container flex-grow-1" style={{ maxHeight: 'calc(80vh - 200px)' }}>
-                            {filteredRoles.map(role => (
-                                <div key={role.roleId}
-                                    className={`admin-item-row ${selectedRole?.roleId === role.roleId ? 'active' : ''}`}
-                                    onClick={() => handleSelectRole(role)}>
-                                    <div>
-                                        <div className="fw-bold mb-1">{role.title}</div>
-                                        <span className={`admin-badge ${role.state === 1 ? 'admin-badge-success' : 'admin-badge-secondary'}`}>
-                                            {role.state === 1 ? 'Actif' : 'Inactif'}
-                                        </span>
+                            {filteredRoles.map(role => {
+                                const isActive = selectedRole?.roleId === role.roleId;
+                                return (
+                                    <div 
+                                        key={role.roleId}
+                                        className={`admin-item-row ${isActive ? 'active' : ''}`}
+                                        onClick={() => handleSelectRole(role)}
+                                    >
+                                        <div>
+                                            <div className="fw-bold mb-1 role-title" style={{ fontSize: '0.9rem' }}>{role.title}</div>
+                                            <span className={`admin-badge role-badge ${isActive ? '' : (role.state === 1 ? 'admin-badge-success' : 'admin-badge-secondary')}`}>
+                                                {role.state === 1 ? 'Actif' : 'Inactif'}
+                                            </span>
+                                        </div>
+                                        <div className="actions-group" onClick={e => e.stopPropagation()}>
+                                            <button 
+                                                type="button"
+                                                className="btn btn-sm action-btn p-1"
+                                                onClick={() => { setEditingRole(role); setRoleForm({ title: role.title, state: role.state ?? 1 }); setShowRoleModal(true); }}
+                                                title="Modifier"
+                                            >
+                                                <FaEdit size={14} />
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                className="btn btn-sm action-btn p-1 text-danger"
+                                                onClick={() => handleDeleteRole(role)}
+                                                title="Supprimer"
+                                            >
+                                                <FaTrash size={14} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="actions-group d-flex gap-1" onClick={e => e.stopPropagation()}>
-                                        <button 
-                                            className="btn btn-link p-1 text-decoration-none text-muted-hover"
-                                            style={{ color: selectedRole?.roleId === role.roleId ? '#fff' : 'inherit' }}
-                                            onClick={() => { setEditingRole(role); setRoleForm({ title: role.title, state: role.state ?? 1 }); setShowRoleModal(true); }}
-                                            title="Modifier"
-                                        >
-                                            <FaEdit size={14} />
-                                        </button>
-                                        <button 
-                                            className="btn btn-link p-1 text-decoration-none text-danger-hover"
-                                            style={{ color: selectedRole?.roleId === role.roleId ? '#ffc9c9' : 'var(--admin-danger)' }}
-                                            onClick={() => handleDeleteRole(role)}
-                                            title="Supprimer"
-                                        >
-                                            <FaTrash size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                             {filteredRoles.length === 0 && (
                                 <div className="admin-empty-state">
                                     <FaUserShield className="admin-empty-icon" />
                                     <div className="admin-empty-title">Aucun rôle trouvé</div>
-                                    <div className="admin-empty-desc small">Essayez d'ajuster vos filtres ou créez un nouveau rôle.</div>
+                                    <div className="admin-empty-desc">Essayez d'ajuster votre recherche ou créez un rôle.</div>
                                 </div>
                             )}
                         </div>
@@ -320,38 +351,47 @@ function RolesTab() {
                 </div>
             </div>
 
-            {/* Colonne droite : Accès & Modules */}
+            {/* Colonne droite : Configuration du rôle sélectionné */}
             <div className="col-lg-8">
                 {!selectedRole ? (
                     <div className="admin-card">
-                        <div className="admin-card-body d-flex flex-column align-items-center justify-content-center py-5">
-                            <div className="p-4 bg-light rounded-circle mb-3">
-                                <FaUserShield size={56} className="text-muted opacity-50" />
+                        <div className="admin-card-body d-flex flex-column align-items-center justify-content-center py-5 text-center">
+                            <div className="p-3 bg-light rounded-circle mb-3">
+                                <FaUserShield size={48} className="text-muted opacity-50" />
                             </div>
-                            <h5 className="fw-bold text-center mb-1">Sélectionnez un rôle</h5>
-                            <p className="text-muted small text-center max-w-320">
-                                Cliquez sur l'un des rôles de l'arborescence de gauche pour configurer ses visibilités de modules et permissions associées.
+                            <h5 className="fw-bold mb-1">Sélectionnez un rôle</h5>
+                            <p className="text-muted small max-w-320 mb-0">
+                                Cliquez sur un rôle dans la liste de gauche pour configurer ses accès aux modules et ses permissions.
                             </p>
                         </div>
                     </div>
                 ) : loadingAccess ? (
                     <div className="admin-card">
                         <div className="admin-card-body d-flex flex-column align-items-center justify-content-center py-5">
-                            <div className="spinner-border text-primary mb-3" role="status" />
-                            <p className="text-muted small">Chargement des accréditations de <strong>{selectedRole.title}</strong>...</p>
+                            <div className="spinner-border text-primary mb-3" role="status" style={{ width: '2rem', height: '2rem' }} />
+                            <p className="text-muted small mb-0">Chargement des accréditations de <strong>{selectedRole.title}</strong>...</p>
                         </div>
                     </div>
                 ) : (
                     <div className="d-flex flex-column gap-4">
-                        {/* Modules de visibilité */}
+                        {/* Section 1 : Modules Visibles */}
                         <div className="admin-card">
                             <div className="admin-card-header">
-                                <strong><FaCubes className="text-primary" />Modules Visibles</strong>
+                                <strong><FaCubes className="text-primary" /> Modules Visibles ({selectedModuleIds.length})</strong>
                                 <div className="d-flex gap-2">
-                                    <button className="admin-btn admin-btn-outline admin-btn-sm" onClick={toggleAllModules}>
+                                    <button 
+                                        type="button"
+                                        className="admin-btn admin-btn-outline admin-btn-sm" 
+                                        onClick={toggleAllModules}
+                                    >
                                         {modulesAllSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
                                     </button>
-                                    <button className="admin-btn admin-btn-success admin-btn-sm" onClick={handleSaveModules} disabled={savingModules}>
+                                    <button 
+                                        type="button"
+                                        className="admin-btn admin-btn-success admin-btn-sm" 
+                                        onClick={handleSaveModules} 
+                                        disabled={savingModules}
+                                    >
                                         <FaSave /> {savingModules ? 'Enregistrement...' : 'Enregistrer'}
                                     </button>
                                 </div>
@@ -370,36 +410,40 @@ function RolesTab() {
                                                         {checked && <FaUserCheck size={11} />}
                                                     </div>
                                                     <div className="module-icon-wrapper">
-                                                        <i className={mod.icon || 'mdi mdi-cube-outline'} />
+                                                        <ModuleIcon icon={mod.icon} />
                                                     </div>
-                                                    <div className="text-truncate">
+                                                    <div className="text-truncate flex-grow-1">
                                                         <div className="small fw-bold text-truncate">{mod.displayName || mod.name}</div>
-                                                        <code className="text-muted" style={{ fontSize: '0.7rem' }}>{mod.route || 'Racine'}</code>
+                                                        <span className="text-muted" style={{ fontSize: '0.725rem' }}>{mod.route || 'Racine'}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         );
                                     })}
                                     {rootModules.length === 0 && (
-                                        <div className="text-muted small p-3 text-center w-100">Aucun module racine disponible.</div>
+                                        <div className="text-muted small p-3 text-center w-100">Aucun module principal disponible.</div>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Rôles et Permissions détaillées */}
+                        {/* Section 2 : Permissions fines du système */}
                         <div className="admin-card">
                             <div className="admin-card-header">
-                                <strong><FaLock className="text-primary" />Permissions fines du système</strong>
-                                <button className="admin-btn admin-btn-success admin-btn-sm" onClick={handleSavePermissions} disabled={savingPerms}>
+                                <strong><FaLock className="text-primary" /> Permissions attribuées ({selectedPermissionIds.length})</strong>
+                                <button 
+                                    type="button"
+                                    className="admin-btn admin-btn-success admin-btn-sm" 
+                                    onClick={handleSavePermissions} 
+                                    disabled={savingPerms}
+                                >
                                     <FaSave /> {savingPerms ? 'Enregistrement...' : 'Enregistrer'}
                                 </button>
                             </div>
-                            <div className="admin-card-body admin-scrollable-container" style={{ maxHeight: '500px' }}>
+                            <div className="admin-card-body admin-scrollable-container" style={{ maxHeight: '480px' }}>
                                 {Object.entries(permGroups).map(([modName, perms]) => {
                                     const permIds = perms.map(p => p.permissionId);
                                     const allSel = permIds.every(id => selectedPermissionIds.includes(id));
-                                    const someSel = permIds.some(id => selectedPermissionIds.includes(id));
                                     const isOpen = expandedGroups[modName] !== false;
 
                                     return (
@@ -414,8 +458,8 @@ function RolesTab() {
                                                 </div>
                                                 <div onClick={e => e.stopPropagation()}>
                                                     <button 
+                                                        type="button"
                                                         className={`admin-btn admin-btn-xs ${allSel ? 'admin-btn-primary' : 'admin-btn-outline'}`}
-                                                        style={{ padding: '2px 8px' }}
                                                         onClick={() => allSel
                                                             ? setSelectedPermissionIds(prev => prev.filter(id => !permIds.includes(id)))
                                                             : setSelectedPermissionIds(prev => [...new Set([...prev, ...permIds])])}
@@ -442,7 +486,7 @@ function RolesTab() {
                                                                         <div className="flex-grow-1">
                                                                             <span className="admin-permission-label">{formatPermName(perm.name)}</span>
                                                                             {perm.description && (
-                                                                                <div className="text-muted small" style={{ fontSize: '0.75rem', marginTop: '2px' }}>
+                                                                                <div className="text-muted" style={{ fontSize: '0.75rem', marginTop: '2px' }}>
                                                                                     {perm.description}
                                                                                 </div>
                                                                             )}
@@ -463,14 +507,16 @@ function RolesTab() {
                 )}
             </div>
 
-            {/* Modal Role Création / Edition (Custom styled modal overlay) */}
+            {/* Modal Création / Édition de Rôle */}
             {showRoleModal && (
                 <div className="admin-modal-backdrop" onClick={() => setShowRoleModal(false)}>
                     <div className="admin-modal-content" onClick={e => e.stopPropagation()}>
                         <form onSubmit={handleSaveRole}>
                             <div className="admin-modal-header">
                                 <h6 className="admin-modal-title">{editingRole ? 'Modifier le Rôle' : 'Nouveau Rôle'}</h6>
-                                <button type="button" className="admin-modal-close" onClick={() => setShowRoleModal(false)}><FaTimes /></button>
+                                <button type="button" className="admin-modal-close" onClick={() => setShowRoleModal(false)}>
+                                    <FaTimes />
+                                </button>
                             </div>
                             <div className="admin-modal-body">
                                 <div className="admin-form-group">
@@ -479,35 +525,34 @@ function RolesTab() {
                                         type="text" 
                                         className="admin-form-control" 
                                         required 
-                                        placeholder="EX: MANAGER_RH, SUPERVISEUR..."
+                                        placeholder="ex: MANAGER_RH, SUPERVISEUR..."
                                         value={roleForm.title}
                                         onChange={e => setRoleForm({ ...roleForm, title: e.target.value })} 
                                     />
                                 </div>
                                 <div className="admin-form-group">
-                                    <label className="admin-form-label">État du compte rôle</label>
+                                    <label className="admin-form-label">Statut du rôle</label>
                                     <select 
                                         className="admin-form-control"
                                         value={roleForm.state}
                                         onChange={e => setRoleForm({ ...roleForm, state: parseInt(e.target.value) })}
                                     >
                                         <option value={1}>Actif (Autorise les affectations)</option>
-                                        <option value={0}>Inactif (Bloque les nouvelles affectations)</option>
+                                        <option value={0}>Inactif (Bloque les affectations)</option>
                                     </select>
                                 </div>
                             </div>
                             <div className="admin-modal-footer">
                                 <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => setShowRoleModal(false)}>Annuler</button>
-                                <button type="submit" className="admin-btn admin-btn-primary admin-btn-sm"><FaSave />{editingRole ? 'Enregistrer les modifications' : 'Créer le rôle'}</button>
+                                <button type="submit" className="admin-btn admin-btn-primary admin-btn-sm">
+                                    <FaSave /> {editingRole ? 'Enregistrer' : 'Créer le rôle'}
+                                </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
         </div>
-
-        {popup && <SuccessPopup key={popup.key} title={popup.title} message={popup.message} />}
-        </>
     );
 }
 
@@ -521,12 +566,6 @@ function ModulesTab() {
     const [editingModule, setEditingModule] = useState(null);
     const [formData, setFormData] = useState({ name: '', displayName: '', icon: '', route: '', parentModuleId: null, sortOrder: 0, description: '' });
     const [expandedModules, setExpandedModules] = useState({});
-    const [popup, setPopup] = useState(null);
-
-    const triggerPopup = (title, message) => {
-        setPopup({ title, message, key: Date.now() });
-        setTimeout(() => setPopup(null), 2500);
-    };
 
     const fetchModules = useCallback(async () => {
         try {
@@ -537,7 +576,7 @@ function ModulesTab() {
             (data || []).forEach(m => { exp[m.moduleId] = true; });
             setExpandedModules(exp);
         } catch { 
-            toast.error('Erreur lors du chargement de la liste des modules'); 
+            toast.error('Erreur lors du chargement des modules'); 
         } finally { 
             setLoading(false); 
         }
@@ -550,10 +589,10 @@ function ModulesTab() {
         try {
             if (editingModule) {
                 await updateModule(editingModule.moduleId, { ...formData, moduleId: editingModule.moduleId, state: 1 });
-                triggerPopup('Module mis à jour', 'Le module « ' + formData.displayName + ' » a été modifié avec succès.');
+                toast.success(`Le module "${formData.displayName}" a été mis à jour`);
             } else {
                 await createModule({ ...formData, state: 1 });
-                triggerPopup('Module créé', 'Le module « ' + formData.displayName + ' » est maintenant disponible.');
+                toast.success(`Le module "${formData.displayName}" a été créé`);
             }
             setShowModal(false);
             setEditingModule(null);
@@ -564,10 +603,10 @@ function ModulesTab() {
     };
 
     const handleDelete = async (mod) => {
-        if (!window.confirm('Voulez-vous supprimer "' + mod.displayName + '" ? Attention, la suppression des modules parents supprimera également tous les modules enfants.')) return;
+        if (!window.confirm(`Voulez-vous supprimer "${mod.displayName}" ? Les sous-modules associés seront également supprimés.`)) return;
         try { 
             await deleteModule(mod.moduleId);
-            triggerPopup('Module supprimé', 'Le module « ' + mod.displayName + ' » a été retiré de l\'arborescence.');
+            toast.success(`Le module "${mod.displayName}" a été supprimé`);
             fetchModules(); 
         } catch { 
             toast.error('Impossible de supprimer ce module.'); 
@@ -579,36 +618,39 @@ function ModulesTab() {
     const renderRow = (mod, depth = 0) => (
         <React.Fragment key={mod.moduleId}>
             <tr>
-                <td style={{ paddingLeft: (depth * 24 + 20) + 'px', position: 'relative' }}>
+                <td style={{ paddingLeft: (depth * 24 + 16) + 'px', position: 'relative' }}>
                     {depth > 0 && (
                         <div 
                             className="tree-indent-guide" 
-                            style={{ left: ((depth - 1) * 24 + 28) + 'px', height: '100%' }}
+                            style={{ left: ((depth - 1) * 24 + 24) + 'px', height: '100%' }}
                         />
                     )}
                     <div className="d-flex align-items-center gap-2">
                         {mod.childModules?.length > 0 ? (
                             <button 
+                                type="button"
                                 className="btn p-0 border-0 tree-chevron-btn" 
                                 onClick={() => toggleExpand(mod.moduleId)}
                             >
                                 {expandedModules[mod.moduleId] ? <FaChevronDown size={11} /> : <FaChevronRight size={11} />}
                             </button>
                         ) : (
-                            <span style={{ width: 20 }}></span>
+                            <span style={{ width: 22 }}></span>
                         )}
-                        <span className="text-primary bg-light p-2 rounded-circle d-inline-flex">
-                            <i className={mod.icon || 'mdi mdi-folder-outline'} style={{ fontSize: '14px' }} />
+                        <span className="p-1 rounded bg-light text-primary d-inline-flex align-items-center justify-content-center" style={{ width: 28, height: 28 }}>
+                            <ModuleIcon icon={mod.icon} />
                         </span>
                         <div>
                             <div className="fw-bold">{mod.displayName}</div>
-                            <small className="text-muted text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '0.3px' }}>{mod.name}</small>
+                            <small className="text-muted text-uppercase" style={{ fontSize: '0.7rem' }}>{mod.name}</small>
                         </div>
                     </div>
                 </td>
-                <td className="bg-white-cell">
+                <td>
                     {mod.route ? (
-                        <code className="bg-white px-2 py-1 rounded small border border-light text-secondary">{mod.route}</code>
+                        <span className="px-2 py-1 rounded bg-light border text-secondary" style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                            {mod.route}
+                        </span>
                     ) : (
                         <span className="text-muted italic small">Non routé (Racine)</span>
                     )}
@@ -622,8 +664,9 @@ function ModulesTab() {
                     </div>
                 </td>
                 <td>
-                    <div className="d-flex gap-2">
+                    <div className="d-flex gap-1">
                         <button 
+                            type="button"
                             className="admin-btn admin-btn-outline admin-btn-xs"
                             onClick={() => {
                                 setEditingModule(mod);
@@ -636,6 +679,7 @@ function ModulesTab() {
                             <FaEdit />
                         </button>
                         <button 
+                            type="button"
                             className="admin-btn admin-btn-outline admin-btn-xs text-primary"
                             onClick={() => {
                                 setEditingModule(null);
@@ -647,6 +691,7 @@ function ModulesTab() {
                             <FaPlus />
                         </button>
                         <button 
+                            type="button"
                             className="admin-btn admin-btn-danger-outline admin-btn-xs"
                             onClick={() => handleDelete(mod)}
                             title="Supprimer"
@@ -663,22 +708,25 @@ function ModulesTab() {
     if (loading) {
         return (
             <div className="text-center py-5">
-                <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }} />
-                <p className="text-muted mt-3">Chargement des modules...</p>
+                <div className="spinner-border text-primary" role="status" style={{ width: '2.5rem', height: '2.5rem' }} />
+                <p className="text-muted mt-3 small">Chargement des modules...</p>
             </div>
         );
     }
 
     return (
-        <>
         <div className="admin-card">
             <div className="admin-card-header">
-                <strong><FaCubes className="text-primary" />Arborescence des modules</strong>
-                <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={() => {
-                    setEditingModule(null);
-                    setFormData({ name: '', displayName: '', icon: '', route: '', parentModuleId: null, sortOrder: 0, description: '' });
-                    setShowModal(true);
-                }}>
+                <strong><FaCubes className="text-primary" /> Arborescence des modules</strong>
+                <button 
+                    type="button"
+                    className="admin-btn admin-btn-primary admin-btn-sm" 
+                    onClick={() => {
+                        setEditingModule(null);
+                        setFormData({ name: '', displayName: '', icon: '', route: '', parentModuleId: null, sortOrder: 0, description: '' });
+                        setShowModal(true);
+                    }}
+                >
                     <FaPlus /> Nouveau Module Racine
                 </button>
             </div>
@@ -689,9 +737,9 @@ function ModulesTab() {
                         <thead>
                             <tr>
                                 <th style={{ minWidth: 260 }}>Module / Page</th>
-                                <th className="bg-white-cell" style={{ minWidth: 220 }}>Route Relative</th>
-                                <th style={{ minWidth: 150 }}>Statistiques</th>
-                                <th style={{ minWidth: 160 }}>Actions</th>
+                                <th style={{ minWidth: 220 }}>Route Relative</th>
+                                <th style={{ minWidth: 150 }}>Éléments</th>
+                                <th style={{ minWidth: 140 }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -699,8 +747,8 @@ function ModulesTab() {
                             {modules.length === 0 && (
                                 <tr>
                                     <td colSpan="4" className="text-center py-5 text-muted">
-                                        <FaFolderOpen size={48} className="d-block mx-auto mb-3 opacity-25" />
-                                        Aucun module créé. Utilisez le bouton "Nouveau Module Racine" ci-dessus.
+                                        <FaFolderOpen size={40} className="d-block mx-auto mb-2 opacity-25" />
+                                        Aucun module configuré. Cliquez sur "Nouveau Module Racine" ci-dessus.
                                     </td>
                                 </tr>
                             )}
@@ -716,7 +764,9 @@ function ModulesTab() {
                         <form onSubmit={handleSave}>
                             <div className="admin-modal-header">
                                 <h6 className="admin-modal-title">{editingModule ? 'Modifier' : 'Ajouter'} un module</h6>
-                                <button type="button" className="admin-modal-close" onClick={() => setShowModal(false)}><FaTimes /></button>
+                                <button type="button" className="admin-modal-close" onClick={() => setShowModal(false)}>
+                                    <FaTimes />
+                                </button>
                             </div>
                             <div className="admin-modal-body">
                                 <div className="row g-3">
@@ -748,7 +798,7 @@ function ModulesTab() {
                                     </div>
                                     <div className="col-md-6">
                                         <div className="admin-form-group">
-                                            <label className="admin-form-label">Classe d'icône MDI</label>
+                                            <label className="admin-form-label">Classe d'icône (ex: mdi mdi-shield)</label>
                                             <input 
                                                 type="text" 
                                                 className="admin-form-control" 
@@ -772,7 +822,7 @@ function ModulesTab() {
                                     </div>
                                     <div className="col-md-6">
                                         <div className="admin-form-group">
-                                            <label className="admin-form-label">Module parent (Niveau hiérarchique)</label>
+                                            <label className="admin-form-label">Module parent</label>
                                             <select 
                                                 className="admin-form-control" 
                                                 value={formData.parentModuleId || ''} 
@@ -785,9 +835,9 @@ function ModulesTab() {
                                             </select>
                                         </div>
                                     </div>
-                                    <div className="col-md-3">
+                                    <div className="col-md-6">
                                         <div className="admin-form-group">
-                                            <label className="admin-form-label">Index d'affichage</label>
+                                            <label className="admin-form-label">Ordre d'affichage</label>
                                             <input 
                                                 type="number" 
                                                 className="admin-form-control" 
@@ -796,21 +846,13 @@ function ModulesTab() {
                                             />
                                         </div>
                                     </div>
-                                    <div className="col-md-3">
-                                        <div className="admin-form-group">
-                                            <label className="admin-form-label">Statut</label>
-                                            <select className="admin-form-control" disabled value={1}>
-                                                <option value={1}>Actif</option>
-                                            </select>
-                                        </div>
-                                    </div>
                                     <div className="col-12">
                                         <div className="admin-form-group mb-0">
-                                            <label className="admin-form-label">Description ou Rôle du module</label>
+                                            <label className="admin-form-label">Description</label>
                                             <textarea 
                                                 className="admin-form-control" 
                                                 rows={2} 
-                                                placeholder="Saisissez un bref résumé des pages d'évaluations et de notation..."
+                                                placeholder="Bref résumé de l'usage du module..."
                                                 value={formData.description} 
                                                 onChange={e => setFormData({ ...formData, description: e.target.value })} 
                                             />
@@ -820,16 +862,13 @@ function ModulesTab() {
                             </div>
                             <div className="admin-modal-footer">
                                 <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => setShowModal(false)}>Annuler</button>
-                                <button type="submit" className="admin-btn admin-btn-primary admin-btn-sm"><FaSave />Enregistrer</button>
+                                <button type="submit" className="admin-btn admin-btn-primary admin-btn-sm"><FaSave /> Enregistrer</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-
-        {popup && <SuccessPopup key={popup.key} title={popup.title} message={popup.message} />}
         </div>
-        </>
     );
 }
 
@@ -845,12 +884,6 @@ function PermissionsTab() {
     const [formData, setFormData] = useState({ name: '', description: '', moduleId: null });
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedModules, setExpandedModules] = useState({});
-    const [popup, setPopup] = useState(null);
-
-    const triggerPopup = (title, message) => {
-        setPopup({ title, message, key: Date.now() });
-        setTimeout(() => setPopup(null), 2500);
-    };
 
     const fetchData = useCallback(async () => {
         try {
@@ -868,7 +901,7 @@ function PermissionsTab() {
             Object.keys(groups).forEach(k => { exp[k] = true; });
             setExpandedModules(exp);
         } catch { 
-            toast.error('Erreur lors du chargement des droits d\'accès'); 
+            toast.error('Erreur lors du chargement des permissions'); 
         } finally { 
             setLoading(false); 
         }
@@ -879,21 +912,28 @@ function PermissionsTab() {
     const handleSave = async (e) => {
         e.preventDefault();
         try {
-            const axios = (await import('axios')).default;
-            const { urlApi } = await import('../../../helpers/utils');
-            const headers = { Authorization: 'Bearer ' + (localStorage.getItem('token') || ''), 'Content-Type': 'application/json' };
+            const headers = getAuthHeaders();
             if (editingPerm) {
-                await axios.put(urlApi('/Permission/' + editingPerm.permissionId), { permissionId: editingPerm.permissionId, name: formData.name, description: formData.description, moduleId: formData.moduleId }, { headers });
-                triggerPopup('Permission mise à jour', 'La règle « ' + formData.name + ' » a été modifiée avec succès.');
+                await axios.put(urlApi(`/Permission/${editingPerm.permissionId}`), { 
+                    permissionId: editingPerm.permissionId, 
+                    name: formData.name, 
+                    description: formData.description, 
+                    moduleId: formData.moduleId 
+                }, { headers });
+                toast.success(`La permission "${formData.name}" a été mise à jour`);
             } else {
-                await axios.post(urlApi('/Permission'), { name: formData.name, description: formData.description, moduleId: formData.moduleId }, { headers });
-                triggerPopup('Permission créée', 'La nouvelle règle « ' + formData.name + ' » est maintenant active.');
+                await axios.post(urlApi('/Permission'), { 
+                    name: formData.name, 
+                    description: formData.description, 
+                    moduleId: formData.moduleId 
+                }, { headers });
+                toast.success(`La permission "${formData.name}" a été créée`);
             }
             setShowModal(false);
             setEditingPerm(null);
             fetchData();
         } catch { 
-            toast.error('Une erreur s\'est produite lors de l\'enregistrement'); 
+            toast.error('Erreur lors de l\'enregistrement de la permission'); 
         }
     };
 
@@ -902,8 +942,8 @@ function PermissionsTab() {
     if (loading) {
         return (
             <div className="text-center py-5">
-                <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }} />
-                <p className="text-muted mt-3">Chargement du dictionnaire des permissions...</p>
+                <div className="spinner-border text-primary" role="status" style={{ width: '2.5rem', height: '2.5rem' }} />
+                <p className="text-muted mt-3 small">Chargement des permissions...</p>
             </div>
         );
     }
@@ -918,7 +958,6 @@ function PermissionsTab() {
         });
 
     return (
-        <>
         <div>
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
                 <div className="admin-search-wrapper mb-0" style={{ minWidth: '320px' }}>
@@ -932,7 +971,11 @@ function PermissionsTab() {
                     <FaSearch className="admin-search-icon" />
                 </div>
                 
-                <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={() => { setEditingPerm(null); setFormData({ name: '', description: '', moduleId: null }); setShowModal(true); }}>
+                <button 
+                    type="button"
+                    className="admin-btn admin-btn-primary admin-btn-sm" 
+                    onClick={() => { setEditingPerm(null); setFormData({ name: '', description: '', moduleId: null }); setShowModal(true); }}
+                >
                     <FaPlus /> Nouvelle Permission
                 </button>
             </div>
@@ -942,7 +985,7 @@ function PermissionsTab() {
                     <div key={modName} className="col-xl-6">
                         <div className="admin-card">
                             <div 
-                                className="admin-card-header bg-light"
+                                className="admin-card-header"
                                 style={{ cursor: 'pointer' }} 
                                 onClick={() => toggleExpand(modName)}
                             >
@@ -959,24 +1002,27 @@ function PermissionsTab() {
                                 <div className="admin-card-body p-2">
                                     <div className="d-flex flex-column gap-1">
                                         {perms.map(perm => (
-                                            <div key={perm.permissionId} className="p-2 border-bottom border-light d-flex justify-content-between align-items-center bg-white rounded hover-bg-light">
+                                            <div 
+                                                key={perm.permissionId} 
+                                                className="p-2 border-bottom d-flex justify-content-between align-items-center rounded-2 bg-white"
+                                            >
                                                 <div>
                                                     <div className="small fw-bold text-dark">{formatPermName(perm.name)}</div>
-                                                    {perm.description ? (
+                                                    <code className="text-muted" style={{ fontSize: '0.7rem' }}>{perm.name}</code>
+                                                    {perm.description && (
                                                         <div className="text-muted" style={{ fontSize: '0.75rem' }}>{perm.description}</div>
-                                                    ) : (
-                                                        <div className="text-muted italic" style={{ fontSize: '0.75rem' }}>Aucune description définie.</div>
                                                     )}
                                                 </div>
                                                 <button 
+                                                    type="button"
                                                     className="admin-btn admin-btn-outline admin-btn-xs"
                                                     onClick={() => {
                                                         setEditingPerm(perm);
-                                                        setFormData({ name: perm.name, description: perm.description, moduleId: perm.moduleId });
+                                                        setFormData({ name: perm.name, description: perm.description || '', moduleId: perm.moduleId });
                                                         setShowModal(true);
                                                     }}
                                                 >
-                                                    <FaEdit size={11} />
+                                                    <FaEdit size={12} />
                                                 </button>
                                             </div>
                                         ))}
@@ -988,7 +1034,7 @@ function PermissionsTab() {
                 ))}
                 {Object.keys(groups).length === 0 && (
                     <div className="col-12 py-5 text-center text-muted">
-                        <FaLock size={48} className="d-block mx-auto mb-3 opacity-25" />
+                        <FaLock size={40} className="d-block mx-auto mb-2 opacity-25" />
                         Aucune règle de permission ne correspond à votre recherche.
                     </div>
                 )}
@@ -1001,7 +1047,9 @@ function PermissionsTab() {
                         <form onSubmit={handleSave}>
                             <div className="admin-modal-header">
                                 <h6 className="admin-modal-title">{editingPerm ? 'Modifier' : 'Ajouter'} une permission</h6>
-                                <button type="button" className="admin-modal-close" onClick={() => setShowModal(false)}><FaTimes /></button>
+                                <button type="button" className="admin-modal-close" onClick={() => setShowModal(false)}>
+                                    <FaTimes />
+                                </button>
                             </div>
                             <div className="admin-modal-body">
                                 <div className="admin-form-group">
@@ -1014,14 +1062,16 @@ function PermissionsTab() {
                                         value={formData.name} 
                                         onChange={e => setFormData({ ...formData, name: e.target.value })} 
                                     />
-                                    <small className="text-muted d-block mt-1" style={{ fontSize: '0.7rem' }}>Le nom doit être unique et en majuscules (convention SNAKE_CASE).</small>
+                                    <small className="text-muted d-block mt-1" style={{ fontSize: '0.725rem' }}>
+                                        Format unique en majuscules (convention SNAKE_CASE).
+                                    </small>
                                 </div>
                                 <div className="admin-form-group">
-                                    <label className="admin-form-label">Description ou rôle exact</label>
+                                    <label className="admin-form-label">Description</label>
                                     <textarea 
                                         className="admin-form-control" 
                                         rows={2} 
-                                        placeholder="ex: Autorise la création de rapports PDF d'entretiens annuels..."
+                                        placeholder="ex: Autorise la création de rapports PDF d'entretiens..."
                                         value={formData.description} 
                                         onChange={e => setFormData({ ...formData, description: e.target.value })} 
                                     />
@@ -1042,40 +1092,17 @@ function PermissionsTab() {
                             </div>
                             <div className="admin-modal-footer">
                                 <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => setShowModal(false)}>Annuler</button>
-                                <button type="submit" className="admin-btn admin-btn-primary admin-btn-sm"><FaSave />Enregistrer</button>
+                                <button type="submit" className="admin-btn admin-btn-primary admin-btn-sm"><FaSave /> Enregistrer</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
         </div>
-
-        {popup && <SuccessPopup key={popup.key} title={popup.title} message={popup.message} />}
-        </>
     );
 }
 
-// =============================================================================
-// SuccessPopup — Confirmation visuelle animée
-// =============================================================================
-function SuccessPopup({ title, message }) {
-    return (
-        <div className="success-popup-overlay">
-            <div className="success-popup-box">
-                <div className="success-popup-icon-ring">
-                    <FaCheckCircle size={32} color="#ffffff" />
-                </div>
-                <div className="success-popup-title">{title}</div>
-                <div className="success-popup-message">{message}</div>
-                <div className="success-popup-bar" />
-            </div>
-        </div>
-    );
-}
-
-// =============================================================================
-// Helpers
-// =============================================================================
+// Helper pour formatage du nom de la permission
 function formatPermName(name) {
     if (!name) return '';
     return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
