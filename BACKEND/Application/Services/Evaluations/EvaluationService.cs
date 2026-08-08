@@ -542,14 +542,23 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
                     await _dataService.CommitTransactionAsync();
 
-                    // Notification in-app : informer les superviseurs et l'employé
+                    // Notification in-app : informer les superviseurs, le planificateur et l'employé
                     try
                     {
                         // Rechercher le User lié à l'employé évalué
                         var users = await _userRepository.GetAllAsync();
                         var employeeUser = users.FirstOrDefault(u => u.EmployeeId == employeeId);
 
-                        // Notifier les superviseurs
+                        // 1. Notifier le planificateur (admin/RH/manager qui a créé l'évaluation)
+                        await _notificationService.SendAsync(
+                            userId,
+                            "evaluation_assigned",
+                            $"{evaluationTypeName} planifiée",
+                            $"Évaluation créée pour {employeeFirstName} {employeeLastName} (du {startDate:dd/MM/yyyy} au {endDate:dd/MM/yyyy}).",
+                            "/soft-gcc/evaluations/liste"
+                        );
+
+                        // 2. Notifier les superviseurs
                         foreach (var supervisorId in supervisorIds)
                         {
                             await _notificationService.SendAsync(
@@ -561,8 +570,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                             );
                         }
 
-                        // Notifier l'employé évalué (s'il a un compte utilisateur)
-                        if (employeeUser != null)
+                        // 3. Notifier l'employé évalué (s'il a un compte utilisateur)
+                        if (employeeUser != null && employeeUser.Id != userId)
                         {
                             await _notificationService.SendAsync(
                                 employeeUser.Id,

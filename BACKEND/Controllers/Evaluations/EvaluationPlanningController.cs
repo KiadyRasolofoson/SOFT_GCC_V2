@@ -59,15 +59,19 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		{
 			try
 			{
+				// Extraire le vrai userId du token JWT (prioritaire sur le DTO)
+				var jwtUserIdClaim = User.FindFirst("userId")?.Value;
 				var evaluationIds = new List<int>();
 
 				foreach (var dto in dtos)
 				{
-					// Comme User et Employee sont des entités séparées:
-					// UserId représente l'utilisateur qui crée l'évaluation (peut être 0 ou non fourni par le frontend)
-					// EmployeeId représente l'employé qui est évalué
+					// Utiliser le userId du JWT s'il est disponible, sinon celui du DTO
+					var userId = !string.IsNullOrEmpty(jwtUserIdClaim) && int.TryParse(jwtUserIdClaim, out var jwtUserId)
+						? jwtUserId
+						: dto.UserId;
+
 					var evaluationId = await _evaluationService.CreateEvaluationAsync(
-						dto.UserId,
+						userId,
 						dto.EmployeeId,
 						dto.EvaluationTypeId,
 						dto.SupervisorIds,
