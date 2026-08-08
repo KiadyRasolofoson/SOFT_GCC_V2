@@ -162,7 +162,13 @@ namespace soft_carriere_competence.Controllers.Evaluations
 		{
 			try
 			{
-				var evaluationIds = await _evaluationService.CreateEvaluationWithSelectedQuestionsAsync(dto);
+				// Extraire le vrai userId du token JWT (nécessaire pour les notifications in-app)
+				var jwtUserIdClaim = User.FindFirst("userId")?.Value;
+				var userId = !string.IsNullOrEmpty(jwtUserIdClaim) && int.TryParse(jwtUserIdClaim, out var jwtUserId)
+					? jwtUserId
+					: 0;
+
+				var evaluationIds = await _evaluationService.CreateEvaluationWithSelectedQuestionsAsync(dto, userId);
 				return Ok(new { evaluationIds, message = "Évaluations créées avec succès avec les questions sélectionnées." });
 			}
 			catch (Exception ex)

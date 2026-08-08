@@ -542,28 +542,52 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
                     await _dataService.CommitTransactionAsync();
 
-                    // Notification in-app : informer les superviseurs, le planificateur et l'employé
+                    // Notification in-app : informer les superviseurs, le planificateur et l'employé.
+                    // Chaque envoi est isolé : un destinataire invalide ne doit pas bloquer les autres.
                     try
                     {
-                        // Rechercher le User lié à l'employé évalué
                         var users = await _userRepository.GetAllAsync();
                         var employeeUser = users.FirstOrDefault(u => u.EmployeeId == employeeId);
 
+                        async Task TryNotifyAsync(int recipientUserId, string title, string message, string link)
+                        {
+                            if (recipientUserId <= 0)
+                            {
+                                Console.WriteLine($"Notification ignorée : userId invalide ({recipientUserId}).");
+                                return;
+                            }
+
+                            try
+                            {
+                                await _notificationService.SendAsync(
+                                    recipientUserId,
+                                    "evaluation_assigned",
+                                    title,
+                                    message,
+                                    link
+                                );
+                            }
+                            catch (Exception sendEx)
+                            {
+                                Console.WriteLine($"Erreur notification in-app pour user {recipientUserId}: {sendEx.Message}");
+                                if (sendEx.InnerException != null)
+                                    Console.WriteLine($"Inner: {sendEx.InnerException.Message}");
+                            }
+                        }
+
                         // 1. Notifier le planificateur (admin/RH/manager qui a créé l'évaluation)
-                        await _notificationService.SendAsync(
+                        await TryNotifyAsync(
                             userId,
-                            "evaluation_assigned",
                             $"{evaluationTypeName} planifiée",
                             $"Évaluation créée pour {employeeFirstName} {employeeLastName} (du {startDate:dd/MM/yyyy} au {endDate:dd/MM/yyyy}).",
                             "/soft-gcc/evaluations/liste"
                         );
 
                         // 2. Notifier les superviseurs
-                        foreach (var supervisorId in supervisorIds)
+                        foreach (var supervisorId in supervisorIds.Where(id => id > 0 && id != userId).Distinct())
                         {
-                            await _notificationService.SendAsync(
+                            await TryNotifyAsync(
                                 supervisorId,
-                                "evaluation_assigned",
                                 $"Nouvelle {evaluationTypeName}",
                                 $"Vous êtes superviseur pour {employeeFirstName} {employeeLastName}.",
                                 "/soft-gcc/evaluations/liste"
@@ -573,9 +597,8 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                         // 3. Notifier l'employé évalué (s'il a un compte utilisateur)
                         if (employeeUser != null && employeeUser.Id != userId)
                         {
-                            await _notificationService.SendAsync(
+                            await TryNotifyAsync(
                                 employeeUser.Id,
-                                "evaluation_assigned",
                                 $"{evaluationTypeName} planifiée",
                                 $"Une {evaluationTypeName.ToLower()} a été planifiée pour vous (du {startDate:dd/MM/yyyy} au {endDate:dd/MM/yyyy}).",
                                 "/soft-gcc/evaluation/connexion"
@@ -815,15 +838,15 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
         }
 
-        public async Task<List<int>> CreateEvaluationWithSelectedQuestionsAsync(CreateEvaluationWithQuestionsDto dto)
+        public async Task<List<int>> CreateEvaluationWithSelectedQuestionsAsync(CreateEvaluationWithQuestionsDto dto, int userId = 0)
         {
             var createdEvaluationIds = new List<int>();
 
                 foreach (var employeeQuestion in dto.EmployeeQuestions)
                 {
-                // Créer l'évaluation
+                // Créer l'évaluation — userId du JWT (évite FK notifications avec userId=0)
                     var evaluationId = await CreateEvaluationAsync(
-                    0, // UserId (not specified in this flow)
+                        userId,
                         employeeQuestion.EmployeeId,
                     dto.EvaluationTypeId,
                         dto.SupervisorIds,
