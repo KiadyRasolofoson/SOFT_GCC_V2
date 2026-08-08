@@ -59,7 +59,7 @@ function CreationCareerPlan({ onSearch }) {
 
     // Fonction qui gère le retour en arrière de la page
     const handleRetour = () => {
-        navigate(`/soft-gcc/carriere`);
+        navigate(`/soft-gcc/carrieres`);
     };
 
 
@@ -163,7 +163,7 @@ function CreationCareerPlan({ onSearch }) {
         };
         console.log(dataToSend);
   
-        const response = await axios.post(urlApi('/CareerPlan'), dataToSend);
+        const response = await api.post(urlApi('/CareerPlan'), dataToSend);
         handleRetour();
     } catch (err) {
         console.error('Erreur lors de l\'insertion :', err);
@@ -244,7 +244,7 @@ function CreationCareerPlan({ onSearch }) {
             <BreadcrumbPers
                 items={[
                 { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
-                { label: 'Plan de carrière', path: '/soft-gcc/carriere' },
+                { label: 'Plan de carrière', path: '/soft-gcc/carrieres' },
                 { label: 'Creation', path: '/soft-gcc/carrieres/creation' }
                 ]}
             />

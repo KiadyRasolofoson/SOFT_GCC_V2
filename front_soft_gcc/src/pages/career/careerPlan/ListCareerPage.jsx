@@ -168,8 +168,8 @@ const ListCareerPage = () => {
       <BreadcrumbPers
         items={[
           { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
-          { label: 'Plan de carrière', path: '/soft-gcc/carriere' },
-          { label: 'Liste', path: '/soft-gcc/carriere' }
+          { label: 'Plan de carrière', path: '/soft-gcc/carrieres' },
+          { label: 'Liste', path: '/soft-gcc/carrieres' }
         ]}
       />
       <div className="row mt-3">

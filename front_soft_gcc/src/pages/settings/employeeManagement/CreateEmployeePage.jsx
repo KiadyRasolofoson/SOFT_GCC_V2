@@ -11,6 +11,25 @@ import FetcherApi from '../../../helpers/FetcherApi';
 import api from '../../../helpers/api';
 import ErrorMessage from '../../../helpers/ErrorMessage';
 
+const REGISTRATION_NUMBER_PREFIX = 'EMP';
+const REGISTRATION_NUMBER_WIDTH = 4;
+
+function getNextRegistrationNumber(employees = []) {
+    const highestRegistrationNumber = employees.reduce((highest, employee) => {
+        const rawRegistrationNumber = employee?.registrationNumber ?? '';
+        const match = rawRegistrationNumber.trim().match(/^EMP0*(\d+)$/i);
+
+        if (!match) {
+            return highest;
+        }
+
+        const numericValue = Number.parseInt(match[1], 10);
+        return Number.isNaN(numericValue) ? highest : Math.max(highest, numericValue);
+    }, 0);
+
+    return `${REGISTRATION_NUMBER_PREFIX}${String(highestRegistrationNumber + 1).padStart(REGISTRATION_NUMBER_WIDTH, '0')}`;
+}
+
 function CreateEmployeePage({ onSearch }) {
     const { data: dataEmployee } = useSWR('/Employee', FetcherApi);
     const { data: dataDepartment } = useSWR('/Department', FetcherApi);
@@ -35,7 +54,7 @@ function CreateEmployeePage({ onSearch }) {
 
    useEffect(() => {
         if (dataEmployee && dataEmployee.length > 0) {
-            let newRegistrationNumber = `EMP00${dataEmployee[dataEmployee.length - 1].employeeId + 1}`;
+            const newRegistrationNumber = getNextRegistrationNumber(dataEmployee);
             setFormData(prev => ({
                 ...prev,
                 registrationNumber: newRegistrationNumber
@@ -43,7 +62,7 @@ function CreateEmployeePage({ onSearch }) {
         } else {
             setFormData(prev => ({
                 ...prev,
-                registrationNumber: 'EMP001'
+                registrationNumber: 'EMP0001'
             }));
         }
     }, [dataEmployee]);
@@ -120,7 +139,7 @@ function CreateEmployeePage({ onSearch }) {
                 email: ''
             });
             if (dataEmployee && dataEmployee.length > 0) {
-                let newRegistrationNumber = `EMP00${dataEmployee[dataEmployee.length - 1].employeeId + 1}`;
+                const newRegistrationNumber = getNextRegistrationNumber(dataEmployee);
                 setFormData(prev => ({
                     ...prev,
                     registrationNumber: newRegistrationNumber
@@ -128,7 +147,7 @@ function CreateEmployeePage({ onSearch }) {
             } else {
                 setFormData(prev => ({
                     ...prev,
-                    registrationNumber: 'EMP001'
+                    registrationNumber: 'EMP0001'
                 }));
             }
             setError(null);

@@ -1,20 +1,49 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from 'react-router-dom';
-import { useUser } from "../pages/Authentification/UserContext"; // Importez le hook useUser
+import { useUser } from "../pages/Authentification/UserContext";
 import { Dropdown, Image } from 'react-bootstrap';
+import NotificationBell from './NotificationBell';
 
-// Affichage de la barre de navigation
-function NavigationBar({ task }) {
+/**
+ * Barre de navigation supérieure (header).
+ * Gère les toggles de sidebar (minimize desktop + offcanvas mobile)
+ * via le state React plutôt que les handlers jQuery du template.
+ */
+function NavigationBar() {
   const navigate = useNavigate();
-  const { user, loading: userLoading } = useUser(); // Récupérer l'utilisateur et l'état de chargement
+  const { user, loading: userLoading, logout } = useUser();
   const [userName, setUserName] = useState('');
+  const [sidebarMinimized, setSidebarMinimized] = useState(false);
 
-  // Déconnexion
+  // ─── Sidebar minimize (desktop) ───────────────────────────
+  const toggleSidebarMinimize = useCallback(() => {
+    setSidebarMinimized((prev) => {
+      const next = !prev;
+      if (next) {
+        document.body.classList.add('sidebar-icon-only');
+      } else {
+        document.body.classList.remove('sidebar-icon-only');
+      }
+      return next;
+    });
+  }, []);
+
+  // ─── Sidebar offcanvas (mobile) ───────────────────────────
+  const toggleSidebarMobile = useCallback(() => {
+    const sidebar = document.querySelector('.sidebar-offcanvas');
+    if (sidebar) {
+      sidebar.classList.toggle('active');
+    }
+  }, []);
+
+  // ─── Logout ───────────────────────────────────────────────
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    // logout() du UserContext remet user à null → NotificationProvider coupe SignalR et réinitialise l'état
+    logout();
     navigate('/login');
   };
-  // Récupérer les infos utilisateur
+
+  // ─── Infos utilisateur ────────────────────────────────────
   useEffect(() => {
     if (!userLoading && user) {
       setUserName(`${user.username}`);
@@ -23,22 +52,41 @@ function NavigationBar({ task }) {
       navigate('/login');
     }
   }, [user, userLoading, navigate]);
+
+  // ─── Nettoyage sidebar au démontage ──────────────────────
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('sidebar-icon-only');
+    };
+  }, []);
+
   return (
     <nav className="navbar default-layout-navbar col-lg-12 col-12 p-0 fixed-top d-flex flex-row">
+      {/* Logo */}
       <div className="text-center navbar-brand-wrapper d-flex align-items-center justify-content-center">
-        <a className="navbar-brand brand-logo" href="index.html">
+        <a className="navbar-brand brand-logo" href="/soft-gcc/tableau-de-bord">
           <img src="/Logo/softwellogo.png" alt="logo" />
         </a>
-        <a className="navbar-brand brand-logo-mini" href="index.html">
+        <a className="navbar-brand brand-logo-mini" href="/soft-gcc/tableau-de-bord">
           <img src="/src/assets/images/logo-mini.svg" alt="logo" />
         </a>
       </div>
+
+      {/* Menu wrapper */}
       <div className="navbar-menu-wrapper d-flex align-items-stretch">
-        <button className="navbar-toggler navbar-toggler align-self-center" type="button" data-toggle="minimize">
+        {/* Toggler minimize sidebar (desktop) */}
+        <button
+          className="navbar-toggler navbar-toggler align-self-center"
+          type="button"
+          onClick={toggleSidebarMinimize}
+          title={sidebarMinimized ? 'Agrandir le menu' : 'Réduire le menu'}
+        >
           <span className="mdi mdi-menu"></span>
         </button>
 
+        {/* Nav items droite */}
         <ul className="navbar-nav ml-auto">
+          <NotificationBell />
           <li className="nav-item nav-profile">
             <Dropdown align="end">
               <Dropdown.Toggle
@@ -86,7 +134,14 @@ function NavigationBar({ task }) {
             </Dropdown>
           </li>
         </ul>
-        <button className="navbar-toggler navbar-toggler-right d-lg-none align-self-center" type="button" data-toggle="offcanvas">
+
+        {/* Toggler offcanvas (mobile) */}
+        <button
+          className="navbar-toggler navbar-toggler-right d-lg-none align-self-center"
+          type="button"
+          onClick={toggleSidebarMobile}
+          title="Menu"
+        >
           <span className="mdi mdi-menu"></span>
         </button>
       </div>
