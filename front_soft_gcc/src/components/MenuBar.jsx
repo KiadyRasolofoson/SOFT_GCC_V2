@@ -58,6 +58,69 @@ function MenuBar() {
         setOpenMenu(matched);
     }, [location.pathname, modules]);
 
+    // Largeur du menu adaptée au texte le plus long
+    useEffect(() => {
+        if (loading) return;
+
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        const MIN_WIDTH = 258;
+        const MAX_WIDTH = 400;
+        let cancelled = false;
+        let outerFrame = 0;
+        let innerFrame = 0;
+
+        const updateSidebarWidth = () => {
+            if (cancelled || document.body.classList.contains('sidebar-icon-only')) return;
+
+            const subMenus = Array.from(sidebar.querySelectorAll('.sub-menu'));
+            const previousVisibility = subMenus.map((el) => ({
+                el,
+                className: el.className,
+            }));
+
+            // Afficher temporairement tous les sous-menus pour mesurer le texte le plus long
+            subMenus.forEach((el) => {
+                el.classList.remove('d-none');
+                el.classList.add('d-block');
+            });
+
+            const previousWidth = sidebar.style.width;
+            const previousOverflow = sidebar.style.overflow;
+            sidebar.style.width = 'max-content';
+            sidebar.style.overflow = 'visible';
+
+            const measured = Math.ceil(sidebar.getBoundingClientRect().width);
+
+            sidebar.style.width = previousWidth;
+            sidebar.style.overflow = previousOverflow;
+            previousVisibility.forEach(({ el, className }) => {
+                el.className = className;
+            });
+
+            const nextWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, measured + 12));
+            document.documentElement.style.setProperty('--sidebar-width', `${nextWidth}px`);
+        };
+
+        outerFrame = requestAnimationFrame(() => {
+            innerFrame = requestAnimationFrame(updateSidebarWidth);
+        });
+
+        return () => {
+            cancelled = true;
+            cancelAnimationFrame(outerFrame);
+            cancelAnimationFrame(innerFrame);
+        };
+    }, [loading, modules]);
+
+    // Nettoyage de la variable CSS au démontage uniquement
+    useEffect(() => {
+        return () => {
+            document.documentElement.style.removeProperty('--sidebar-width');
+        };
+    }, []);
+
     const toggleMenu = (menuName) => {
         setOpenMenu(prev => (prev === menuName ? null : menuName));
     };
