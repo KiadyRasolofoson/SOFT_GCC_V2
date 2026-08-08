@@ -51,30 +51,41 @@ namespace soft_carriere_competence.Controllers.salary_skills
 			[FromForm] string? email,
 			[FromForm] IFormFile? photo)
 		{
-			byte[]? photoBytes = null;
-			if (photo != null)
+			try
 			{
-				using (var memoryStream = new MemoryStream())
+				byte[]? photoBytes = null;
+				if (photo != null)
 				{
-					await photo.CopyToAsync(memoryStream);
-					photoBytes = memoryStream.ToArray();
+					using (var memoryStream = new MemoryStream())
+					{
+						await photo.CopyToAsync(memoryStream);
+						photoBytes = memoryStream.ToArray();
+					}
 				}
+
+				var employee = new Employee { 
+					RegistrationNumber = registrationNumber,
+					Name = name,
+					FirstName = firstName,
+					Birthday = birthday,
+					Department_id = department_id,
+					Hiring_date = hiring_date,
+					CiviliteId = civiliteId,
+					ManagerId = managerId,
+					Email = email
+				};
+				await _employeeService.Add(employee, photoBytes);
+
+				return CreatedAtAction(nameof(Get), new { id = employee.EmployeeId }, employee);
 			}
-
-			var employee = new Employee { 
-				RegistrationNumber = registrationNumber,
-				Name = name,
-				FirstName = firstName,
-				Birthday = birthday,
-				Department_id = department_id,
-				Hiring_date = hiring_date,
-				CiviliteId = civiliteId,
-				ManagerId = managerId,
-				Email = email
-			};
-			await _employeeService.Add(employee, photoBytes);
-
-			return CreatedAtAction(nameof(Get), new { id = employee.EmployeeId }, employee);
+			catch (InvalidOperationException ex)
+			{
+				return Conflict(new { message = ex.Message });
+			}
+			catch (ArgumentException ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
 		}
 
 		[HttpPut("{id}")]

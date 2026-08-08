@@ -1,6 +1,7 @@
 import { BrowserRouter as Router } from 'react-router-dom';
 import AppRouter from './routes/AppRouter';
 import { UserProvider } from './pages/Authentification/UserContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './styles/main.css';
@@ -10,10 +11,12 @@ import './helpers/ErrorMessage.css';
 function App() {
   return (
     <UserProvider>
-      <Router>
-        <AppRouter />
-        <ToastContainer /> {/* Ajoutez ce composant */}
-      </Router>
+      <NotificationProvider>
+        <Router>
+          <AppRouter />
+          <ToastContainer />
+        </Router>
+      </NotificationProvider>
     </UserProvider>
   );
 }
