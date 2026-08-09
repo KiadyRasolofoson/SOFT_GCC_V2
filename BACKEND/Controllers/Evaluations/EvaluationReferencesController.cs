@@ -6,6 +6,8 @@ using soft_carriere_competence.Application.Interfaces;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.Evaluations;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.Evaluations;
 
 /// <summary>
@@ -16,6 +18,7 @@ namespace soft_carriere_competence.Controllers.Evaluations;
 [Route("api/Evaluation")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
+[RequirePermission("EVALUATION_SETTINGS","MANAGE_EVALUATIONS","VIEW_EVALUATIONS")]
 public sealed class EvaluationReferencesController : ControllerBase
 {
     private readonly IEvaluationService _evaluationService;

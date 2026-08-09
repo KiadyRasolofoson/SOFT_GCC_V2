@@ -231,6 +231,9 @@ builder.Services.AddScoped<IAuthorizationHandler, CanViewEvaluationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, CanEditEvaluationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, CanValidateEvaluationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, CanDelegateEvaluationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, FrenchAuthorizationMiddlewareResultHandler>();
 
 #endregion
 
@@ -297,8 +300,10 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
-    // RBAC baseline (existing roles) — applied to all modules
-    // Aucune policy par défaut pour ne pas casser les modules existants
+    // Deny by default : toute action non marquée [AllowAnonymous] exige un JWT valide.
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
 
     // ABAC — Module Évaluation
     options.AddPolicy("CanViewEvaluation", policy =>
@@ -310,7 +315,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("CanDelegateEvaluation", policy =>
         policy.Requirements.Add(new CanDelegateEvaluationRequirement()));
 
-    // Policy admin : restreint aux rôles Admin, RH, DG (role_id 1, 3, 4)
+    // Policy admin legacy : rôles Admin, RH, DG (role_id 1, 3, 4)
+    // Préférer [RequirePermission(...)] pour les nouvelles protections.
     options.AddPolicy("RequireAdminRole", policy =>
         policy.RequireAssertion(context =>
             context.User.HasClaim(c => c.Type == "roleId" &&

@@ -7,10 +7,13 @@ using soft_carriere_competence.Core.Entities.career_plan;
 using soft_carriere_competence.Core.Entities.wish_evolution;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.wish_evolution
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[RequirePermission("VIEW_WISH_EVOLUTION","CREATE_WISH_EVOLUTION","EDIT_WISH_EVOLUTION","DELETE_WISH_EVOLUTION","MANAGE_WISH_EVOLUTION")]
 	public class WishEvolutionController : ControllerBase
 	{
 		private readonly IWishEvolutionService _wishEvolutionService;

@@ -4,11 +4,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Core.Entities.email;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.email
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class EmailController : ControllerBase
+    [RequirePermission("SEND_CERTIFICATES","MANAGE_CERTIFICATES","VIEW_CERTIFICATES")]
+public class EmailController : ControllerBase
     {
 		private readonly IConfiguration _configuration;
 

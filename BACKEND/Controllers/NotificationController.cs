@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
+using soft_carriere_competence.Application.Authorization;
 
 namespace soft_carriere_competence.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [RequirePermission("VIEW_NOTIFICATIONS")]
     public class NotificationController : ControllerBase
     {
         private readonly INotificationService _notificationService;

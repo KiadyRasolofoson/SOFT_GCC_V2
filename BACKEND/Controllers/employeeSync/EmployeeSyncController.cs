@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
 namespace soft_carriere_competence.Controllers.employeeSync
 {
     /// <summary>
@@ -9,8 +10,8 @@ namespace soft_carriere_competence.Controllers.employeeSync
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Policy = "RequireAdminRole")]
-    public class EmployeeSyncController : ControllerBase
+        [RequirePermission("MANAGE_EMPLOYEE_SYNC","MANAGE_EMPLOYEES","MANAGE_PERMISSIONS")]
+public class EmployeeSyncController : ControllerBase
     {
         private readonly IEmployeeSyncService _employeeSyncService;
 

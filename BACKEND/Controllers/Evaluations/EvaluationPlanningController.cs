@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using soft_carriere_competence.Application.Authorization;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Infrastructure.Data;
@@ -12,6 +14,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
 {
 	[ApiController]
 	[Route("api/[controller]")]
+	[Authorize]
+	[RequirePermission("VIEW_EVALUATIONS", "MANAGE_EVALUATIONS", "CREATE_EVALUATIONS", "EDIT_EVALUATIONS")]
 	public class EvaluationPlanningController : ControllerBase
 	{
 		private readonly EvaluationPlanningService _evaluationPlanningService;

@@ -5,10 +5,13 @@ using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.crud_career
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[RequirePermission("VIEW_CAREER_SETTINGS","MANAGE_CAREER_SETTINGS")]
 	public class EstablishmentController : ControllerBase
 	{
 		private readonly IEstablishmentService _establishmentService;

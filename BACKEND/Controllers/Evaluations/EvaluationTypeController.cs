@@ -4,11 +4,14 @@ using soft_carriere_competence.Core.Entities.Evaluations;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.Evaluations
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class EvaluationTypeController : ControllerBase
+    [RequirePermission("EVALUATION_SETTINGS","MANAGE_EVALUATIONS","VIEW_EVALUATIONS")]
+public class EvaluationTypeController : ControllerBase
     {
         private readonly EvaluationTypeService _evaluationTypeService;
 

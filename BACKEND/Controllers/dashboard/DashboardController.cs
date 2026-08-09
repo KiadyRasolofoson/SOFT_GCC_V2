@@ -5,11 +5,13 @@ using soft_carriere_competence.Application.Services.dashboard;
 using soft_carriere_competence.Application.Services.wish_evolution;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
 namespace soft_carriere_competence.Controllers.dashboard
 {
 	[Route("api/[controller]")]
 	[ApiController]
 	[Authorize]
+	[RequirePermission("VIEW_DASHBOARD","VIEW_REPORTS")]
 	public class DashboardController : ControllerBase
 	{
 		private readonly IDashboardService _dashboardService;
