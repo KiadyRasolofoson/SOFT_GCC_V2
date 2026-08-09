@@ -1,6 +1,9 @@
 ﻿using soft_carriere_competence.Core.Entities.crud_career;
+using soft_carriere_competence.Application.Common;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
+using soft_carriere_competence.Application.Interfaces;
 using soft_carriere_competence.Core.Entities.Evaluations;
+using soft_carriere_competence.Core.Exceptions;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.EvaluationInterface;
 using soft_carriere_competence.Core.Interface.DataService;
@@ -12,7 +15,7 @@ using soft_carriere_competence.Application.Services;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
-    public class EvaluationService : IEvaluationService
+    public class EvaluationService : IEvaluationService, IEvaluationQuestionService, IEvaluationTrainingSuggestionService
     {
         private readonly IEvaluationQuestionRepository _questionRepository;
         private readonly IGenericRepository<EvaluationType> _evaluationTypeRepository;
@@ -60,8 +63,193 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             _competenceService = competenceService;
         }
 
+        public async Task<EvaluationQuestionCreatedDto> CreateQuestionAsync(EvaluationQuestionDto question)
+        {
+            ArgumentNullException.ThrowIfNull(question);
+
+            var newQuestion = new EvaluationQuestion
+            {
+                question = question.Question,
+                evaluationTypeId = question.EvaluationTypeId,
+                positionId = question.PositionId,
+                CompetenceLineId = question.CompetenceLineId,
+                ResponseTypeId = question.ResponseTypeId,
+                state = question.State
+            };
+
+            await CreateEvaluationQuestionAsync(newQuestion);
+
+            return new EvaluationQuestionCreatedDto(
+                newQuestion.questionId,
+                newQuestion.question,
+                newQuestion.evaluationTypeId,
+                newQuestion.positionId,
+                newQuestion.CompetenceLineId,
+                newQuestion.ResponseTypeId,
+                newQuestion.state);
+        }
+
+        public async Task UpdateQuestionAsync(int questionId, EvaluationQuestionDto question)
+        {
+            ArgumentNullException.ThrowIfNull(question);
+
+            if (question.QuestionId.HasValue && question.QuestionId.Value != questionId)
+            {
+                throw new ValidationException(
+                    "L'identifiant de la question diffère entre l'URL et le corps de la requête.");
+            }
+
+            var existingQuestion = await GetRequiredQuestionAsync(questionId);
+            existingQuestion.question = question.Question;
+            existingQuestion.evaluationTypeId = question.EvaluationTypeId;
+            existingQuestion.positionId = question.PositionId;
+            existingQuestion.CompetenceLineId = question.CompetenceLineId;
+            existingQuestion.ResponseTypeId = question.ResponseTypeId;
+            existingQuestion.state = question.State;
+
+            await UpdateEvaluationQuestionAsync(existingQuestion);
+        }
+
+        public async Task DeleteQuestionAsync(int questionId)
+        {
+            if (!await DeleteEvaluationQuestionAsync(questionId))
+            {
+                throw new NotFoundException("Question d'évaluation", questionId);
+            }
+        }
+
+        public async Task<EvaluationQuestion> GetRequiredQuestionAsync(int questionId)
+        {
+            return await GetEvaluationQuestionByIdAsync(questionId)
+                   ?? throw new NotFoundException("Question d'évaluation", questionId);
+        }
+
+        public async Task<IEnumerable<EvaluationQuestion>> FindQuestionsAsync(EvaluationQuestionFilterDto filter)
+        {
+            ArgumentNullException.ThrowIfNull(filter);
+
+            if (filter.CompetenceLineId is { } competenceLineId)
+            {
+                if (filter.PositionId > 0)
+                {
+                    return await GetEvaluationQuestionsByTypePositionAndCompetenceAsync(
+                        filter.EvaluationTypeId, filter.PositionId, competenceLineId);
+                }
+
+                if (filter.PositionId == 0)
+                {
+                    return await GetEvaluationQuestionsByTypeAndCompetenceAsync(
+                        filter.EvaluationTypeId, competenceLineId);
+                }
+            }
+
+            return await GetEvaluationQuestionsAsync(filter.EvaluationTypeId, filter.PositionId);
+        }
+
+        public async Task<PagedResult<EvaluationQuestionSummaryDto>> GetQuestionSummariesAsync(PageRequest page)
+        {
+            ArgumentNullException.ThrowIfNull(page);
+
+            var (items, totalPages) = await GetPaginatedEvaluationQuestionsAsync(page.PageNumber, page.PageSize);
+
+            return PagedResult<EvaluationQuestionSummaryDto>.Create(items.Select(ToSummary), page, totalPages);
+        }
+
+        public async Task<PagedResult<EvaluationQuestion>> GetQuestionsByTypeAsync(int evaluationTypeId, PageRequest page)
+        {
+            ArgumentNullException.ThrowIfNull(page);
+
+            var (items, totalPages) = await GetPaginatedEvaluationQuestionsByTypeAsync(
+                evaluationTypeId, page.PageNumber, page.PageSize);
+
+            return PagedResult<EvaluationQuestion>.Create(items, page, totalPages);
+        }
+
+        public async Task<TrainingSuggestion> GetRequiredTrainingSuggestionAsync(int suggestionId)
+        {
+            return await GetTrainingSuggestionByIdAsync(suggestionId)
+                   ?? throw new NotFoundException("Suggestion de formation", suggestionId);
+        }
+
+        public async Task CreateTrainingSuggestionAsync(TrainingSuggestionCreationDto suggestion)
+        {
+            ArgumentNullException.ThrowIfNull(suggestion);
+
+            await CreateTrainingSuggestionAsync(ToTrainingSuggestion(suggestion, suggestionId: 0));
+        }
+
+        public async Task UpdateTrainingSuggestionAsync(int suggestionId, TrainingSuggestionCreationDto suggestion)
+        {
+            ArgumentNullException.ThrowIfNull(suggestion);
+
+            if (!await UpdateTrainingSuggestionAsync(ToTrainingSuggestion(suggestion, suggestionId)))
+            {
+                throw new NotFoundException("Suggestion de formation", suggestionId);
+            }
+        }
+
+        public async Task DeleteTrainingSuggestionAsync(int suggestionId)
+        {
+            if (!await TryDeleteTrainingSuggestionAsync(suggestionId))
+            {
+                throw new NotFoundException("Suggestion de formation", suggestionId);
+            }
+        }
+
+        public async Task<PagedResult<TrainingSuggestion>> GetTrainingSuggestionPageAsync(PageRequest page)
+        {
+            ArgumentNullException.ThrowIfNull(page);
+
+            var (items, totalPages) = await GetPaginatedTrainingSuggestionsAsync(page.PageNumber, page.PageSize);
+
+            return PagedResult<TrainingSuggestion>.Create(items, page, totalPages);
+        }
+
+        public async Task<object> GetRequiredEvaluationDetailsAsync(int evaluationId)
+        {
+            return await GetEvaluationDetailsAsync(evaluationId)
+                   ?? throw new NotFoundException("Évaluation", evaluationId);
+        }
+
+        public async Task<bool> ValidateEvaluationAsync(EvaluationValidationDto validation)
+        {
+            ArgumentNullException.ThrowIfNull(validation);
+
+            return await ValidateEvaluationAsync(
+                validation.EvaluationId,
+                validation.IsServiceApproved,
+                validation.IsDgApproved,
+                validation.ServiceApprovalDate,
+                validation.DgApprovalDate);
+        }
+
+        private static EvaluationQuestionSummaryDto ToSummary(EvaluationQuestion question) =>
+            new(question.questionId,
+                question.question,
+                question.evaluationTypeId,
+                question.EvaluationType?.Designation,
+                question.positionId,
+                question.Position?.PositionName,
+                question.CompetenceLineId,
+                question.CompetenceLine?.Description,
+                question.ResponseTypeId,
+                question.ResponseType?.TypeName,
+                question.state);
+
+        private static TrainingSuggestion ToTrainingSuggestion(TrainingSuggestionCreationDto suggestion, int suggestionId) =>
+            new()
+            {
+                TrainingSuggestionId = suggestionId,
+                evaluationTypeId = suggestion.EvaluationTypeId,
+                questionId = suggestion.QuestionId,
+                Training = suggestion.Training,
+                Details = suggestion.Details,
+                scoreThreshold = suggestion.ScoreThreshold,
+                state = suggestion.State
+            };
+
         // Create a new evaluation question
-        public async Task<bool> CreateEvaluationQuestionAsync(EvaluationQuestion question)
+        private async Task<bool> CreateEvaluationQuestionAsync(EvaluationQuestion question)
         {
             if (question == null) throw new ArgumentNullException(nameof(question));
             await _evaluationQuestion.CreateAsync(question);
@@ -79,7 +267,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return await _evaluationQuestion.GetByIdAsync(id);
         }
         // Update an existing evaluation question
-        public async Task<bool> UpdateEvaluationQuestionAsync(EvaluationQuestion question)
+        private async Task<bool> UpdateEvaluationQuestionAsync(EvaluationQuestion question)
         {
             if (question == null) throw new ArgumentNullException(nameof(question));
             
@@ -116,7 +304,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
         // Delete an evaluation question
-        public async Task<bool> DeleteEvaluationQuestionAsync(int id)
+        private async Task<bool> DeleteEvaluationQuestionAsync(int id)
         {
             var question = await _evaluationQuestion.GetByIdAsync(id);
             if (question == null) return false; // Not found
@@ -125,7 +313,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return true;
         }
 
-        public async Task<IEnumerable<EvaluationQuestion>> GetEvaluationQuestionsAsync(int evaluationTypeId, int positionId)
+        private async Task<IEnumerable<EvaluationQuestion>> GetEvaluationQuestionsAsync(int evaluationTypeId, int positionId)
         {
             return await _questionRepository.GetQuestionsByEvaluationTypeAndPostAsync(evaluationTypeId, positionId);
         }
@@ -227,7 +415,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
         }
         
-        public async Task<bool> ValidateEvaluationAsync(int evaluationId, bool isServiceApproved, bool isDgApproved, DateTime? serviceApprovalDate, DateTime? dgApprovalDate)
+        private async Task<bool> ValidateEvaluationAsync(int evaluationId, bool isServiceApproved, bool isDgApproved, DateTime? serviceApprovalDate, DateTime? dgApprovalDate)
         {
             var evaluation = await _evaluationRepository.GetByIdAsync(evaluationId);
             if (evaluation == null) throw new Exception($"Evaluation with ID {evaluationId} not found.");
@@ -622,7 +810,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 }
         }
 
-        public async Task<bool> CreateTrainingSuggestionAsync(TrainingSuggestion suggestion)
+        private async Task<bool> CreateTrainingSuggestionAsync(TrainingSuggestion suggestion)
         {
             if (suggestion == null) throw new ArgumentNullException(nameof(suggestion));
 
@@ -773,13 +961,13 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
         // Get a specific training suggestion by ID
-        public async Task<TrainingSuggestion?> GetTrainingSuggestionByIdAsync(int id)
+        private async Task<TrainingSuggestion?> GetTrainingSuggestionByIdAsync(int id)
         {
             return await _dataService.GetTrainingSuggestionByIdWithIncludesAsync(id);
         }
 
         // Update an existing training suggestion
-        public async Task<bool> UpdateTrainingSuggestionAsync(TrainingSuggestion suggestion)
+        private async Task<bool> UpdateTrainingSuggestionAsync(TrainingSuggestion suggestion)
         {
             if (suggestion == null) throw new ArgumentNullException(nameof(suggestion));
 
@@ -798,7 +986,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
         // Delete a training suggestion
-        public async Task<bool> DeleteTrainingSuggestionAsync(int id)
+        private async Task<bool> TryDeleteTrainingSuggestionAsync(int id)
         {
             var suggestion = await _trainingSuggestionsRepository.GetByIdAsync(id);
             if (suggestion == null) return false; // Not found
@@ -808,7 +996,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
         // Get paginated training suggestions
-        public async Task<(IEnumerable<TrainingSuggestion> Items, int TotalPages)> GetPaginatedTrainingSuggestionsAsync(int pageNumber, int pageSize)
+        private async Task<(IEnumerable<TrainingSuggestion> Items, int TotalPages)> GetPaginatedTrainingSuggestionsAsync(int pageNumber, int pageSize)
         {
             // Utilisez la méthode de pagination de votre repository
             var items = _trainingSuggestionsRepository.GetPage(pageNumber, pageSize, "evaluationType,evaluationQuestion");
@@ -939,7 +1127,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         }
 
 
-        public async Task<(IEnumerable<EvaluationQuestion> Items, int TotalPages)> GetPaginatedEvaluationQuestionsByTypeAsync(int evaluationTypeId, int pageNumber, int pageSize)
+        private async Task<(IEnumerable<EvaluationQuestion> Items, int TotalPages)> GetPaginatedEvaluationQuestionsByTypeAsync(int evaluationTypeId, int pageNumber, int pageSize)
         {
             try
             {
@@ -963,7 +1151,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return await _questionRepository.GetQuestionsByEvaluationTypePositionAndCompetenceAsync(evaluationTypeId, positionId, competenceLineId);
         }
 
-        public async Task<IEnumerable<EvaluationQuestion>> GetEvaluationQuestionsByTypeAndCompetenceAsync(int evaluationTypeId, int competenceLineId)
+        private async Task<IEnumerable<EvaluationQuestion>> GetEvaluationQuestionsByTypeAndCompetenceAsync(int evaluationTypeId, int competenceLineId)
         {
             return await _questionRepository.GetQuestionsByEvaluationTypeAndCompetenceAsync(evaluationTypeId, competenceLineId);
         }
@@ -987,7 +1175,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         // ===================== New methods for controller refactoring =====================
 
         // Get evaluation details with employee, evaluation type and position info
-        public async Task<object?> GetEvaluationDetailsAsync(int id)
+        private async Task<object?> GetEvaluationDetailsAsync(int id)
         {
             var evaluation = await _evaluationRepository.GetByIdAsync(id);
             if (evaluation == null) return null;
