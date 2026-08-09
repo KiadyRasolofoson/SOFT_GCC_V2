@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using soft_carriere_competence.Application.Authorization;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
@@ -26,7 +27,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
         /// <summary>GET /api/Module — Liste tous les modules (arbre)</summary>
         [HttpGet]
-        [Authorize(Policy = "RequireAdminRole")]
+        [RequirePermission("MANAGE_PERMISSIONS")]
         public async Task<ActionResult<IEnumerable<Module>>> GetAll()
         {
             try
@@ -42,7 +43,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
         /// <summary>GET /api/Module/with-permissions — Modules avec leurs permissions (pour UI admin)</summary>
         [HttpGet("with-permissions")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [RequirePermission("MANAGE_PERMISSIONS")]
         public async Task<ActionResult<IEnumerable<Module>>> GetWithPermissions()
         {
             try
@@ -58,7 +59,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
         /// <summary>GET /api/Module/{id} — Détail d'un module</summary>
         [HttpGet("{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [RequirePermission("MANAGE_PERMISSIONS")]
         public async Task<ActionResult<Module>> GetById(int id)
         {
             var module = await _moduleService.GetByIdAsync(id);
@@ -69,7 +70,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
         /// <summary>POST /api/Module — Créer un module</summary>
         [HttpPost]
-        [Authorize(Policy = "RequireAdminRole")]
+        [RequirePermission("MANAGE_PERMISSIONS")]
         public async Task<ActionResult<Module>> Create([FromBody] Module module)
         {
             try
@@ -85,7 +86,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
         /// <summary>PUT /api/Module/{id} — Mettre à jour un module</summary>
         [HttpPut("{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [RequirePermission("MANAGE_PERMISSIONS")]
         public async Task<IActionResult> Update(int id, [FromBody] Module module)
         {
             if (id != module.ModuleId)
@@ -104,7 +105,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
         /// <summary>DELETE /api/Module/{id} — Supprimer un module (soft delete)</summary>
         [HttpDelete("{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [RequirePermission("MANAGE_PERMISSIONS")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -120,7 +121,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
         /// <summary>GET /api/Module/role/{roleId} — Modules assignés à un rôle</summary>
         [HttpGet("role/{roleId}")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [RequirePermission("MANAGE_PERMISSIONS")]
         public async Task<ActionResult<IEnumerable<Module>>> GetByRole(int roleId)
         {
             try
@@ -136,7 +137,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
         /// <summary>PUT /api/Module/role/{roleId} — Mettre à jour les modules d'un rôle</summary>
         [HttpPut("role/{roleId}")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [RequirePermission("MANAGE_PERMISSIONS")]
         public async Task<IActionResult> UpdateRoleModules(int roleId, [FromBody] ModuleAssignmentRequest request)
         {
             // Autoriser une liste vide : un rôle peut n'avoir aucun module visible
@@ -156,7 +157,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 
         /// <summary>PUT /api/Module/reorder — Réordonner les modules (batch sortOrder)</summary>
         [HttpPut("reorder")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [RequirePermission("MANAGE_PERMISSIONS")]
         public async Task<IActionResult> Reorder([FromBody] ModuleReorderRequest request)
         {
             if (request?.Items == null || request.Items.Count == 0)

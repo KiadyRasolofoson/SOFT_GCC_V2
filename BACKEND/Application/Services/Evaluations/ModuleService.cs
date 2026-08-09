@@ -123,26 +123,43 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public async Task<IEnumerable<Module>> GetMyModulesAsync(int userId)
         {
             var user = await _context.Users
+                .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
                 return Enumerable.Empty<Module>();
-
-            var assignedIds = await _context.RoleModules
-                .Where(rm => rm.RoleId == user.RoleId)
-                .Select(rm => rm.ModuleId)
-                .ToListAsync();
-
-            if (!assignedIds.Any())
-                return Enumerable.Empty<Module>();
-
-            var assignedSet = assignedIds.ToHashSet();
 
             // Tous les modules actifs (pour construire l'arbre filtrée)
             var allActive = await _context.Modules
                 .Where(m => m.State == 1)
                 .OrderBy(m => m.SortOrder)
                 .ToListAsync();
+
+            // Admin : tous les modules (détecté par titre — pas seulement role_id = 1)
+            HashSet<int> assignedSet;
+            if (PermissionService.IsAdminRole(user.RoleId, user.Role?.Title))
+            {
+                assignedSet = allActive.Select(m => m.ModuleId).ToHashSet();
+            }
+            else
+            {
+                var assignedIds = await _context.RoleModules
+                    .Where(rm => rm.RoleId == user.RoleId)
+                    .Select(rm => rm.ModuleId)
+                    .ToListAsync();
+
+                if (!assignedIds.Any())
+                    return Enumerable.Empty<Module>();
+
+                assignedSet = assignedIds.ToHashSet();
+
+                // Parent assigné ⇒ tous ses enfants actifs (filet si migration 05 incomplète)
+                foreach (var parentId in assignedIds.ToList())
+                {
+                    foreach (var child in allActive.Where(c => c.ParentModuleId == parentId))
+                        assignedSet.Add(child.ModuleId);
+                }
+            }
 
             var byId = allActive.ToDictionary(m => m.ModuleId);
 
@@ -204,23 +221,45 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task<(List<string> AllowedRoutes, List<string> CatalogRoutes)> GetAccessMapAsync(int userId)
         {
-            var catalogRoutes = await _context.Modules
-                .Where(m => m.State == 1 && m.Route != null && m.Route != "")
-                .Select(m => m.Route!)
-                .Distinct()
+            var allActive = await _context.Modules
+                .Where(m => m.State == 1)
                 .ToListAsync();
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var catalogRoutes = allActive
+                .Where(m => !string.IsNullOrWhiteSpace(m.Route))
+                .Select(m => m.Route!)
+                .Distinct()
+                .ToList();
+
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 return (new List<string>(), catalogRoutes);
 
-            // Uniquement les modules/pages explicitement assignés (pas les parents auto-inclus menu)
-            var allowedRoutes = await (
-                from rm in _context.RoleModules
-                join m in _context.Modules on rm.ModuleId equals m.ModuleId
-                where rm.RoleId == user.RoleId && m.State == 1 && m.Route != null && m.Route != ""
-                select m.Route!
-            ).Distinct().ToListAsync();
+            // Admin : toutes les routes du catalogue
+            if (PermissionService.IsAdminRole(user.RoleId, user.Role?.Title))
+                return (catalogRoutes, catalogRoutes);
+
+            var assignedIds = await _context.RoleModules
+                .Where(rm => rm.RoleId == user.RoleId)
+                .Select(rm => rm.ModuleId)
+                .ToListAsync();
+
+            var assignedSet = assignedIds.ToHashSet();
+
+            // Parent assigné ⇒ routes des enfants (garde front exige le match le plus long du catalogue)
+            foreach (var parentId in assignedIds)
+            {
+                foreach (var child in allActive.Where(c => c.ParentModuleId == parentId))
+                    assignedSet.Add(child.ModuleId);
+            }
+
+            var allowedRoutes = allActive
+                .Where(m => assignedSet.Contains(m.ModuleId) && !string.IsNullOrWhiteSpace(m.Route))
+                .Select(m => m.Route!)
+                .Distinct()
+                .ToList();
 
             return (allowedRoutes, catalogRoutes);
         }

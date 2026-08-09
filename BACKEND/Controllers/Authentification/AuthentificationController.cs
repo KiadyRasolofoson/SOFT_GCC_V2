@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Dtos.LoginDto;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
@@ -19,7 +20,9 @@ namespace soft_carriere_competence.Controllers.Authentification
 			_userService = userService;
 			_licenseService = licenseService;
 		}
+
 		[HttpPost("register")]
+		[AllowAnonymous]
 		public async Task<IActionResult> Register([FromBody] RegisterDto dto)
 		{
 			try
@@ -34,6 +37,7 @@ namespace soft_carriere_competence.Controllers.Authentification
 		}
 
 		[HttpPost("login")]
+		[AllowAnonymous]
 		public async Task<IActionResult> Login([FromBody] LoginDto dto)
 		{
 			try
@@ -60,6 +64,7 @@ namespace soft_carriere_competence.Controllers.Authentification
 		}
 
 		[HttpPost("update")]
+		[Authorize]
 		public async Task<IActionResult> UpdateUser([FromBody] UpdateUserDto dto)
 		{
 			try
@@ -96,6 +101,7 @@ namespace soft_carriere_competence.Controllers.Authentification
 		}
 
 		[HttpPost("forgotpassword")]
+		[AllowAnonymous]
 		public async Task<IActionResult> ForgotPassword([FromBody] string email)
 		{
 			try
@@ -110,6 +116,7 @@ namespace soft_carriere_competence.Controllers.Authentification
 		}
 
 		[HttpPost("resetpassword")]
+		[AllowAnonymous]
 		public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
 		{
 			try
@@ -125,6 +132,7 @@ namespace soft_carriere_competence.Controllers.Authentification
 
 		// Dans AuthentificationController.cs
 		[HttpGet("user")]
+		[AllowAnonymous]
 		public async Task<IActionResult> GetUserByEmail([FromQuery] string email)
 		{
 			var user = await _userService.GetUserByEmailAsync(email);
@@ -133,6 +141,7 @@ namespace soft_carriere_competence.Controllers.Authentification
 		}
 
 		[HttpGet("current-user")]
+		[Authorize]
 		public async Task<IActionResult> GetCurrentUser()
 		{
 			var userIdClaim = User.FindFirst("userId")?.Value; // Récupération de l'ID utilisateur depuis le token

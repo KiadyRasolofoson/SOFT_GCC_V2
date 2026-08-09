@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using soft_carriere_competence.Application.Authorization;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,6 @@ namespace soft_carriere_competence.Controllers.Evaluations
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Policy = "RequireAdminRole")]
     public class RoleController : ControllerBase
     {
         private readonly RoleService _roleService;
@@ -18,6 +18,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
         }
 
         [HttpGet]
+        [RequirePermission("VIEW_ROLES", "MANAGE_ROLES", "CREATE_ROLES", "EDIT_ROLES", "MANAGE_PERMISSIONS")]
         public async Task<ActionResult<IEnumerable<Role>>> GetAll()
         {
             var roles = await _roleService.GetAllAsync();
@@ -25,6 +26,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
         }
 
         [HttpGet("{id}")]
+        [RequirePermission("VIEW_ROLES", "MANAGE_ROLES", "MANAGE_PERMISSIONS")]
         public async Task<ActionResult<Role>> GetById(int id)
         {
             var role = await _roleService.GetByIdAsync(id);
@@ -34,6 +36,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
         }
 
         [HttpPost]
+        [RequirePermission("CREATE_ROLES", "MANAGE_ROLES")]
         public async Task<ActionResult<Role>> Create(Role role)
         {
             try
@@ -48,6 +51,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
         }
 
         [HttpPut("{id}")]
+        [RequirePermission("EDIT_ROLES", "MANAGE_ROLES")]
         public async Task<IActionResult> Update(int id, Role role)
         {
             if (id != role.Roleid)
@@ -65,6 +69,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
         }
 
         [HttpDelete("{id}")]
+        [RequirePermission("DELETE_ROLES", "MANAGE_ROLES")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -78,4 +83,4 @@ namespace soft_carriere_competence.Controllers.Evaluations
             }
         }
     }
-} 
+}

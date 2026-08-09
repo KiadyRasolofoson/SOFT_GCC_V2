@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using soft_carriere_competence.Application.Services.Evaluations;
 
@@ -18,6 +19,7 @@ namespace soft_carriere_competence.Controllers
 		}
 
 		[HttpPost("login")]
+		[AllowAnonymous]
 		public async Task<IActionResult> Login([FromBody] TemporaryLoginRequest request)
 		{
 			if (string.IsNullOrEmpty(request.TempLogin) || string.IsNullOrEmpty(request.TempPassword))

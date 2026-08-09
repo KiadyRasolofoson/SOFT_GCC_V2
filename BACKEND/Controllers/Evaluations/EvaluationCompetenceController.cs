@@ -4,11 +4,14 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.Evaluations
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class EvaluationCompetenceController : ControllerBase
+    [RequirePermission("EVALUATION_SETTINGS","MANAGE_EVALUATIONS","VIEW_EVALUATIONS")]
+public class EvaluationCompetenceController : ControllerBase
     {
         private readonly EvaluationCompetenceService _competenceService;
 

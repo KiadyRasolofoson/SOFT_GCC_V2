@@ -9,10 +9,13 @@ using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Entities.wish_evolution;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.entrepriseOrg
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[RequirePermission("VIEW_ORGANIZATION","IMPORT_ORGANIZATION","MANAGE_ORGANIZATION","VIEW_DEPARTMENTS","MANAGE_DEPARTMENTS")]
 	public class OrgController : ControllerBase
 	{
 		private readonly IOrgService _orgService;

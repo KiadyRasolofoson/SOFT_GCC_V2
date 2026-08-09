@@ -8,11 +8,13 @@ using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
 namespace soft_carriere_competence.Controllers.salary_skills
 {
 	[Route("api/[controller]")]
 	[ApiController]
 	[Authorize]
+	[RequirePermission("VIEW_EMPLOYEES","CREATE_EMPLOYEES","EDIT_EMPLOYEES","DELETE_EMPLOYEES","MANAGE_EMPLOYEES")]
 	public class EmployeeController : ControllerBase
 	{
 		private readonly IEmployeeService _employeeService;

@@ -6,10 +6,13 @@ using soft_carriere_competence.Core.Interface.ServiceInterface;
 using System.IO;
 using System.Threading.Tasks;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.salary_skills
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[RequirePermission("VIEW_DEPARTMENTS","MANAGE_DEPARTMENTS","VIEW_ORGANIZATION")]
 	public class DepartmentController : ControllerBase
 	{
 		private readonly IDepartmentService _departmentService;

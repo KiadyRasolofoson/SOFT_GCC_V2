@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using soft_carriere_competence.Application.Authorization;
 using soft_carriere_competence.Application.Common;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Application.Interfaces;
@@ -48,7 +49,9 @@ public sealed class EvaluationsController : ControllerBase
         return Ok(await _evaluationService.GetRequiredEvaluationDetailsAsync(id));
     }
 
+    /// <summary>Portail salarié temporaire : JWT requis (pas de Role_Permissions).</summary>
     [HttpPost("calculate-average")]
+    [Authorize]
     [ProducesResponseType(typeof(AverageRatingDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public ActionResult<AverageRatingDto> CalculateAverage([FromBody] Dictionary<int, int> ratings)
@@ -63,7 +66,12 @@ public sealed class EvaluationsController : ControllerBase
         return Ok(new AverageRatingDto(Math.Round(average, 2)));
     }
 
+    /// <summary>
+    /// Enregistrement des résultats. JWT requis.
+    /// CanEditEvaluation laisse passer si pas d'ID route (handler) ; sinon contrôle ABAC.
+    /// </summary>
     [HttpPost("save-evaluation-results")]
+    [Authorize]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<object>>> SaveResultsAsync([FromBody] EvaluationResultsDto results)
     {
@@ -73,6 +81,8 @@ public sealed class EvaluationsController : ControllerBase
     }
 
     [HttpPost("validate-evaluation")]
+    [Authorize(Policy = "CanValidateEvaluation")]
+    [RequirePermission("APPROVE_EVALUATIONS", "VALIDATE_EVALUATIONS_MANAGER", "VALIDATE_EVALUATIONS_DIRECTOR")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<object>>> ValidateEvaluationAsync(
@@ -85,7 +95,9 @@ public sealed class EvaluationsController : ControllerBase
             : BadRequest(new ApiErrorResponse("La validation de l'évaluation a échoué."));
     }
 
+    /// <summary>Portail salarié temporaire : JWT requis.</summary>
     [HttpPost("{evaluationId}/submit")]
+    [Authorize]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<object>>> SubmitAsync(
@@ -103,6 +115,7 @@ public sealed class EvaluationsController : ControllerBase
     }
 
     [HttpGet("evaluation/{evaluationId}/selected-questions")]
+    [Authorize]
     [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<object>>> GetSelectedQuestionsAsync(int evaluationId)
     {

@@ -6,6 +6,7 @@ using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Application.Interfaces;
 using soft_carriere_competence.Core.Entities.Evaluations;
 
+using soft_carriere_competence.Application.Authorization;
 namespace soft_carriere_competence.Controllers.Evaluations;
 
 /// <summary>Catalogue des suggestions de formation déclenchées par les notes d'une évaluation.</summary>
@@ -13,6 +14,7 @@ namespace soft_carriere_competence.Controllers.Evaluations;
 [Route("api/Evaluation")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
+[RequirePermission("EVALUATION_SETTINGS","MANAGE_EVALUATIONS")]
 public sealed class EvaluationTrainingSuggestionsController : ControllerBase
 {
     private readonly IEvaluationTrainingSuggestionService _trainingSuggestionService;

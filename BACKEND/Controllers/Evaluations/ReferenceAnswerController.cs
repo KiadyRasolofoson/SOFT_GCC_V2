@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using soft_carriere_competence.Application.Authorization;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
 using soft_carriere_competence.Application.Services.Evaluations;
 using System;
@@ -10,6 +12,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
 {
     [ApiController]
     [Route("api/[controller]")]
+    [RequirePermission("EVALUATION_SETTINGS", "MANAGE_EVALUATIONS")]
     public class ReferenceAnswerController : ControllerBase
     {
         private readonly ReferenceAnswerService _referenceAnswerService;
