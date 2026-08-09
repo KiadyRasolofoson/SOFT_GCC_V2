@@ -413,8 +413,16 @@ function RolesTab() {
                                                         <ModuleIcon icon={mod.icon} />
                                                     </div>
                                                     <div className="text-truncate flex-grow-1">
-                                                        <div className="small fw-bold text-truncate">{mod.displayName || mod.name}</div>
-                                                        <span className="text-muted" style={{ fontSize: '0.725rem' }}>{mod.route || 'Racine'}</span>
+                                                        <div className="small fw-bold text-truncate mb-1">{mod.displayName || mod.name}</div>
+                                                        {mod.route ? (
+                                                            <span className="admin-route-badge" style={{ fontSize: '0.7rem', padding: '1px 6px' }}>
+                                                                {mod.route}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="admin-route-badge-muted" style={{ fontSize: '0.7rem', padding: '1px 6px' }}>
+                                                                Racine
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -648,11 +656,13 @@ function ModulesTab() {
                 </td>
                 <td>
                     {mod.route ? (
-                        <span className="px-2 py-1 rounded bg-light border text-secondary" style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                        <span className="admin-route-badge">
                             {mod.route}
                         </span>
                     ) : (
-                        <span className="text-muted italic small">Non routé (Racine)</span>
+                        <span className="admin-route-badge-muted">
+                            Non routé (Racine)
+                        </span>
                     )}
                 </td>
                 <td>
