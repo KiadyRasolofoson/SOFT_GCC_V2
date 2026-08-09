@@ -154,6 +154,25 @@ namespace soft_carriere_competence.Controllers.Evaluations
             }
         }
 
+        /// <summary>PUT /api/Module/reorder — Réordonner les modules (batch sortOrder)</summary>
+        [HttpPut("reorder")]
+        [Authorize(Policy = "RequireAdminRole")]
+        public async Task<IActionResult> Reorder([FromBody] ModuleReorderRequest request)
+        {
+            if (request?.Items == null || request.Items.Count == 0)
+                return BadRequest(new { message = "La liste des éléments à réordonner est requise." });
+
+            try
+            {
+                await _moduleService.ReorderModulesAsync(request.Items);
+                return Ok(new { message = "Ordre des modules mis à jour." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         #endregion
 
         #region Endpoint Menu Dynamique (tout utilisateur authentifié)
@@ -185,6 +204,30 @@ namespace soft_carriere_competence.Controllers.Evaluations
             }
         }
 
+        /// <summary>
+        /// GET /api/Module/access-map — Routes autorisées + catalogue pour le garde de navigation.
+        /// </summary>
+        [HttpGet("access-map")]
+        [Authorize]
+        public async Task<IActionResult> GetAccessMap()
+        {
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
+
+            var userId = int.Parse(userIdClaim);
+
+            try
+            {
+                var (allowedRoutes, catalogRoutes) = await _moduleService.GetAccessMapAsync(userId);
+                return Ok(new { allowedRoutes, catalogRoutes });
+            }
+            catch (Exception)
+            {
+                return Ok(new { allowedRoutes = Array.Empty<string>(), catalogRoutes = Array.Empty<string>() });
+            }
+        }
+
         #endregion
     }
 
@@ -193,5 +236,12 @@ namespace soft_carriere_competence.Controllers.Evaluations
     {
         [JsonPropertyName("moduleIds")]
         public List<int> ModuleIds { get; set; } = new List<int>();
+    }
+
+    /// <summary>Modèle de requête pour le réordonnancement batch des modules</summary>
+    public class ModuleReorderRequest
+    {
+        [JsonPropertyName("items")]
+        public List<ModuleReorderItem> Items { get; set; } = new List<ModuleReorderItem>();
     }
 }

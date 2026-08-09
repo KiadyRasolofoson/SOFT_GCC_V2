@@ -72,6 +72,18 @@ export const deleteModule = async (id) => {
 };
 
 /**
+ * Réordonne un lot de modules (sortOrder + parentModuleId)
+ * @param {Array<{moduleId:number, sortOrder:number, parentModuleId:number|null}>} items
+ */
+export const reorderModules = async (items) => {
+    const response = await axios.put(urlApi('/Module/reorder'),
+        { items },
+        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+    );
+    return response.data;
+};
+
+/**
  * Récupère les modules assignés à un rôle
  */
 export const getRoleModules = async (roleId) => {
@@ -97,6 +109,16 @@ export const updateRoleModules = async (roleId, moduleIds) => {
  */
 export const getMyModules = async () => {
     const response = await axios.get(urlApi('/Module/my-modules'), {
+        headers: getAuthHeaders()
+    });
+    return response.data;
+};
+
+/**
+ * Carte d'accès navigation : routes autorisées + catalogue des routes modules
+ */
+export const getAccessMap = async () => {
+    const response = await axios.get(urlApi('/Module/access-map'), {
         headers: getAuthHeaders()
     });
     return response.data;

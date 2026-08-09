@@ -34,13 +34,38 @@ namespace soft_carriere_competence.Core.Interface.ServiceInterface
 
         /// <summary>
         /// Récupère l'arbre des modules visibles pour un utilisateur connecté (menu dynamique).
-        /// Interroge Role_Modules → Modules pour déterminer la visibilité.
+        /// Les parents sont auto-inclus comme conteneurs si au moins un enfant est assigné.
         /// </summary>
         Task<IEnumerable<Module>> GetMyModulesAsync(int userId);
 
         /// <summary>
-        /// Récupère les modules avec leurs permissions incluses (pour l'UI admin).
+        /// Carte d'accès : routes autorisées pour l'utilisateur + catalogue de toutes les routes modules.
+        /// Sert au garde de navigation (blocage URL directe).
+        /// </summary>
+        Task<(List<string> AllowedRoutes, List<string> CatalogRoutes)> GetAccessMapAsync(int userId);
+
+        /// <summary>
+        /// Récupère les modules racines avec leurs permissions et enfants (pour l'UI admin).
         /// </summary>
         Task<IEnumerable<Module>> GetModulesWithPermissionsAsync();
+
+        /// <summary>
+        /// Met à jour l'ordre d'affichage (et éventuellement le parent) d'un lot de modules.
+        /// Réordre prévu entre frères (même niveau).
+        /// </summary>
+        Task ReorderModulesAsync(List<ModuleReorderItem> items);
+    }
+
+    /// <summary>Élément de réordonnancement d'un module</summary>
+    public class ModuleReorderItem
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("moduleId")]
+        public int ModuleId { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("sortOrder")]
+        public int SortOrder { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("parentModuleId")]
+        public int? ParentModuleId { get; set; }
     }
 }
