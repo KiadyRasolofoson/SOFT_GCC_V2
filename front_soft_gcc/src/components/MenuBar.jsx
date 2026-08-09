@@ -13,14 +13,22 @@ function MenuBar() {
     const [openMenu, setOpenMenu] = useState(null);
     const [modules, setModules] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { visibleModules } = useUser();
+    const { visibleModules, myModules, modulesAccessReady } = useUser();
 
     useEffect(() => {
+        if (!modulesAccessReady) return;
+
+        // Réutilise le cache UserContext (évite un 2e fetch)
+        if (myModules && myModules.length > 0) {
+            setModules(myModules);
+            setLoading(false);
+            return;
+        }
+
         const fetchModules = async () => {
             try {
                 setLoading(true);
                 const data = await getMyModules();
-                // Si l'API retourne une liste vide (tables pas encore créées), utiliser le fallback
                 if (!data || data.length === 0) {
                     console.warn('MenuBar: API modules vide, fallback sur visibleModules');
                     setModules(buildFallbackMenu(visibleModules || []));
@@ -35,7 +43,7 @@ function MenuBar() {
             }
         };
         fetchModules();
-    }, [visibleModules]);
+    }, [visibleModules, myModules, modulesAccessReady]);
 
     useEffect(() => {
         const pathname = location.pathname;

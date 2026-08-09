@@ -7,55 +7,78 @@ import PropTypes from 'prop-types';
 
 const ProtectedRoute = ({ requiredPermission }) => {
   const location = useLocation();
-  const { loading, isInitialized, hasPermission, userPermissions } = useUser();
+  const {
+    loading,
+    isInitialized,
+    hasPermission,
+    userPermissions,
+    canAccessRoute,
+    modulesAccessReady,
+  } = useUser();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [checkTimeout, setCheckTimeout] = useState(false);
+  const [moduleDenied, setModuleDenied] = useState(false);
 
   useEffect(() => {
-    const checkPermission = async () => {
-      console.log("=== VÉRIFICATION DES PERMISSIONS ===");
-      console.log("Route actuelle:", location.pathname);
-      console.log("Permission requise:", requiredPermission);
-      console.log("Permissions actuelles:", userPermissions);
-      
-      if (!requiredPermission) {
-        console.log("Aucune permission requise pour cette route");
+    const checkAccess = async () => {
+      setModuleDenied(false);
+
+      // 1) Permission fine optionnelle (RBAC)
+      if (requiredPermission) {
+        try {
+          const hasRequiredPermission = hasPermission(requiredPermission);
+          setIsAuthorized(hasRequiredPermission);
+          if (!hasRequiredPermission) {
+            setIsChecking(false);
+            return;
+          }
+        } catch (error) {
+          console.error("Erreur lors de la vérification des permissions:", error);
+          setIsAuthorized(false);
+          setIsChecking(false);
+          return;
+        }
+      } else {
         setIsAuthorized(true);
-        setIsChecking(false);
-        return;
       }
 
-      try {
-        const hasRequiredPermission = hasPermission(requiredPermission);
-        console.log("Résultat de la vérification:", hasRequiredPermission);
-        console.log("=== FIN VÉRIFICATION DES PERMISSIONS ===");
-        
-        setIsAuthorized(hasRequiredPermission);
-      } catch (error) {
-        console.error("Erreur lors de la vérification des permissions:", error);
-        setIsAuthorized(false);
-      } finally {
-        setIsChecking(false);
+      // 2) Visibilité module/page (Role_Modules) — bloque l'URL directe
+      if (modulesAccessReady && location.pathname.startsWith('/soft-gcc')) {
+        const allowed = canAccessRoute(location.pathname);
+        if (!allowed) {
+          setModuleDenied(true);
+          setIsAuthorized(false);
+        }
       }
+
+      setIsChecking(false);
     };
 
-    // Ajout d'un timeout pour éviter le chargement infini
     const timeoutId = setTimeout(() => {
       if (isChecking) {
         console.warn("Timeout lors de la vérification des permissions");
         setCheckTimeout(true);
         setIsChecking(false);
       }
-    }, 5000); // Timeout après 5 secondes
+    }, 5000);
 
     if (isInitialized && !loading) {
       setIsChecking(true);
-      checkPermission();
+      checkAccess();
     }
 
     return () => clearTimeout(timeoutId);
-  }, [location.pathname, requiredPermission, isInitialized, loading, hasPermission, userPermissions]);
+  }, [
+    location.pathname,
+    requiredPermission,
+    isInitialized,
+    loading,
+    hasPermission,
+    userPermissions,
+    canAccessRoute,
+    modulesAccessReady,
+  ]);
 
   // Si timeout de vérification, on vérifie simplement le token
   if (checkTimeout) {
@@ -68,7 +91,7 @@ const ProtectedRoute = ({ requiredPermission }) => {
   }
 
   // Attendre que l'initialisation soit terminée
-  if (!isInitialized || loading || isChecking) {
+  if (!isInitialized || loading || isChecking || !modulesAccessReady) {
     return (
       <Template>
         <Loader />
@@ -79,14 +102,11 @@ const ProtectedRoute = ({ requiredPermission }) => {
   // Vérifier l'authentification
   const token = localStorage.getItem("token");
   if (!token) {
-    console.log('Aucun token trouvé, redirection vers login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Vérifier les permissions si nécessaire
-  console.log("État final de isAuthorized avant redirection:", isAuthorized);
-  if (requiredPermission && !isAuthorized) {
-    console.log('Permission non accordée, redirection vers unauthorized');
+  // Permission RBAC ou page non visible pour le rôle
+  if ((requiredPermission && !isAuthorized) || moduleDenied) {
     return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   }
 

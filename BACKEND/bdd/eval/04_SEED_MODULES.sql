@@ -103,7 +103,7 @@ SELECT 'param_utilisateurs',  'Gestion des utilisateurs',  NULL, '/soft-gcc/para
 INSERT INTO Modules (name, display_name, icon, route, parent_module_id, sort_order, state)
 SELECT 'param_admin_access',  'Gestion des accès',         NULL, '/soft-gcc/parametres/utilisateurs/administration', m.module_id, 6, 1 FROM Modules m WHERE m.name = 'parametrage';
 
--- 3. Attribution des modules aux rôles
+-- 3. Attribution des modules aux rôles (racines + enfants pour granularité page par page)
 
 -- Admin (role_id=1) : TOUS les modules racines
 INSERT INTO Role_Modules (role_id, module_id)
@@ -121,6 +121,17 @@ SELECT 3, m.module_id FROM Modules m WHERE m.parent_module_id IS NULL AND m.stat
 -- Directeur (role_id=4) : TOUS les modules
 INSERT INTO Role_Modules (role_id, module_id)
 SELECT 4, m.module_id FROM Modules m WHERE m.parent_module_id IS NULL AND m.state = 1;
+
+-- Enfants des racines déjà assignées (visibilité page par page, rétrocompatible)
+INSERT INTO Role_Modules (role_id, module_id)
+SELECT rm.role_id, c.module_id
+FROM Role_Modules rm
+INNER JOIN Modules p ON p.module_id = rm.module_id AND p.parent_module_id IS NULL
+INNER JOIN Modules c ON c.parent_module_id = p.module_id AND c.state = 1
+WHERE NOT EXISTS (
+  SELECT 1 FROM Role_Modules x
+  WHERE x.role_id = rm.role_id AND x.module_id = c.module_id
+);
 
 -- 4. Association des permissions existantes aux modules (module_id)
 
