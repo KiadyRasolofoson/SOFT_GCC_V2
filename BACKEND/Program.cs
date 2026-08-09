@@ -34,10 +34,8 @@ using soft_carriere_competence.Application.Authorization.Handlers;
 using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Application.Services.history;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using System.Configuration;
 using soft_carriere_competence.Hubs;
-using soft_carriere_competence.Core.Interface.ServiceInterface;
+using soft_carriere_competence.Application.Interfaces;
 using soft_carriere_competence.Application.Services;
 using soft_carriere_competence.Core.Entities;
 
@@ -152,6 +150,16 @@ builder.Services.AddScoped<IGenericRepository<WorkCertificates>, GenericReposito
 // EVALUATIONS
 builder.Services.AddScoped<IGenericRepository<User>, GenericRepository<User>>();
 builder.Services.AddScoped<EvaluationService>();
+
+// Les controllers du module Évaluation dépendent d'abstractions ciblées (ISP) toutes servies
+// par la même instance scoped d'EvaluationService, pour ne pas dupliquer l'état par requête.
+builder.Services.AddScoped<IEvaluationService>(sp => sp.GetRequiredService<EvaluationService>());
+builder.Services.AddScoped<IEvaluationQuestionService>(sp => sp.GetRequiredService<EvaluationService>());
+builder.Services.AddScoped<IEvaluationTrainingSuggestionService>(sp => sp.GetRequiredService<EvaluationService>());
+builder.Services.AddScoped<IEvaluationResponseService>(sp => sp.GetRequiredService<EvaluationResponseService>());
+builder.Services.AddScoped<ICompetenceLineService>(sp => sp.GetRequiredService<CompetenceLineService>());
+builder.Services.AddScoped<IResponseTypeService>(sp => sp.GetRequiredService<ResponseTypeService>());
+builder.Services.AddScoped<ITrainingSuggestionImportService>(sp => sp.GetRequiredService<TrainingSuggestionService>());
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<EvaluationPlanningService>();
@@ -311,7 +319,12 @@ builder.Services.AddAuthorization(options =>
 #endregion
 
 #region Swagger
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // Les actions asynchrones gardent leur suffixe Async (convention de nommage interne) ;
+        // sans cette option MVC le tronquerait et nameof(...) ne résoudrait plus dans CreatedAtAction.
+        options.SuppressAsyncSuffixInActionNames = false;
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
@@ -350,6 +363,10 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// Placé en premier pour intercepter toute exception du pipeline et la traduire en réponse normalisée.
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+
 app.UseCors("AllowReactApp");
 // Activer Swagger UI
 if (app.Environment.IsDevelopment())

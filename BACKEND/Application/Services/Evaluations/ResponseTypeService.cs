@@ -1,10 +1,16 @@
+using soft_carriere_competence.Application.Dtos.EvaluationsDto;
+using soft_carriere_competence.Application.Interfaces;
 using soft_carriere_competence.Core.Entities.Evaluations;
+using soft_carriere_competence.Core.Exceptions;
 using soft_carriere_competence.Core.Interface;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
-    public class ResponseTypeService
+    public class ResponseTypeService : IResponseTypeService
     {
+        private const string MissingTypeNameLabel = "Non défini";
+        private const string MissingDescriptionLabel = "Sans description";
+
         private readonly IGenericRepository<ResponseType> _repository;
 
         public ResponseTypeService(IGenericRepository<ResponseType> repository)
@@ -15,6 +21,22 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         public async Task<IEnumerable<ResponseType>> GetAllAsync()
         {
             return await _repository.GetAllAsync();
+        }
+
+        public async Task<IEnumerable<ResponseTypeSummaryDto>> GetSummariesAsync()
+        {
+            var responseTypes = await _repository.GetAllAsync();
+            if (responseTypes is null)
+            {
+                return Array.Empty<ResponseTypeSummaryDto>();
+            }
+
+            return responseTypes.Select(responseType => new ResponseTypeSummaryDto(
+                responseType.ResponseTypeId,
+                string.IsNullOrEmpty(responseType.TypeName) ? MissingTypeNameLabel : responseType.TypeName,
+                string.IsNullOrEmpty(responseType.Description)
+                    ? MissingDescriptionLabel
+                    : responseType.Description)).ToList();
         }
 
         public async Task<ResponseType?> GetByIdAsync(int id)
@@ -32,7 +54,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             var existingResponseType = await _repository.GetByIdAsync(responseType.ResponseTypeId);
             if (existingResponseType == null)
-                throw new Exception("Type de réponse non trouvé");
+                throw new NotFoundException("Type de réponse", responseType.ResponseTypeId);
 
             existingResponseType.TypeName = responseType.TypeName;
             existingResponseType.Description = responseType.Description;
@@ -45,7 +67,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
         {
             var responseType = await _repository.GetByIdAsync(id);
             if (responseType == null)
-                throw new Exception("Type de réponse non trouvé");
+                throw new NotFoundException("Type de réponse", id);
 
             await _repository.DeleteAsync(responseType);
         }
