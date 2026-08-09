@@ -1,4 +1,9 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import {
+  getPermissionDeniedMessage,
+  PERMISSION_DENIED_TITLE,
+} from '../../helpers/errorHandler';
 
 // Configuration de base pour Axios
 const apiClient = axios.create({
@@ -35,6 +40,19 @@ apiClient.interceptors.response.use(
         window.dispatchEvent(new CustomEvent('app:auth-expired', { detail: { message: data?.message || 'Session expirée' } }));
       } else if (status === 403 && data?.error === 'license_invalid') {
         window.dispatchEvent(new CustomEvent('app:license-invalid', { detail: { message: data?.message || 'Licence invalide' } }));
+      } else if (status === 403) {
+        const message = getPermissionDeniedMessage(error);
+        toast.error(`${PERMISSION_DENIED_TITLE} : ${message}`, {
+          toastId: 'permission-denied',
+          autoClose: 7000,
+        });
+        window.dispatchEvent(new CustomEvent('app:permission-denied', {
+          detail: {
+            title: data?.title || PERMISSION_DENIED_TITLE,
+            message,
+            data
+          }
+        }));
       }
     } else if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
       window.dispatchEvent(new CustomEvent('app:network-error', { detail: { message: 'Serveur injoignable' } }));

@@ -90,7 +90,10 @@ export const getRoleModules = async (roleId) => {
     const response = await axios.get(urlApi(`/Module/role/${roleId}`), {
         headers: getAuthHeaders()
     });
-    return response.data;
+    return asArray(response.data).map(m => ({
+        ...m,
+        moduleId: toId(m.moduleId ?? m.ModuleId),
+    })).filter(m => m.moduleId != null);
 };
 
 /**
@@ -127,11 +130,31 @@ export const getAccessMap = async () => {
 /**
  * Récupère toutes les permissions
  */
+/** Normalise une réponse API : tableau direct ou enveloppe { data: [] } */
+const asArray = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    return [];
+};
+
+const toId = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+};
+
 export const getAllPermissions = async () => {
     const response = await axios.get(urlApi('/Permission'), {
         headers: getAuthHeaders()
     });
-    return response.data;
+    return asArray(response.data).map(p => ({
+        ...p,
+        permissionId: toId(p.permissionId ?? p.PermissionId),
+        moduleId: p.moduleId ?? p.ModuleId ?? null,
+        name: p.name ?? p.Name ?? '',
+        description: p.description ?? p.Description ?? '',
+        moduleName: p.moduleName ?? p.ModuleName ?? '',
+        moduleDisplayName: p.moduleDisplayName ?? p.ModuleDisplayName ?? p.moduleName ?? p.ModuleName ?? '',
+    })).filter(p => p.permissionId != null);
 };
 
 /**
@@ -151,7 +174,10 @@ export const getRolePermissions = async (roleId) => {
     const response = await axios.get(urlApi(`/Permission/role/${roleId}`), {
         headers: getAuthHeaders()
     });
-    return response.data;
+    return asArray(response.data).map(p => ({
+        ...p,
+        permissionId: toId(p.permissionId ?? p.PermissionId),
+    })).filter(p => p.permissionId != null);
 };
 
 /**
@@ -172,12 +198,12 @@ export const getAllRoles = async () => {
     const response = await axios.get(urlApi('/Role'), {
         headers: getAuthHeaders()
     });
-    // Normaliser les clés (roleid → roleId)
-    return response.data.map(role => ({
-        roleId: role.roleid,
-        title: role.title,
-        state: role.state
-    }));
+    // Normaliser les clés (roleid / Roleid → roleId)
+    return asArray(response.data).map(role => ({
+        roleId: toId(role.roleId ?? role.roleid ?? role.Roleid),
+        title: role.title ?? role.Title ?? '',
+        state: role.state ?? role.State ?? 1
+    })).filter(r => r.roleId != null);
 };
 
 /**
