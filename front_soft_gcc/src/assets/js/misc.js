@@ -69,7 +69,7 @@
         if ($('.chats').length) {
           const chatsScroll = new PerfectScrollbar('.chats');
         }
-        if (body.hasClass("sidebar-fixed")) {
+        if (body.hasClass("sidebar-fixed") && $('#sidebar .nav').length) {
           var fixedSidebarScroll = new PerfectScrollbar('#sidebar .nav');
         }
       }
