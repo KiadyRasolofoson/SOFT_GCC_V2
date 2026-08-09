@@ -52,10 +52,12 @@ const CsvUploader = () => {
             const formattedData = transformData(csvData);
             console.log("Formatted Data:", formattedData);
 
+            const token = localStorage.getItem('token');
             const response = await fetch(urlApi('/Org/employee/import'), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 body: JSON.stringify(formattedData),
             });

@@ -105,9 +105,21 @@ const ProtectedRoute = ({ requiredPermission }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Permission RBAC ou page non visible pour le rôle
+    // Vérifier les permissions si nécessaire
   if ((requiredPermission && !isAuthorized) || moduleDenied) {
-    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+    return (
+      <Navigate
+        to="/unauthorized"
+        state={{
+          from: location,
+          title: 'Permission refusée',
+          message: moduleDenied
+            ? "Cette page n'est pas visible pour votre profil. Elle n'a pas été attribuée à votre rôle dans l'administration des accès."
+            : "Vous n'avez pas la permission requise pour accéder à cette section."
+        }}
+        replace
+      />
+    );
   }
 
   return <Outlet />;

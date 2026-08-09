@@ -59,6 +59,56 @@ function collectAllModuleIds(modules) {
     return flattenModuleTree(modules).map(m => m.moduleId);
 }
 
+/**
+ * Groupe les permissions par module racine (Compétences, Carrières…).
+ * Affiche TOUS les modules racines même s'ils n'ont encore aucune permission liée.
+ */
+function buildPermissionGroups(modulesTree, permissions) {
+    const perms = Array.isArray(permissions) ? permissions : [];
+    const roots = (Array.isArray(modulesTree) ? modulesTree : []).filter(m => !m.parentModuleId);
+    const used = new Set();
+    const groups = [];
+
+    const rootBranchIds = (root) => {
+        const ids = new Set([Number(root.moduleId)]);
+        (root.childModules || []).forEach(c => ids.add(Number(c.moduleId)));
+        return ids;
+    };
+
+    roots.forEach(root => {
+        const ids = rootBranchIds(root);
+        const nameKey = (root.name || '').toLowerCase();
+        const matched = perms.filter(p => {
+            const mid = Number(p.moduleId);
+            if (Number.isFinite(mid) && ids.has(mid)) return true;
+            const mn = (p.moduleName || '').toLowerCase();
+            return mn === nameKey || mn.startsWith(`${nameKey}_`) || mn.startsWith(`param_${nameKey}`);
+        });
+        matched.forEach(p => used.add(Number(p.permissionId)));
+        groups.push({
+            key: `mod-${root.moduleId}`,
+            label: root.displayName || root.name || `Module #${root.moduleId}`,
+            permissions: matched,
+        });
+    });
+
+    const orphans = perms.filter(p => !used.has(Number(p.permissionId)));
+    if (orphans.length > 0) {
+        // Sous-groupes par moduleDisplayName / fallback
+        const byLabel = {};
+        orphans.forEach(p => {
+            const label = p.moduleDisplayName || p.moduleName || 'Autres permissions';
+            if (!byLabel[label]) byLabel[label] = [];
+            byLabel[label].push(p);
+        });
+        Object.entries(byLabel).forEach(([label, list]) => {
+            groups.push({ key: `orphan-${label}`, label, permissions: list });
+        });
+    }
+
+    return groups;
+}
+
 // =============================================================================
 // AdminAccessManagement — Interface d'administration unifiée
 // =============================================================================
@@ -167,18 +217,16 @@ function RolesTab() {
             try {
                 setLoadingRoles(true);
                 const [r, m, p] = await Promise.all([getAllRoles(), getAllModules(), getAllPermissions()]);
-                setRoles(r || []);
-                setAllModules(m || []);
-                setAllPermissions(p || []);
+                setRoles(Array.isArray(r) ? r : []);
+                setAllModules(Array.isArray(m) ? m : []);
+                const perms = Array.isArray(p) ? p : [];
+                setAllPermissions(perms);
                 
-                // Déplier tous les groupes de permissions par défaut
+                // Déplier tous les groupes de permissions par défaut (modules racines + orphelins)
                 const initialExpanded = {};
-                if (p) {
-                    p.forEach(perm => {
-                        const mName = perm.moduleName || 'Autre';
-                        initialExpanded[mName] = true;
-                    });
-                }
+                buildPermissionGroups(m || [], perms).forEach(g => {
+                    initialExpanded[g.label] = true;
+                });
                 setExpandedGroups(initialExpanded);
             } catch { 
                 toast.error('Erreur lors du chargement des données système'); 
@@ -195,8 +243,8 @@ function RolesTab() {
         setSelectedPermissionIds([]);
         try {
             const [mods, perms] = await Promise.all([getRoleModules(role.roleId), getRolePermissions(role.roleId)]);
-            setSelectedModuleIds(Array.isArray(mods) ? mods.map(m => m.moduleId) : []);
-            setSelectedPermissionIds(Array.isArray(perms) ? perms.map(p => p.permissionId) : []);
+            setSelectedModuleIds(Array.isArray(mods) ? mods.map(m => Number(m.moduleId)).filter(Number.isFinite) : []);
+            setSelectedPermissionIds(Array.isArray(perms) ? perms.map(p => Number(p.permissionId)).filter(Number.isFinite) : []);
         } catch { 
             setSelectedModuleIds([]); 
             setSelectedPermissionIds([]); 
@@ -224,6 +272,12 @@ function RolesTab() {
         try {
             await updateRolePermissions(selectedRole.roleId, [...selectedPermissionIds]);
             toast.success(`${selectedPermissionIds.length} permission(s) assignée(s) au rôle "${selectedRole.title}"`);
+            if (selectedModuleIds.length === 0) {
+                toast.warning(
+                    'Aucune page visible pour ce rôle. Cochez aussi « Modules & Pages Visibles » puis Enregistrer — sinon le menu restera vide.',
+                    { autoClose: 10000 }
+                );
+            }
         } catch (err) {
             toast.error(err.response?.data?.message || err.message || 'Erreur lors de la sauvegarde des permissions');
         } finally { 
@@ -231,8 +285,14 @@ function RolesTab() {
         }
     };
 
-    const toggleModule = (id) => setSelectedModuleIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-    const togglePermission = (id) => setSelectedPermissionIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const toggleModule = (id) => {
+        const mid = Number(id);
+        setSelectedModuleIds(prev => prev.includes(mid) ? prev.filter(x => x !== mid) : [...prev, mid]);
+    };
+    const togglePermission = (id) => {
+        const pid = Number(id);
+        setSelectedPermissionIds(prev => prev.includes(pid) ? prev.filter(x => x !== pid) : [...prev, pid]);
+    };
 
     const allModuleIds = useMemo(() => collectAllModuleIds(allModules), [allModules]);
     const flatModules = useMemo(() => flattenModuleTree(allModules), [allModules]);
@@ -294,6 +354,26 @@ function RolesTab() {
 
     const filteredRoles = roles.filter(r => (r.title || '').toLowerCase().includes(searchQuery.toLowerCase()));
 
+    // Hooks AVANT tout early return (Rules of Hooks)
+    const permissionGroupList = useMemo(
+        () => buildPermissionGroups(allModules, allPermissions),
+        [allModules, allPermissions]
+    );
+
+    const allPermissionIds = useMemo(
+        () => (Array.isArray(allPermissions) ? allPermissions : [])
+            .map(p => Number(p.permissionId))
+            .filter(Number.isFinite),
+        [allPermissions]
+    );
+
+    const permissionsAllSelected = allPermissionIds.length > 0
+        && allPermissionIds.every(id => selectedPermissionIds.includes(id));
+
+    const toggleAllPermissions = () => {
+        setSelectedPermissionIds(permissionsAllSelected ? [] : [...allPermissionIds]);
+    };
+
     if (loadingRoles) {
         return (
             <div className="text-center py-5">
@@ -304,14 +384,6 @@ function RolesTab() {
             </div>
         );
     }
-
-    // Grouper les permissions par module
-    const permGroups = {};
-    allPermissions.forEach(p => {
-        const mod = p.moduleName || 'Autre';
-        if (!permGroups[mod]) permGroups[mod] = [];
-        permGroups[mod].push(p);
-    });
 
     return (
         <div className="row g-4">
@@ -491,36 +563,55 @@ function RolesTab() {
                         {/* Section 2 : Permissions fines du système */}
                         <div className="admin-card">
                             <div className="admin-card-header">
-                                <strong><FaLock className="text-primary" /> Permissions attribuées ({selectedPermissionIds.length})</strong>
-                                <button 
-                                    type="button"
-                                    className="admin-btn admin-btn-success admin-btn-sm" 
-                                    onClick={handleSavePermissions} 
-                                    disabled={savingPerms}
-                                >
-                                    <FaSave /> {savingPerms ? 'Enregistrement...' : 'Enregistrer'}
-                                </button>
+                                <strong><FaLock className="text-primary" /> Permissions attribuées ({selectedPermissionIds.length}/{allPermissionIds.length})</strong>
+                                <div className="d-flex gap-2">
+                                    <button
+                                        type="button"
+                                        className="admin-btn admin-btn-outline admin-btn-sm"
+                                        onClick={toggleAllPermissions}
+                                        disabled={allPermissionIds.length === 0}
+                                    >
+                                        {permissionsAllSelected ? 'Tout décocher' : 'Tout cocher'}
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        className="admin-btn admin-btn-success admin-btn-sm" 
+                                        onClick={handleSavePermissions} 
+                                        disabled={savingPerms}
+                                    >
+                                        <FaSave /> {savingPerms ? 'Enregistrement...' : 'Enregistrer'}
+                                    </button>
+                                </div>
                             </div>
                             <div className="admin-card-body admin-scrollable-container" style={{ maxHeight: '480px' }}>
-                                {Object.entries(permGroups).map(([modName, perms]) => {
-                                    const permIds = perms.map(p => p.permissionId);
-                                    const allSel = permIds.every(id => selectedPermissionIds.includes(id));
-                                    const isOpen = expandedGroups[modName] !== false;
+                                {allPermissionIds.length === 0 && (
+                                    <div className="text-muted small p-3 text-center">
+                                        Aucune permission chargée. Exécutez le script SQL
+                                        <code className="mx-1">09_SYNC_PERMISSIONS_MODULES.sql</code>
+                                        puis rechargez cette page.
+                                    </div>
+                                )}
+                                {permissionGroupList.map(group => {
+                                    const perms = group.permissions;
+                                    const permIds = perms.map(p => Number(p.permissionId)).filter(Number.isFinite);
+                                    const allSel = permIds.length > 0 && permIds.every(id => selectedPermissionIds.includes(id));
+                                    const isOpen = expandedGroups[group.label] !== false;
 
                                     return (
-                                        <div key={modName} className="admin-accordion-group">
-                                            <div className="admin-accordion-header" onClick={() => toggleGroupExpand(modName)}>
+                                        <div key={group.key} className="admin-accordion-group">
+                                            <div className="admin-accordion-header" onClick={() => toggleGroupExpand(group.label)}>
                                                 <div className="d-flex align-items-center gap-2">
                                                     <span className="text-muted">
                                                         {isOpen ? <FaChevronDown size={11} /> : <FaChevronRight size={11} />}
                                                     </span>
-                                                    <span className="small text-uppercase fw-bold text-primary">{modName}</span>
+                                                    <span className="small text-uppercase fw-bold text-primary">{group.label}</span>
                                                     <span className="admin-badge admin-badge-secondary">{perms.length}</span>
                                                 </div>
                                                 <div onClick={e => e.stopPropagation()}>
                                                     <button 
                                                         type="button"
                                                         className={`admin-btn admin-btn-xs ${allSel ? 'admin-btn-primary' : 'admin-btn-outline'}`}
+                                                        disabled={permIds.length === 0}
                                                         onClick={() => allSel
                                                             ? setSelectedPermissionIds(prev => prev.filter(id => !permIds.includes(id)))
                                                             : setSelectedPermissionIds(prev => [...new Set([...prev, ...permIds])])}
@@ -532,20 +623,29 @@ function RolesTab() {
                                             
                                             {isOpen && (
                                                 <div className="admin-accordion-body">
+                                                    {perms.length === 0 ? (
+                                                        <div className="text-muted small px-2 py-2">
+                                                            Aucune permission liée à ce module. Lancez
+                                                            <code className="mx-1">09_SYNC_PERMISSIONS_MODULES.sql</code>
+                                                            pour rattacher le catalogue.
+                                                        </div>
+                                                    ) : (
                                                     <div className="row g-2">
                                                         {perms.map(perm => {
-                                                            const checked = selectedPermissionIds.includes(perm.permissionId);
+                                                            const pid = Number(perm.permissionId);
+                                                            const checked = selectedPermissionIds.includes(pid);
                                                             return (
-                                                                <div key={perm.permissionId} className="col-md-6 col-lg-12 col-xl-6">
+                                                                <div key={pid} className="col-md-6 col-lg-12 col-xl-6">
                                                                     <div 
                                                                         className={`admin-permission-item ${checked ? 'checked' : ''}`}
-                                                                        onClick={() => togglePermission(perm.permissionId)}
+                                                                        onClick={() => togglePermission(pid)}
                                                                     >
                                                                         <div className="perm-checkbox">
                                                                             {checked && <FaCheckCircle size={10} />}
                                                                         </div>
                                                                         <div className="flex-grow-1">
                                                                             <span className="admin-permission-label">{formatPermName(perm.name)}</span>
+                                                                            <code className="d-block text-muted" style={{ fontSize: '0.68rem' }}>{perm.name}</code>
                                                                             {perm.description && (
                                                                                 <div className="text-muted" style={{ fontSize: '0.75rem', marginTop: '2px' }}>
                                                                                     {perm.description}
@@ -557,6 +657,7 @@ function RolesTab() {
                                                             );
                                                         })}
                                                     </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1114,16 +1215,12 @@ function PermissionsTab() {
         try {
             setLoading(true);
             const [perms, mods] = await Promise.all([getAllPermissions(), getAllModules()]);
-            setPermissions(perms || []);
-            setModules(mods || []);
+            const permList = Array.isArray(perms) ? perms : [];
+            const modList = Array.isArray(mods) ? mods : [];
+            setPermissions(permList);
+            setModules(modList);
             const exp = {};
-            const groups = {};
-            (perms || []).forEach(p => { 
-                const m = p.moduleName || 'Sans module'; 
-                if (!groups[m]) groups[m] = []; 
-                groups[m].push(p); 
-            });
-            Object.keys(groups).forEach(k => { exp[k] = true; });
+            buildPermissionGroups(modList, permList).forEach(g => { exp[g.label] = true; });
             setExpandedModules(exp);
         } catch { 
             toast.error('Erreur lors du chargement des permissions'); 
@@ -1164,6 +1261,11 @@ function PermissionsTab() {
 
     const toggleExpand = (mod) => setExpandedModules(prev => ({ ...prev, [mod]: !prev[mod] }));
 
+    const permissionGroupList = useMemo(
+        () => buildPermissionGroups(modules, permissions),
+        [modules, permissions]
+    );
+
     if (loading) {
         return (
             <div className="text-center py-5">
@@ -1172,15 +1274,6 @@ function PermissionsTab() {
             </div>
         );
     }
-
-    const groups = {};
-    permissions
-        .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
-        .forEach(p => { 
-            const m = p.moduleName || 'Sans module'; 
-            if (!groups[m]) groups[m] = []; 
-            groups[m].push(p); 
-        });
 
     return (
         <div>
@@ -1196,35 +1289,52 @@ function PermissionsTab() {
                     <FaSearch className="admin-search-icon" />
                 </div>
                 
-                <button 
-                    type="button"
-                    className="admin-btn admin-btn-primary admin-btn-sm" 
-                    onClick={() => { setEditingPerm(null); setFormData({ name: '', description: '', moduleId: null }); setShowModal(true); }}
-                >
-                    <FaPlus /> Nouvelle Permission
-                </button>
+                <div className="d-flex align-items-center gap-2">
+                    <span className="admin-badge admin-badge-primary">
+                        {(Array.isArray(permissions) ? permissions : []).length} permission(s)
+                    </span>
+                    <button 
+                        type="button"
+                        className="admin-btn admin-btn-primary admin-btn-sm" 
+                        onClick={() => { setEditingPerm(null); setFormData({ name: '', description: '', moduleId: null }); setShowModal(true); }}
+                    >
+                        <FaPlus /> Nouvelle Permission
+                    </button>
+                </div>
             </div>
 
             <div className="row g-3">
-                {Object.entries(groups).map(([modName, perms]) => (
-                    <div key={modName} className="col-xl-6">
+                {permissionGroupList.map(group => {
+                    const perms = group.permissions.filter(p =>
+                        !searchQuery
+                        || (p.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+                        || (p.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+                    if (searchQuery && perms.length === 0) return null;
+                    return (
+                    <div key={group.key} className="col-xl-6">
                         <div className="admin-card">
                             <div 
                                 className="admin-card-header"
                                 style={{ cursor: 'pointer' }} 
-                                onClick={() => toggleExpand(modName)}
+                                onClick={() => toggleExpand(group.label)}
                             >
                                 <div className="d-flex align-items-center gap-2">
                                     <span className="text-muted">
-                                        {expandedModules[modName] ? <FaChevronDown size={11} /> : <FaChevronRight size={11} />}
+                                        {expandedModules[group.label] ? <FaChevronDown size={11} /> : <FaChevronRight size={11} />}
                                     </span>
-                                    <strong className="small text-primary text-uppercase">{modName}</strong>
+                                    <strong className="small text-primary text-uppercase">{group.label}</strong>
                                 </div>
                                 <span className="admin-badge admin-badge-primary">{perms.length}</span>
                             </div>
                             
-                            {expandedModules[modName] && (
+                            {expandedModules[group.label] && (
                                 <div className="admin-card-body p-2">
+                                    {perms.length === 0 ? (
+                                        <div className="text-muted small p-2">
+                                            Aucune permission liée. Exécutez <code>09_SYNC_PERMISSIONS_MODULES.sql</code>.
+                                        </div>
+                                    ) : (
                                     <div className="d-flex flex-column gap-1">
                                         {perms.map(perm => (
                                             <div 
@@ -1252,15 +1362,17 @@ function PermissionsTab() {
                                             </div>
                                         ))}
                                     </div>
+                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
-                ))}
-                {Object.keys(groups).length === 0 && (
+                    );
+                })}
+                {permissionGroupList.length === 0 && (
                     <div className="col-12 py-5 text-center text-muted">
                         <FaLock size={40} className="d-block mx-auto mb-2 opacity-25" />
-                        Aucune règle de permission ne correspond à votre recherche.
+                        Aucun module trouvé. Lancez d&apos;abord <code>04_SEED_MODULES.sql</code>.
                     </div>
                 )}
             </div>

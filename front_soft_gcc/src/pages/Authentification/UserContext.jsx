@@ -202,7 +202,20 @@ export const UserProvider = ({ children }) => {
         initializeUser();
     }, []);
 
+    const isAdminUser = () => {
+        const title = (user?.roleTitle || '').trim().toLowerCase();
+        return user?.roleId === 1
+            || title === 'admin'
+            || title === 'administrator'
+            || title === 'administrateur';
+    };
+
     const hasPermission = (permission) => {
+        // Admin : accès complet côté UI (titre ou roleId seed 1)
+        if (isAdminUser()) {
+            return true;
+        }
+
         if (!Array.isArray(userPermissions)) {
             return false;
         }
@@ -215,8 +228,14 @@ export const UserProvider = ({ children }) => {
 
     const canAccessRoute = useCallback((pathname) => {
         if (!modulesAccessReady) return true;
+        const title = (user?.roleTitle || '').trim().toLowerCase();
+        const isAdmin = user?.roleId === 1
+            || title === 'admin'
+            || title === 'administrator'
+            || title === 'administrateur';
+        if (isAdmin) return true;
         return checkRouteAccess(pathname, allowedRoutes, catalogRoutes);
-    }, [modulesAccessReady, allowedRoutes, catalogRoutes]);
+    }, [modulesAccessReady, allowedRoutes, catalogRoutes, user?.roleId, user?.roleTitle]);
 
     const logout = () => {
         clearUserData();
