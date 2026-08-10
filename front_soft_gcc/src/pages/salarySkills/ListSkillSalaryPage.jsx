@@ -146,7 +146,7 @@ function ListSkillSalaryPage() {
 
   // Navigation pour details competences
   const handleSkillsDetails = (employeeId) => {
-    navigate(`/soft-gcc/competences/profil/${employeeId}`);
+    navigate(`/soft-gcc/employes/fiche/${employeeId}?espace=competences`);
   };
 
   return (

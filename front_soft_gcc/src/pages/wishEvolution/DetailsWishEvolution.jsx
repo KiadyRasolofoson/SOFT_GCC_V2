@@ -121,14 +121,15 @@ function DetailsWishEvolution() {
     navigate(`/soft-gcc/souhaits-evolution/edit/${wishEvolutionId}`);
   };
 
-  // Navigation pour la page des competences
+  // Navigation vers la fiche employé unifiée
   const handleSkill = () => {
-    navigate(`/soft-gcc/competences/profil/${dataDescription.employeeId}`);
+    navigate(`/soft-gcc/employes/fiche/${dataDescription.employeeId}?espace=competences`);
   };
 
-  // Navigation pour la page des carrieress
   const handleCareer = () => {
-    navigate(`/soft-gcc/carrieres/fiche/${dataDescription.registrationNumber}`);
+    navigate(
+      `/soft-gcc/employes/fiche/${dataDescription.registrationNumber || dataDescription.employeeId}?espace=carrieres`
+    );
   };
 
   return (
