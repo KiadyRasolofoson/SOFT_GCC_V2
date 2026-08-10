@@ -1,41 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { urlApi } from '../../helpers/utils';
-import PageHeader from '../../components/PageHeader';
+import { useParams, useNavigate } from 'react-router-dom';
 import SkillSalaryChart from '../../components/salarySkills/SkillSalaryChart';
 import SalaryDescription from '../../components/salarySkills/SalaryDescription';
 import CardSkills from '../../components/salarySkills/CardSkills';
 import Loader from '../../helpers/Loader';
 import Template from '../Template';
-import '../../styles/skillsStyle.css';
 import BreadcrumbPers from '../../helpers/BreadcrumbPers';
-import CancelButton from '../../helpers/CancelButton';
 import api from '../../helpers/api';
+import './SalaryProfilePage.css';
 
-// Gestion d'affichage du page salaryProfile (profile des competences salaries)
-function SalaryProfilePage({ task }) {
-  // Gestion d'affichage d'url dans l'entete du page
-  const module = "Compétences";
-  const action = "Profil";
-  const url = "/competences";
-
-  // Gestion des states
+function SalaryProfilePage() {
+  const navigate = useNavigate();
   const { employeeId: idEmployee } = useParams();
   const [employeeDescription, setEmployeeDescription] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); 
+  const [error, setError] = useState(null);
 
-  // Récupération des données à l'aide de l'API
   useEffect(() => {
     const fetchData = async () => {
       if (!idEmployee) return;
       setLoading(true);
+      setError(null);
       try {
         const response = await api.get(`/EmployeeSkills/description/${idEmployee}`);
-        const data = await response.data;
-        setEmployeeDescription(data);
-      } catch (error) {
-        setError(`Erreur lors de la récupération des données de description des employés : ${error.message}`);
+        setEmployeeDescription(response.data);
+      } catch (err) {
+        setError(`Erreur lors de la récupération des données de description des employés : ${err.message}`);
+        setEmployeeDescription(null);
       } finally {
         setLoading(false);
       }
@@ -43,44 +34,66 @@ function SalaryProfilePage({ task }) {
     fetchData();
   }, [idEmployee]);
 
-  // Vérifier si les données sont bien reçues
-  if (!employeeDescription || employeeDescription.length === 0) {
-    return(
-      <Template>
-        <div>Aucune donnée trouvée. {error}</div>
-      </Template>
-    ); 
-  }
+  const handleRetour = () => {
+    navigate('/soft-gcc/competences');
+  };
 
-  // Si c'est un tableau, on accède au premier élément (l'index 0)
-  const employee = employeeDescription[0];
+  const employee = Array.isArray(employeeDescription) ? employeeDescription[0] : null;
+  const hasData = Boolean(employee);
 
   return (
     <Template>
-      <div className="title-container">
-        <div className="col-lg-10 skill-header">
-          <i className="mdi mdi-school skill-icon"></i>
-          <p className="skill-title">PROFIL DES COMPÉTENCES</p>
+      <div className="skills-profile">
+        <BreadcrumbPers
+          items={[
+            { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+            { label: 'Compétences', path: '/soft-gcc/competences' },
+            { label: 'Profil', path: `/soft-gcc/competences/profil/${idEmployee}` },
+          ]}
+        />
+
+        <div className="skills-page-header">
+          <div className="skills-header-left">
+            <div className="skills-header-icon">
+              <i className="mdi mdi-account-star" />
+            </div>
+            <h1 className="skills-header-title">Profil des compétences</h1>
+          </div>
+          <div className="skills-header-actions">
+            <button type="button" className="skills-btn skills-btn-secondary" onClick={handleRetour}>
+              <i className="mdi mdi-arrow-left" />
+              Retour
+            </button>
+          </div>
         </div>
-        <div className="col-lg-2">
-          <CancelButton to="competences" />
-        </div>  
+
+        {loading && <Loader />}
+
+        {!loading && error && (
+          <div className="skills-error-state alert alert-danger mb-3">{error}</div>
+        )}
+
+        {!loading && !error && !hasData && (
+          <div className="skills-empty-state">Aucune donnée trouvée pour ce salarié.</div>
+        )}
+
+        {!loading && hasData && (
+          <>
+            <div className="skills-section">
+              <SalaryDescription dataEmployeeDescription={employee} />
+            </div>
+
+            <div className="row skills-main-row">
+              <div className="col-lg-8">
+                <CardSkills dataEmployeeDescription={employee} idEmployee={idEmployee} />
+              </div>
+              <div className="col-lg-4">
+                <SkillSalaryChart employeeId={idEmployee} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
-      <BreadcrumbPers
-        items={[
-          { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
-          { label: 'Compétences', path: '/soft-gcc/competences' },
-          { label: 'Profil', path: '/soft-gcc/competences/profil' }
-        ]}
-      />
-      {loading && <Loader />}
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      <SalaryDescription dataEmployeeDescription={employee} />
-
-      <CardSkills dataEmployeeDescription={employee} idEmployee={idEmployee} />
-
-      <SkillSalaryChart employeeId={idEmployee} />
     </Template>
   );
 }
