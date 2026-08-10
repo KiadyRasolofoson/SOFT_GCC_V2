@@ -150,7 +150,7 @@ const ListCareerPage = () => {
 
   // Navigation pour details carrieres
   const handleCareersDetails = (registrationNumber) => {
-    navigate(`/soft-gcc/carrieres/fiche/${registrationNumber}`);
+    navigate(`/soft-gcc/employes/fiche/${registrationNumber}?espace=carrieres`);
   };
 
   return (

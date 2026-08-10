@@ -298,7 +298,7 @@ function ListEmployeePage() {
                     <tbody>
                       {sortedEmployees.length > 0 ? (
                         sortedEmployees.map((item) => (
-                          <tr key={item.employeeId} onClick={() => navigate(`/soft-gcc/competences/profil/${item.employeeId}`)}>
+                          <tr key={item.employeeId} onClick={() => navigate(`/soft-gcc/employes/fiche/${item.employeeId}?espace=infos`)}>
                             <td className="py-1">
                               {item.photo ? (
                                 <img src={urlApi(`/Employee/photo/${item.employeeId}`)} alt={'Employe '+item.registrationNumber} />

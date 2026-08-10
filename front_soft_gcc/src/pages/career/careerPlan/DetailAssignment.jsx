@@ -153,7 +153,7 @@ function DetailAssignment() {
     };
 
     const handleRetour = () => {
-        navigate(`/soft-gcc/carrieres/fiche/${assignmentToEdit.registrationNumber}`);
+        navigate(`/soft-gcc/employes/fiche/${assignmentToEdit.registrationNumber}?espace=carrieres`);
     };
 
     return (
@@ -176,7 +176,7 @@ function DetailAssignment() {
                 items={[
                     { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
                     { label: 'Plan de carrière', path: '/soft-gcc/carrieres' },
-                    { label: 'Fiche carrière', path: `/soft-gcc/carrieres/fiche/${assignmentToEdit.registrationNumber}` },
+                    { label: 'Fiche employé', path: `/soft-gcc/employes/fiche/${assignmentToEdit.registrationNumber}?espace=carrieres` },
                     { label: 'Détails', path: `/soft-gcc/carrieres/fiche/detail/${CareerPlanId}` }
                 ]}
             />
