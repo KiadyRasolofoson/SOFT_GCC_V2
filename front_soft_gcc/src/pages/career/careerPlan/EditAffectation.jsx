@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Template from '../../Template';
-import PageHeader from '../../../components/PageHeader';
 import AppointmentForm from '../../../components/career/AppointmentForm';
 import AdvancementForm from '../../../components/career/AdvancementForm';
 import LayOffForm from '../../../components/career/LayOffForm';
+import SearchableSelect from '../../../components/common/SearchableSelect';
 import axios from 'axios';
 import { urlApi } from '../../../helpers/utils';
-import { useParams } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import BreadcrumbPers from '../../../helpers/BreadcrumbPers';
 import Loader from '../../../helpers/Loader';
+import api from '../../../helpers/api';
+import './CreationCareerPlan.css';
 
 // Page de modification d'un plan de carrière
 function EditAffectation() {
-    // Initialisation des variables etats
     const { careerPlanId: CareerPlanId } = useParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [assignmentToEdit, setAssignmentToEdit] = useState({});
-    const [state, seState] = useState('');
     const [assignmentType, setAssignmentType] = useState({});
+    const [dataEmployee, setDataEmployee] = useState([]);
     const [selectedItem, setSelectedItem] = useState(0);
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
@@ -50,18 +50,22 @@ function EditAffectation() {
         state: 1,
     });
 
-    // Formate une date ou retourne une chaîne vide si invalide
     const formatDate = (date) => {
         if (!date) return '';
         const parsedDate = new Date(date);
         if (isNaN(parsedDate)) return '';
-        
-        // Ajuster pour éviter les problèmes de fuseau horaire
         return parsedDate.toLocaleDateString('fr-CA');
     };
-    
 
-    // Récupération des données
+    const employeeOptions = useMemo(
+        () =>
+            (dataEmployee || []).map((item) => ({
+                value: item.registrationNumber,
+                label: `${item.registrationNumber} - ${item.name} ${item.firstName}`,
+            })),
+        [dataEmployee]
+    );
+
     const fetchData = async () => {
         setIsLoading(true);
         try {
@@ -70,8 +74,12 @@ function EditAffectation() {
             setAssignmentToEdit(assignmentData);
             setSelectedItem(assignmentData.assignmentTypeId);
 
-            const assignmentTypeResponse = await axios.get(urlApi(`/AssignmentType/${assignmentData.assignmentTypeId}`));
+            const [assignmentTypeResponse, employeeResponse] = await Promise.all([
+                axios.get(urlApi(`/AssignmentType/${assignmentData.assignmentTypeId}`)),
+                api.get(urlApi(`/Employee`)),
+            ]);
             setAssignmentType(assignmentTypeResponse.data || {});
+            setDataEmployee(employeeResponse.data || []);
         } catch (err) {
             console.error(err);
             setError(`Erreur lors de la récupération des données : ${err.message}`);
@@ -80,16 +88,14 @@ function EditAffectation() {
         }
     };
 
-    // Remplit les données du formulaire après récupération
     useEffect(() => {
         if (CareerPlanId) {
             fetchData();
         }
     }, [CareerPlanId]);
 
-    // UseEffect pour ajouter des valeurs par défaut dans le formulaire de modification
     useEffect(() => {
-        if (assignmentToEdit) {
+        if (assignmentToEdit && assignmentToEdit.careerPlanId) {
             setFormData({
                 careerPlanId: assignmentToEdit.careerPlanId,
                 assignmentTypeId: assignmentToEdit.assignmentTypeId || undefined,
@@ -121,7 +127,6 @@ function EditAffectation() {
         }
     }, [assignmentToEdit]);
 
-    // Gestion des changements dans le formulaire
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prevData) => ({
@@ -130,131 +135,244 @@ function EditAffectation() {
         }));
     };
 
-    // Soumission des données
+    const handleEmployeeChange = (option) => {
+        setFormData((prevData) => ({
+            ...prevData,
+            registrationNumber: option ? option.value : undefined,
+        }));
+    };
+
     const handleSubmit = async () => {
         try {
-             // Nettoyer les données : remplacer les valeurs undefined ou vides par null
             const dataToSend = Object.fromEntries(
                 Object.entries(formData).map(([key, value]) => [
                     key,
-                    value === undefined || value === "" ? null : value, // Remplace les valeurs invalides par null
+                    value === undefined || value === '' ? null : value,
                 ])
             );
 
-            // Ajout de la date de mise à jour
             dataToSend.updatedDate = new Date().toISOString();
             await axios.put(urlApi(`/CareerPlan/${assignmentToEdit.careerPlanId}`), dataToSend);
-            await fetchData();
             handleRetour();
         } catch (err) {
             console.error(`Erreur lors de la modification : ${err.message}`);
+            setError(`Erreur lors de la modification : ${err.message}`);
         }
     };
 
-    // Fonction qui gère le retour en arrière de la page
     const handleRetour = () => {
         navigate(`/soft-gcc/carrieres/fiche/${assignmentToEdit.registrationNumber}`);
     };
 
+    const assignmentTypeLabel = Number(selectedItem);
+    const registrationLabel =
+        employeeOptions.find(
+            (opt) => String(opt.value) === String(formData.registrationNumber)
+        )?.label || formData.registrationNumber || '…';
+
     return (
         <Template>
             {isLoading && <Loader />}
-            {error && <div className="alert alert-danger">Erreur : {error}</div>}
-            <div className="title-container">
-                <div className="col-lg-10 skill-header">
-                    <i className="mdi mdi-map-marker-path skill-icon"></i>
-                    <p className="skill-title">MODIFICATION DU PLAN DE CARRIÈRE</p>
-                </div>
-                <div className="col-lg-2">
-                    <button onClick={handleRetour} className="btn-outline-dark btn-fw" style={{float: 'right'}}>
-                        <i className="mdi mdi-arrow-left-circle icon-cancel" style={{}}></i>
-                        Retour
-                    </button>
-                </div>  
-            </div>
-            
-            <BreadcrumbPers
-                items={[
-                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
-                    { label: 'Plan de carrière', path: '/soft-gcc/carrieres' },
-                    { label: 'Fiche carrière', path: `/soft-gcc/carrieres/fiche/${assignmentToEdit.registrationNumber}` },
-                    { label: 'Modifier', path: `/soft-gcc/carrieres/fiche/modifier/${CareerPlanId}` }
-                ]}
-            />
-          
-            <div className="row">
-                <div className="button-save-profil">
-                    <button onClick={handleSubmit} type="button" className="btn btn-success btn-fw">
-                        <i className="mdi mdi-pencil" style={{paddingRight: '5px'}}></i>Modifier
-                    </button>
-                    <button type="button" className="btn btn-light btn-fw">
-                        <i className="mdi mdi-backspace-outline" style={{paddingRight: '5px'}}></i>
-                        Annuler
-                    </button>
-                </div>
-            </div>
 
-            <form className="forms-sample">
-                <div className="row">
-                    <div className="col-md-6 grid-margin stretch-card">
-                        <div className="card">
-                            <div className="card-body">
-                                <div className="form-group">
-                                    <label>Matricule</label>
-                                    <select name="registrationNumber" value={formData.registrationNumber} onChange={handleChange} className="form-control">
-                                        <option value={assignmentToEdit.registrationNumber}>
-                                            {assignmentToEdit.registrationNumber}
-                                        </option>
-                                    </select>
+            <div className="career-create">
+                <BreadcrumbPers
+                    items={[
+                        { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                        { label: 'Plan de carrière', path: '/soft-gcc/carrieres' },
+                        {
+                            label: 'Fiche carrière',
+                            path: `/soft-gcc/carrieres/fiche/${assignmentToEdit.registrationNumber}`,
+                        },
+                        {
+                            label: 'Modifier',
+                            path: `/soft-gcc/carrieres/fiche/modifier/${CareerPlanId}`,
+                        },
+                    ]}
+                />
+
+                <div className="career-page-header">
+                    <div className="career-header-left">
+                        <div className="career-header-icon">
+                            <i className="mdi mdi-pencil" />
+                        </div>
+                        <h1 className="career-header-title">Modification du plan de carrière</h1>
+                    </div>
+                    <div className="career-header-actions">
+                        <button
+                            onClick={handleSubmit}
+                            type="button"
+                            className="career-btn career-btn-primary"
+                        >
+                            <i className="mdi mdi-content-save" />
+                            Enregistrer
+                        </button>
+                        <button
+                            onClick={handleRetour}
+                            type="button"
+                            className="career-btn career-btn-secondary"
+                        >
+                            <i className="mdi mdi-arrow-left" />
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+
+                {error && <div className="alert alert-danger">{error}</div>}
+
+                <form className="career-form" onSubmit={(e) => e.preventDefault()}>
+                    <div className="career-section">
+                        <div className="career-card">
+                            <div className="career-card-header">
+                                <h5>
+                                    <i className="mdi mdi-account-check" />
+                                    Identification
+                                </h5>
+                            </div>
+                            <div className="career-card-body">
+                                <div className="row g-3">
+                                    <div className="col-md-6">
+                                        <div className="career-form-group">
+                                            <label
+                                                className="career-form-label"
+                                                htmlFor="registrationNumber"
+                                            >
+                                                Employé
+                                            </label>
+                                            <SearchableSelect
+                                                name="registrationNumber"
+                                                inputId="registrationNumber"
+                                                options={employeeOptions}
+                                                value={formData.registrationNumber}
+                                                onChange={handleEmployeeChange}
+                                                placeholder="Rechercher par matricule ou nom…"
+                                                noOptionsMessage={() => 'Aucun employé trouvé'}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="career-form-group">
+                                            <label
+                                                className="career-form-label"
+                                                htmlFor="assignmentTypeId"
+                                            >
+                                                Type d&apos;affectation
+                                            </label>
+                                            <select
+                                                name="assignmentTypeId"
+                                                id="assignmentTypeId"
+                                                value={formData.assignmentTypeId || ''}
+                                                onChange={handleChange}
+                                                className="career-form-control"
+                                                disabled
+                                            >
+                                                {assignmentType && (
+                                                    <option
+                                                        key={assignmentType.assignmentTypeId}
+                                                        value={assignmentType.assignmentTypeId}
+                                                    >
+                                                        {assignmentType.assignmentTypeName}
+                                                    </option>
+                                                )}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="career-form-group">
+                                            <label
+                                                className="career-form-label"
+                                                htmlFor="decisionNumber"
+                                            >
+                                                Numéro de décision
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="decisionNumber"
+                                                id="decisionNumber"
+                                                value={formData.decisionNumber || ''}
+                                                onChange={handleChange}
+                                                className="career-form-control"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <div className="career-form-group">
+                                            <label
+                                                className="career-form-label"
+                                                htmlFor="decisionDate"
+                                            >
+                                                Date de décision
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="decisionDate"
+                                                id="decisionDate"
+                                                value={formData.decisionDate || ''}
+                                                onChange={handleChange}
+                                                className="career-form-control"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <div className="career-form-group">
+                                            <label
+                                                className="career-form-label"
+                                                htmlFor="assignmentDate"
+                                            >
+                                                Date d&apos;affectation
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="assignmentDate"
+                                                id="assignmentDate"
+                                                value={formData.assignmentDate || ''}
+                                                onChange={handleChange}
+                                                className="career-form-control"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="col-12">
+                                        <div className="career-form-group">
+                                            <label
+                                                className="career-form-label"
+                                                htmlFor="description"
+                                            >
+                                                Description
+                                            </label>
+                                            <textarea
+                                                name="description"
+                                                id="description"
+                                                value={formData.description || ''}
+                                                onChange={handleChange}
+                                                className="career-form-control"
+                                                rows="3"
+                                                placeholder="Informations complémentaires (optionnel)"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="col-md-6 grid-margin stretch-card">
-                        <div className="card">
-                            <div className="card-body">
-                                <div className="form-group">
-                                    <label>Type d'affectation</label>
-                                    <select name="assignmentTypeId" value={formData.assignmentTypeId || ''} onChange={handleChange} className="form-control">
-                                        {assignmentType && (
-                                            <option key={assignmentType.assignmentTypeId} value={assignmentType.assignmentTypeId}>
-                                                {assignmentType.assignmentTypeName}
-                                            </option>
-                                        )}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Numéro de décision</label>
-                                    <input type="text" name="decisionNumber" value={formData.decisionNumber} onChange={handleChange} className="form-control" />
-                                </div>
-                                <div className="form-group">
-                                    <label>Date de décision</label>
-                                    <input type="date" name="decisionDate" value={formData.decisionDate} onChange={handleChange} className="form-control" />
-                                </div>
-                                <div className="form-group">
-                                    <label>Date d'affectation</label>
-                                    <input type="date" name="assignmentDate" value={formData.assignmentDate} onChange={handleChange} className="form-control" />
-                                </div>
-                                <div className="form-group">
-                                    <label>Description</label>
-                                    <textarea name="description" value={formData.description} onChange={handleChange} className="form-control" rows="4"></textarea>
+                    {assignmentTypeLabel === 1 ? (
+                        <AppointmentForm formData={formData} setFormData={setFormData} />
+                    ) : assignmentTypeLabel === 2 ? (
+                        <LayOffForm handleChange={handleChange} formData={formData} />
+                    ) : assignmentTypeLabel === 3 ? (
+                        <AdvancementForm handleChange={handleChange} formData={formData} />
+                    ) : (
+                        <div className="career-section">
+                            <div className="career-card">
+                                <div className="career-card-body">
+                                    <p className="mb-0 text-muted">
+                                        Aucune affectation détectée pour {registrationLabel}.
+                                    </p>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {selectedItem === 1 ? (
-                    <AppointmentForm formData={formData} setFormData={setFormData} />
-                ) : selectedItem === 2 ? (
-                    <LayOffForm handleChange={handleChange} formData={formData} />
-                ) : selectedItem === 3 ? (
-                    <AdvancementForm handleChange={handleChange} formData={formData} />
-                ) : (
-                    <p>Aucune affectation détectée</p>
-                )}
-            </form>
+                    )}
+                </form>
+            </div>
         </Template>
     );
 }
