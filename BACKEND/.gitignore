@@ -11,6 +11,11 @@ obj/
 # Fichiers de configuration de l'environnement
 *.env
 
+# Secrets locaux — ne jamais versionner
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+
 # Dossiers de packages
 packages/
 *.nupkg

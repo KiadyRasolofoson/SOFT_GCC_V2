@@ -94,6 +94,11 @@ lerna-debug.log*
 .env.local
 .env.*.local
 
+# === BACKEND - Secrets (ne jamais versionner) ===
+BACKEND/appsettings.json
+BACKEND/appsettings.*.json
+!BACKEND/appsettings.example.json
+
 # === Node (root) ===
 node_modules/
 
