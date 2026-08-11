@@ -1,0 +1,710 @@
+/* =============================================================================
+   EmployeeFichePage — Fiche employé unifiée (compétences + carrières)
+   ============================================================================= */
+
+.employee-fiche {
+  --fiche-primary: #4B49AC;
+  --fiche-primary-hover: #3f3da2;
+  --fiche-primary-light: rgba(75, 73, 172, 0.08);
+  --fiche-success: #28a745;
+  --fiche-success-hover: #218838;
+  --fiche-danger: #dc3545;
+  --fiche-card-bg: #ffffff;
+  --fiche-border: #e9ecef;
+  --fiche-text: #2b2d42;
+  --fiche-muted: #6c757d;
+  --fiche-bg-light: #f8f9fa;
+  --fiche-tab-track: #eef1f6;
+  --fiche-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --fiche-radius-sm: 6px;
+  --fiche-radius-md: 8px;
+  color: var(--fiche-text);
+}
+
+/* ----- Header ----- */
+.employee-fiche .fiche-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--fiche-card-bg);
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--fiche-radius-md);
+  border: 1px solid var(--fiche-border);
+  box-shadow: var(--fiche-shadow-sm);
+  margin-bottom: 1.25rem;
+}
+
+.employee-fiche .fiche-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.employee-fiche .fiche-header-icon {
+  width: 44px;
+  height: 44px;
+  background-color: var(--fiche-primary-light);
+  color: var(--fiche-primary);
+  border-radius: var(--fiche-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.employee-fiche .fiche-header-title {
+  font-weight: 700;
+  color: var(--fiche-text);
+  font-size: 1.25rem;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.employee-fiche .fiche-header-subtitle {
+  font-size: 0.8125rem;
+  color: var(--fiche-muted);
+  margin: 0.15rem 0 0;
+}
+
+.employee-fiche .fiche-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.employee-fiche .fiche-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: var(--fiche-radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.employee-fiche .fiche-btn-secondary {
+  background: var(--fiche-bg-light);
+  color: var(--fiche-text);
+  border-color: var(--fiche-border);
+}
+
+.employee-fiche .fiche-btn-secondary:hover {
+  background: #e9ecef;
+  color: var(--fiche-text);
+}
+
+.employee-fiche .fiche-btn-primary {
+  background: var(--fiche-success);
+  color: #fff;
+  border-color: var(--fiche-success);
+}
+
+.employee-fiche .fiche-btn-primary:hover {
+  background: var(--fiche-success-hover);
+  border-color: var(--fiche-success-hover);
+  color: #fff;
+}
+
+/* ----- Cards ----- */
+.employee-fiche .fiche-section {
+  margin-bottom: 1.25rem;
+}
+
+.employee-fiche .fiche-card {
+  background: var(--fiche-card-bg);
+  border: 1px solid var(--fiche-border);
+  border-radius: var(--fiche-radius-md);
+  box-shadow: var(--fiche-shadow-sm);
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-fiche .fiche-card-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--fiche-border);
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.employee-fiche .fiche-card-header h5 {
+  font-weight: 700;
+  font-size: 0.975rem;
+  margin: 0;
+  color: var(--fiche-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.employee-fiche .fiche-card-header h5 i {
+  color: var(--fiche-primary);
+  font-size: 1.1rem;
+}
+
+.employee-fiche .fiche-card-body {
+  padding: 1.25rem;
+  flex-grow: 1;
+}
+
+/* ----- Identity ----- */
+.employee-fiche .fiche-identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.employee-fiche .fiche-identity-photo {
+  width: 112px;
+  height: 112px;
+  border-radius: var(--fiche-radius-md);
+  object-fit: cover;
+  border: 1px solid var(--fiche-border);
+  background: var(--fiche-bg-light);
+  flex-shrink: 0;
+}
+
+.employee-fiche .fiche-identity-main {
+  flex: 1;
+  min-width: 220px;
+}
+
+.employee-fiche .fiche-identity-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--fiche-text);
+  margin: 0 0 0.25rem;
+  line-height: 1.3;
+}
+
+.employee-fiche .fiche-identity-matricule {
+  font-size: 0.875rem;
+  color: var(--fiche-muted);
+  margin: 0 0 1rem;
+}
+
+.employee-fiche .fiche-identity-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -0.5rem;
+}
+
+.employee-fiche .fiche-identity-field {
+  width: 50%;
+  padding: 0 0.5rem 0.85rem;
+}
+
+.employee-fiche .fiche-identity-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--fiche-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.2rem;
+}
+
+.employee-fiche .fiche-identity-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fiche-text);
+  word-break: break-word;
+}
+
+.employee-fiche .fiche-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.employee-fiche .fiche-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: var(--fiche-primary-light);
+  color: var(--fiche-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.employee-fiche .fiche-chip strong {
+  font-weight: 700;
+}
+
+/* ----- Main tabs ----- */
+.employee-fiche .fiche-main-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: var(--fiche-tab-track);
+  padding: 4px;
+  border-radius: var(--fiche-radius-md);
+  margin-bottom: 1.25rem;
+}
+
+.employee-fiche .fiche-main-tab {
+  border: none;
+  background: transparent;
+  color: var(--fiche-muted);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 9px 18px;
+  border-radius: var(--fiche-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.employee-fiche .fiche-main-tab:hover {
+  color: var(--fiche-text);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.employee-fiche .fiche-main-tab.active {
+  color: #ffffff;
+  background: var(--fiche-primary);
+  box-shadow: var(--fiche-shadow-sm);
+}
+
+.employee-fiche .fiche-subtabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: var(--fiche-bg-light);
+  border: 1px solid var(--fiche-border);
+  padding: 4px;
+  border-radius: var(--fiche-radius-md);
+  margin-bottom: 1rem;
+}
+
+.employee-fiche .fiche-subtab {
+  border: none;
+  background: transparent;
+  color: var(--fiche-muted);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  padding: 7px 14px;
+  border-radius: var(--fiche-radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.employee-fiche .fiche-subtab:hover {
+  color: var(--fiche-text);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.employee-fiche .fiche-subtab.active {
+  color: var(--fiche-primary);
+  background: #ffffff;
+  box-shadow: var(--fiche-shadow-sm);
+}
+
+/* Infos detail grid */
+.employee-fiche .fiche-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.25rem;
+}
+
+.employee-fiche .fiche-info-item {
+  padding: 0.85rem 1rem;
+  background: var(--fiche-bg-light);
+  border: 1px solid var(--fiche-border);
+  border-radius: var(--fiche-radius-sm);
+}
+
+.employee-fiche .fiche-info-item .fiche-identity-label {
+  margin-bottom: 0.35rem;
+}
+
+.employee-fiche .fiche-empty-state,
+.employee-fiche .fiche-error-state {
+  background: var(--fiche-card-bg);
+  border: 1px solid var(--fiche-border);
+  border-radius: var(--fiche-radius-md);
+  box-shadow: var(--fiche-shadow-sm);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: var(--fiche-muted);
+}
+
+.employee-fiche .fiche-error-state {
+  color: var(--fiche-danger);
+}
+
+.employee-fiche .fiche-main-row > [class*='col-'] {
+  margin-bottom: 1.25rem;
+}
+
+/* Soften nested Bootstrap cards inside career panel */
+.employee-fiche .fiche-career-panel .card {
+  border: 1px solid var(--fiche-border);
+  border-radius: var(--fiche-radius-md);
+  box-shadow: var(--fiche-shadow-sm);
+}
+
+.employee-fiche .fiche-career-panel .card-header {
+  background: #fff !important;
+  border-bottom: 1px solid var(--fiche-border);
+  color: var(--fiche-text) !important;
+}
+
+.employee-fiche .fiche-career-panel .card-header h3,
+.employee-fiche .fiche-career-panel .card-header h5 {
+  color: var(--fiche-text) !important;
+  font-size: 0.975rem;
+  font-weight: 700;
+}
+
+/* ----- Career sections (suivi / attestation / historique) ----- */
+.employee-fiche .fiche-career-card {
+  margin-bottom: 0;
+}
+
+.employee-fiche .fiche-filter-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: var(--fiche-tab-track);
+  padding: 4px;
+  border-radius: var(--fiche-radius-md);
+  margin-bottom: 1rem;
+}
+
+.employee-fiche .fiche-filter-tab {
+  border: none;
+  background: transparent;
+  color: var(--fiche-muted);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  padding: 8px 14px;
+  border-radius: var(--fiche-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.employee-fiche .fiche-filter-tab:hover {
+  color: var(--fiche-text);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.employee-fiche .fiche-filter-tab.active {
+  color: #fff;
+  background: var(--fiche-primary);
+  box-shadow: var(--fiche-shadow-sm);
+}
+
+.employee-fiche .fiche-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--fiche-text);
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--fiche-border);
+}
+
+.employee-fiche .fiche-section-title i {
+  color: var(--fiche-primary);
+}
+
+.employee-fiche .fiche-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.employee-fiche .fiche-table {
+  width: 100%;
+  margin-bottom: 0;
+  font-size: 0.875rem;
+}
+
+.employee-fiche .fiche-table thead th {
+  background: var(--fiche-bg-light);
+  color: var(--fiche-text);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--fiche-border);
+  border-top: none;
+  padding: 0.7rem 0.85rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.employee-fiche .fiche-table td {
+  padding: 0.65rem 0.85rem;
+  border-top: 1px solid var(--fiche-border);
+  vertical-align: middle;
+  color: var(--fiche-text);
+}
+
+.employee-fiche .fiche-table tbody tr:hover {
+  background: rgba(75, 73, 172, 0.03);
+}
+
+.employee-fiche .fiche-table-empty {
+  text-align: center;
+  color: var(--fiche-muted);
+  padding: 1.5rem 1rem !important;
+  font-size: 0.875rem;
+}
+
+.employee-fiche .fiche-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  white-space: nowrap;
+}
+
+.employee-fiche .fiche-action-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--fiche-radius-sm);
+  border: 1px solid var(--fiche-border);
+  background: #fff;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.employee-fiche .fiche-action-btn i {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.employee-fiche .fiche-action-edit {
+  color: var(--fiche-primary);
+}
+
+.employee-fiche .fiche-action-edit:hover {
+  background: var(--fiche-primary-light);
+  border-color: var(--fiche-primary);
+}
+
+.employee-fiche .fiche-action-view {
+  color: var(--fiche-muted);
+}
+
+.employee-fiche .fiche-action-view:hover {
+  color: var(--fiche-primary);
+  background: var(--fiche-primary-light);
+  border-color: var(--fiche-primary);
+}
+
+.employee-fiche .fiche-action-delete {
+  color: var(--fiche-danger);
+}
+
+.employee-fiche .fiche-action-delete:hover {
+  background: rgba(220, 53, 69, 0.08);
+  border-color: var(--fiche-danger);
+}
+
+.employee-fiche .fiche-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35em 0.7em;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
+.employee-fiche .fiche-badge-success {
+  background: rgba(40, 167, 69, 0.12);
+  color: #1e7e34;
+}
+
+.employee-fiche .fiche-badge-warning {
+  background: rgba(255, 193, 7, 0.18);
+  color: #856404;
+}
+
+.employee-fiche .fiche-badge-info {
+  background: rgba(75, 73, 172, 0.12);
+  color: var(--fiche-primary);
+}
+
+.employee-fiche .fiche-badge-muted {
+  background: rgba(108, 117, 125, 0.14);
+  color: #495057;
+}
+
+.employee-fiche .fiche-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--fiche-radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.employee-fiche .fiche-btn-outline {
+  color: var(--fiche-text);
+  border-color: var(--fiche-border);
+  background: #fff;
+}
+
+.employee-fiche .fiche-btn-outline:hover {
+  color: var(--fiche-primary);
+  border-color: var(--fiche-primary);
+  background: var(--fiche-primary-light);
+}
+
+.employee-fiche .fiche-btn-danger-outline {
+  color: var(--fiche-danger);
+  border-color: rgba(220, 53, 69, 0.35);
+  background: #fff;
+}
+
+.employee-fiche .fiche-btn-danger-outline:hover {
+  background: rgba(220, 53, 69, 0.08);
+  border-color: var(--fiche-danger);
+}
+
+.employee-fiche .fiche-attestation-body {
+  padding-top: 1rem;
+}
+
+.employee-fiche .fiche-model-edit .fiche-nested-card,
+.fiche-nested-card {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.employee-fiche .fiche-model-edit .fiche-nested-card-header,
+.fiche-nested-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  padding: 0.9rem 1.1rem;
+  color: #2b2d42;
+}
+
+.employee-fiche .fiche-model-edit .fiche-nested-card-header h5,
+.fiche-nested-card-header h5 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2b2d42;
+}
+
+.employee-fiche .fiche-model-edit .fiche-nested-card-header svg,
+.fiche-nested-card-header svg {
+  color: #4B49AC;
+}
+
+.employee-fiche .fiche-model-edit .form-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fiche-text);
+}
+
+.employee-fiche .fiche-model-edit .form-control {
+  border-color: var(--fiche-border);
+  border-radius: var(--fiche-radius-sm);
+  font-size: 0.875rem;
+}
+
+.employee-fiche .fiche-model-edit .form-control:focus {
+  border-color: var(--fiche-primary);
+  box-shadow: 0 0 0 3px var(--fiche-primary-light);
+}
+
+@media (min-width: 768px) {
+  .employee-fiche .fiche-identity-field {
+    width: 33.333%;
+  }
+
+  .employee-fiche .fiche-info-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .employee-fiche .fiche-page-header {
+    padding: 1rem;
+  }
+
+  .employee-fiche .fiche-header-title {
+    font-size: 1.05rem;
+  }
+
+  .employee-fiche .fiche-header-actions {
+    width: 100%;
+  }
+
+  .employee-fiche .fiche-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .employee-fiche .fiche-identity-photo {
+    width: 88px;
+    height: 88px;
+  }
+
+  .employee-fiche .fiche-main-tabs,
+  .employee-fiche .fiche-subtabs,
+  .employee-fiche .fiche-filter-tabs {
+    width: 100%;
+  }
+
+  .employee-fiche .fiche-main-tab,
+  .employee-fiche .fiche-subtab,
+  .employee-fiche .fiche-filter-tab {
+    flex: 1 1 auto;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.75rem;
+    padding: 8px 10px;
+  }
+
+  .employee-fiche .fiche-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-fiche .fiche-card-body {
+    padding: 1rem;
+  }
+}

@@ -102,8 +102,10 @@ INSERT INTO Modules (name, display_name, icon, route, parent_module_id, sort_ord
 SELECT 'param_utilisateurs',  'Gestion des utilisateurs',  NULL, '/soft-gcc/parametres/utilisateurs', m.module_id, 5, 1 FROM Modules m WHERE m.name = 'parametrage';
 INSERT INTO Modules (name, display_name, icon, route, parent_module_id, sort_order, state)
 SELECT 'param_admin_access',  'Gestion des accès',         NULL, '/soft-gcc/parametres/utilisateurs/administration', m.module_id, 6, 1 FROM Modules m WHERE m.name = 'parametrage';
+INSERT INTO Modules (name, display_name, icon, route, parent_module_id, sort_order, state)
+SELECT 'param_synchronisation', 'Synchronisation employés', 'mdi mdi-sync', '/soft-gcc/parametres/synchronisation', m.module_id, 7, 1 FROM Modules m WHERE m.name = 'parametrage';
 
--- 3. Attribution des modules aux rôles
+-- 3. Attribution des modules aux rôles (racines + enfants pour granularité page par page)
 
 -- Admin (role_id=1) : TOUS les modules racines
 INSERT INTO Role_Modules (role_id, module_id)
@@ -121,6 +123,17 @@ SELECT 3, m.module_id FROM Modules m WHERE m.parent_module_id IS NULL AND m.stat
 -- Directeur (role_id=4) : TOUS les modules
 INSERT INTO Role_Modules (role_id, module_id)
 SELECT 4, m.module_id FROM Modules m WHERE m.parent_module_id IS NULL AND m.state = 1;
+
+-- Enfants des racines déjà assignées (visibilité page par page, rétrocompatible)
+INSERT INTO Role_Modules (role_id, module_id)
+SELECT rm.role_id, c.module_id
+FROM Role_Modules rm
+INNER JOIN Modules p ON p.module_id = rm.module_id AND p.parent_module_id IS NULL
+INNER JOIN Modules c ON c.parent_module_id = p.module_id AND c.state = 1
+WHERE NOT EXISTS (
+  SELECT 1 FROM Role_Modules x
+  WHERE x.role_id = rm.role_id AND x.module_id = c.module_id
+);
 
 -- 4. Association des permissions existantes aux modules (module_id)
 
@@ -159,6 +172,51 @@ WHERE name LIKE '%_RETIREMENT' AND module_id IS NULL;
 -- Module Statistiques → dashboard
 UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'dashboard')
 WHERE name LIKE '%_REPORTS' AND module_id IS NULL;
+
+-- Compétences
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'competences')
+WHERE name IN ('VIEW_SKILLS_PROFILES','EDIT_SKILLS_PROFILES','VIEW_COMPETENCE_BULLETIN','MANAGE_SKILLS_PROFILES') AND module_id IS NULL;
+
+-- Organigramme
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'organigramme')
+WHERE name IN ('VIEW_ORGANIZATION','IMPORT_ORGANIZATION','MANAGE_ORGANIZATION') AND module_id IS NULL;
+
+-- Historique
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'historique')
+WHERE name IN ('VIEW_ACTIVITY_HISTORY','MANAGE_ACTIVITY_HISTORY') AND module_id IS NULL;
+
+-- Param compétences / carrières / employés
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'param_competences')
+WHERE name IN ('VIEW_SKILL_SETTINGS','MANAGE_SKILL_SETTINGS') AND module_id IS NULL;
+
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'param_carrieres')
+WHERE name IN ('VIEW_CAREER_SETTINGS','MANAGE_CAREER_SETTINGS') AND module_id IS NULL;
+
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'param_employes')
+WHERE name IN ('VIEW_EMPLOYEES','CREATE_EMPLOYEES','EDIT_EMPLOYEES','DELETE_EMPLOYEES','MANAGE_EMPLOYEES') AND module_id IS NULL;
+
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'param_synchronisation')
+WHERE name = 'MANAGE_EMPLOYEE_SYNC' AND module_id IS NULL;
+
+-- Attestations
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'attestations')
+WHERE name LIKE '%_CERTIFICATES' AND module_id IS NULL;
+
+-- Souhaits
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'souhaits')
+WHERE name LIKE '%WISH%' AND module_id IS NULL;
+
+-- Dashboard
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'dashboard')
+WHERE name IN ('VIEW_DASHBOARD','VIEW_NOTIFICATIONS') AND module_id IS NULL;
+
+-- Carrières granulaires
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'carrieres')
+WHERE name IN ('VIEW_CAREER','CREATE_CAREER','EDIT_CAREER','DELETE_CAREER') AND module_id IS NULL;
+
+-- Retraite granulaires
+UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'retraite')
+WHERE name IN ('VIEW_RETIREMENT','EDIT_RETIREMENT_SETTINGS') AND module_id IS NULL;
 
 -- Tout le reste → parametrage (fallback)
 UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = 'parametrage')

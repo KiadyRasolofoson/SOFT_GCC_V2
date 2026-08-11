@@ -24,10 +24,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task<IEnumerable<Module>> GetAllWithChildrenAsync()
         {
-            // Récupère les modules racines avec leurs enfants
             var modules = await _context.Modules
                 .Where(m => m.State == 1 && m.ParentModuleId == null)
-                .Include(m => m.ChildModules.OrderBy(c => c.SortOrder))
+                .Include(m => m.ChildModules.Where(c => c.State == 1).OrderBy(c => c.SortOrder))
                 .OrderBy(m => m.SortOrder)
                 .ToListAsync();
 
@@ -123,40 +122,182 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task<IEnumerable<Module>> GetMyModulesAsync(int userId)
         {
-            // Récupère le rôle de l'utilisateur
             var user = await _context.Users
+                .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
                 return Enumerable.Empty<Module>();
 
-            // Récupère les IDs des modules assignés au rôle
-            var moduleIds = await _context.RoleModules
+            // Tous les modules actifs (pour construire l'arbre filtrée)
+            var allActive = await _context.Modules
+                .Where(m => m.State == 1)
+                .OrderBy(m => m.SortOrder)
+                .ToListAsync();
+
+            // Admin : tous les modules (détecté par titre — pas seulement role_id = 1)
+            HashSet<int> assignedSet;
+            if (PermissionService.IsAdminRole(user.RoleId, user.Role?.Title))
+            {
+                assignedSet = allActive.Select(m => m.ModuleId).ToHashSet();
+            }
+            else
+            {
+                var assignedIds = await _context.RoleModules
+                    .Where(rm => rm.RoleId == user.RoleId)
+                    .Select(rm => rm.ModuleId)
+                    .ToListAsync();
+
+                if (!assignedIds.Any())
+                    return Enumerable.Empty<Module>();
+
+                assignedSet = assignedIds.ToHashSet();
+
+                // Parent assigné ⇒ tous ses enfants actifs (filet si migration 05 incomplète)
+                foreach (var parentId in assignedIds.ToList())
+                {
+                    foreach (var child in allActive.Where(c => c.ParentModuleId == parentId))
+                        assignedSet.Add(child.ModuleId);
+                }
+            }
+
+            var byId = allActive.ToDictionary(m => m.ModuleId);
+
+            // Parents auto-inclus si un enfant est assigné
+            var visibleRootIds = new HashSet<int>();
+            foreach (var id in assignedSet)
+            {
+                if (!byId.TryGetValue(id, out var mod))
+                    continue;
+
+                if (mod.ParentModuleId == null)
+                {
+                    visibleRootIds.Add(mod.ModuleId);
+                }
+                else
+                {
+                    visibleRootIds.Add(mod.ParentModuleId.Value);
+                }
+            }
+
+            var result = new List<Module>();
+            foreach (var root in allActive.Where(m => m.ParentModuleId == null && visibleRootIds.Contains(m.ModuleId)))
+            {
+                var visibleChildren = allActive
+                    .Where(c => c.ParentModuleId == root.ModuleId && assignedSet.Contains(c.ModuleId))
+                    .OrderBy(c => c.SortOrder)
+                    .ToList();
+
+                // Cloner sans navigation inverse pour éviter les cycles de sérialisation
+                result.Add(new Module
+                {
+                    ModuleId = root.ModuleId,
+                    Name = root.Name,
+                    DisplayName = root.DisplayName,
+                    Icon = root.Icon,
+                    Route = root.Route,
+                    ParentModuleId = root.ParentModuleId,
+                    SortOrder = root.SortOrder,
+                    State = root.State,
+                    Description = root.Description,
+                    ChildModules = visibleChildren.Select(c => new Module
+                    {
+                        ModuleId = c.ModuleId,
+                        Name = c.Name,
+                        DisplayName = c.DisplayName,
+                        Icon = c.Icon,
+                        Route = c.Route,
+                        ParentModuleId = c.ParentModuleId,
+                        SortOrder = c.SortOrder,
+                        State = c.State,
+                        Description = c.Description,
+                        ChildModules = new List<Module>()
+                    }).ToList()
+                });
+            }
+
+            return result.OrderBy(m => m.SortOrder).ToList();
+        }
+
+        public async Task<(List<string> AllowedRoutes, List<string> CatalogRoutes)> GetAccessMapAsync(int userId)
+        {
+            var allActive = await _context.Modules
+                .Where(m => m.State == 1)
+                .ToListAsync();
+
+            var catalogRoutes = allActive
+                .Where(m => !string.IsNullOrWhiteSpace(m.Route))
+                .Select(m => m.Route!)
+                .Distinct()
+                .ToList();
+
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return (new List<string>(), catalogRoutes);
+
+            // Admin : toutes les routes du catalogue
+            if (PermissionService.IsAdminRole(user.RoleId, user.Role?.Title))
+                return (catalogRoutes, catalogRoutes);
+
+            var assignedIds = await _context.RoleModules
                 .Where(rm => rm.RoleId == user.RoleId)
                 .Select(rm => rm.ModuleId)
                 .ToListAsync();
 
-            if (!moduleIds.Any())
-                return Enumerable.Empty<Module>();
+            var assignedSet = assignedIds.ToHashSet();
 
-            // Récupère les modules racines avec leurs enfants
-            var modules = await _context.Modules
-                .Where(m => moduleIds.Contains(m.ModuleId) && m.State == 1 && m.ParentModuleId == null)
-                .Include(m => m.ChildModules.Where(c => c.State == 1).OrderBy(c => c.SortOrder))
-                .OrderBy(m => m.SortOrder)
-                .ToListAsync();
+            // Parent assigné ⇒ routes des enfants (garde front exige le match le plus long du catalogue)
+            foreach (var parentId in assignedIds)
+            {
+                foreach (var child in allActive.Where(c => c.ParentModuleId == parentId))
+                    assignedSet.Add(child.ModuleId);
+            }
 
-            return modules;
+            var allowedRoutes = allActive
+                .Where(m => assignedSet.Contains(m.ModuleId) && !string.IsNullOrWhiteSpace(m.Route))
+                .Select(m => m.Route!)
+                .Distinct()
+                .ToList();
+
+            return (allowedRoutes, catalogRoutes);
         }
 
         public async Task<IEnumerable<Module>> GetModulesWithPermissionsAsync()
         {
+            // Racines uniquement — les enfants sont embarqués via ChildModules (évite la duplication UI)
             return await _context.Modules
-                .Where(m => m.State == 1)
+                .Where(m => m.State == 1 && m.ParentModuleId == null)
                 .Include(m => m.Permissions.Where(p => p.State == 1))
-                .Include(m => m.ChildModules)
+                .Include(m => m.ChildModules.Where(c => c.State == 1).OrderBy(c => c.SortOrder))
+                    .ThenInclude(c => c.Permissions.Where(p => p.State == 1))
                 .OrderBy(m => m.SortOrder)
                 .ToListAsync();
+        }
+
+        public async Task ReorderModulesAsync(List<ModuleReorderItem> items)
+        {
+            if (items == null || !items.Any())
+                return;
+
+            var ids = items.Select(i => i.ModuleId).ToList();
+            var modules = await _context.Modules
+                .Where(m => ids.Contains(m.ModuleId))
+                .ToListAsync();
+
+            foreach (var item in items)
+            {
+                var mod = modules.FirstOrDefault(m => m.ModuleId == item.ModuleId);
+                if (mod == null)
+                    continue;
+
+                mod.SortOrder = item.SortOrder;
+                // Réordre au même niveau : le parent envoyé doit rester celui déjà présent (validé côté UI)
+                mod.ParentModuleId = item.ParentModuleId;
+            }
+
+            await _context.SaveChangesAsync();
         }
     }
 }

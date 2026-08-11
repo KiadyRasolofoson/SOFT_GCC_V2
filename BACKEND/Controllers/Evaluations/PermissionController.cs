@@ -1,16 +1,17 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
+using soft_carriere_competence.Application.Authorization;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 using soft_carriere_competence.Infrastructure.Data;
-using Microsoft.AspNetCore.Authorization;
+using System.Text.Json.Serialization;
 
 namespace soft_carriere_competence.Controllers.Evaluations
 {
     public class PermissionUpdateModel
     {
-        public List<int> permissionIds { get; set; } = new List<int>();
+        [JsonPropertyName("permissionIds")]
+        public List<int> PermissionIds { get; set; } = new List<int>();
     }
 
     public class PermissionDto
@@ -21,11 +22,12 @@ namespace soft_carriere_competence.Controllers.Evaluations
         public int State { get; set; }
         public int? ModuleId { get; set; }
         public string ModuleName { get; set; } = string.Empty;
+        public string ModuleDisplayName { get; set; } = string.Empty;
     }
 
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Policy = "RequireAdminRole")]
+    [RequirePermission("MANAGE_PERMISSIONS")]
     public class PermissionController : ControllerBase
     {
         private readonly PermissionService _permissionService;
@@ -43,15 +45,58 @@ namespace soft_carriere_competence.Controllers.Evaluations
             try
             {
                 var permissions = await _context.Permissions
+                    .AsNoTracking()
                     .Where(p => p.State == 1)
-                    .Include(p => p.Module)
+                    .OrderBy(p => p.Name)
                     .ToListAsync();
-                return Ok(permissions.Select(p => MapToDto(p)).ToList());
+
+                var moduleIds = permissions
+                    .Where(p => p.ModuleId.HasValue)
+                    .Select(p => p.ModuleId!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var modules = moduleIds.Count == 0
+                    ? new Dictionary<int, Module>()
+                    : await _context.Modules
+                        .AsNoTracking()
+                        .Where(m => moduleIds.Contains(m.ModuleId))
+                        .ToDictionaryAsync(m => m.ModuleId);
+
+                var result = permissions.Select(p =>
+                {
+                    modules.TryGetValue(p.ModuleId ?? -1, out var mod);
+                    var moduleName = mod?.Name;
+                    var moduleDisplay = mod?.DisplayName;
+
+                    if (string.IsNullOrWhiteSpace(moduleName))
+                    {
+                        moduleName = DetermineModuleFallback(p.Name);
+                        moduleDisplay = FormatGroupLabel(moduleName);
+                    }
+                    else if (string.IsNullOrWhiteSpace(moduleDisplay))
+                    {
+                        moduleDisplay = FormatGroupLabel(moduleName);
+                    }
+
+                    return new PermissionDto
+                    {
+                        PermissionId = p.PermissionId,
+                        Name = p.Name,
+                        Description = p.Description,
+                        State = p.State,
+                        ModuleId = p.ModuleId,
+                        ModuleName = moduleName!,
+                        ModuleDisplayName = moduleDisplay!
+                    };
+                }).ToList();
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                // Tables/colonnes manquantes (migration non appliquée)
-                return Ok(new { message = "Permissions chargées en mode dégradé.", error = ex.Message, data = Array.Empty<object>() });
+                Console.WriteLine($"[Permission.GetAll] {ex}");
+                return Ok(Array.Empty<PermissionDto>());
             }
         }
 
@@ -68,7 +113,7 @@ namespace soft_carriere_competence.Controllers.Evaluations
             }
             catch (Exception ex)
             {
-                return Ok(new { message = "Permission non disponible.", error = ex.Message });
+                return BadRequest(new { message = "Permission non disponible.", error = ex.Message });
             }
         }
 
@@ -85,7 +130,8 @@ namespace soft_carriere_competence.Controllers.Evaluations
             }
             catch (Exception ex)
             {
-                return Ok(new { message = "Permissions par module non disponibles.", error = ex.Message, data = Array.Empty<object>() });
+                Console.WriteLine($"[Permission.GetByModule] {ex.Message}");
+                return Ok(Array.Empty<PermissionDto>());
             }
         }
 
@@ -137,17 +183,20 @@ namespace soft_carriere_competence.Controllers.Evaluations
             try
             {
                 var permissions = await _permissionService.GetPermissionsByRoleIdAsync(roleId);
-                // Retourner une liste vide plutôt que 404 quand le rôle n'a aucune permission
                 if (!permissions.Any())
                     return Ok(Array.Empty<PermissionDto>());
 
-                Dictionary<int, string>? modules = null;
+                Dictionary<int, (string Name, string DisplayName)>? modules = null;
                 try { modules = await LoadModuleDictionaryAsync(permissions); }
-                catch { /* modules null → fallback DetermineModuleFallback */ }
+                catch { /* fallback DetermineModuleFallback */ }
 
                 return Ok(permissions.Select(p => MapToDto(p, modules)).ToList());
             }
-            catch (Exception ex) { return Ok(new { message = "Permissions du rôle non disponibles.", error = ex.Message, data = Array.Empty<object>() }); }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Permission.GetByRole] {ex.Message}");
+                return Ok(Array.Empty<PermissionDto>());
+            }
         }
 
         [HttpGet("user/{userId}")]
@@ -156,21 +205,25 @@ namespace soft_carriere_competence.Controllers.Evaluations
             try
             {
                 var permissions = await _permissionService.GetUserPermissionsAsync(userId);
-                Dictionary<int, string>? modules = null;
+                Dictionary<int, (string Name, string DisplayName)>? modules = null;
                 try { modules = await LoadModuleDictionaryAsync(permissions); }
                 catch { /* fallback */ }
 
                 return Ok(permissions.Select(p => MapToDto(p, modules)).ToList());
             }
-            catch (Exception ex) { return Ok(new { message = "Permissions utilisateur non disponibles.", error = ex.Message, data = Array.Empty<object>() }); }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Permission.GetByUser] {ex.Message}");
+                return Ok(Array.Empty<PermissionDto>());
+            }
         }
 
-        private async Task<Dictionary<int, string>> LoadModuleDictionaryAsync(IEnumerable<Permission> permissions)
+        private async Task<Dictionary<int, (string Name, string DisplayName)>> LoadModuleDictionaryAsync(IEnumerable<Permission> permissions)
         {
-            var moduleIds = permissions.Select(p => p.ModuleId).Where(id => id.HasValue).Distinct().ToList();
+            var moduleIds = permissions.Select(p => p.ModuleId).Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
             return await _context.Modules
                 .Where(m => moduleIds.Contains(m.ModuleId))
-                .ToDictionaryAsync(m => m.ModuleId, m => m.Name);
+                .ToDictionaryAsync(m => m.ModuleId, m => (m.Name, m.DisplayName));
         }
 
         [HttpPut("role/{roleId}")]
@@ -178,12 +231,11 @@ namespace soft_carriere_competence.Controllers.Evaluations
         {
             try
             {
-                // Autoriser une liste vide : un rôle peut n'avoir aucune permission
-                if (request?.permissionIds == null)
-                    return BadRequest(new { message = "Le corps de la requête est invalide." });
+                if (request?.PermissionIds == null)
+                    return BadRequest(new { message = "Le corps de la requête est invalide (permissionIds manquant)." });
 
                 var invalidPermissions = new List<int>();
-                foreach (var pid in request.permissionIds)
+                foreach (var pid in request.PermissionIds)
                 {
                     var p = await _permissionService.GetByIdAsync(pid);
                     if (p == null || p.State != 1) invalidPermissions.Add(pid);
@@ -191,14 +243,17 @@ namespace soft_carriere_competence.Controllers.Evaluations
                 if (invalidPermissions.Any())
                     return BadRequest(new { message = "Permissions invalides.", invalidPermissions });
 
-                await _permissionService.DeleteRolePermissionsAsync(roleId);
-                await _permissionService.UpdateRolePermissionsAsync(roleId, request.permissionIds);
-                return Ok(new { message = "Permissions mises à jour avec succès." });
+                // Une seule passe (UpdateRolePermissionsAsync efface puis recrée)
+                await _permissionService.UpdateRolePermissionsAsync(roleId, request.PermissionIds);
+                return Ok(new
+                {
+                    message = "Permissions mises à jour avec succès.",
+                    count = request.PermissionIds.Count
+                });
             }
             catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
-        // DTOs
         public class PermissionCreateRequest
         {
             public string Name { get; set; } = string.Empty;
@@ -214,16 +269,31 @@ namespace soft_carriere_competence.Controllers.Evaluations
             public int? ModuleId { get; set; }
         }
 
-        // Helpers
-        private static PermissionDto MapToDto(Permission p, Dictionary<int, string>? moduleDict = null)
+        private static PermissionDto MapToDto(
+            Permission p,
+            Dictionary<int, (string Name, string DisplayName)>? moduleDict = null)
         {
             string moduleName;
-            if (p.ModuleId != null && moduleDict != null && moduleDict.ContainsKey(p.ModuleId.Value))
-                moduleName = moduleDict[p.ModuleId.Value];
+            string moduleDisplay;
+
+            if (p.ModuleId != null && moduleDict != null && moduleDict.TryGetValue(p.ModuleId.Value, out var modInfo))
+            {
+                moduleName = modInfo.Name;
+                moduleDisplay = modInfo.DisplayName;
+            }
             else if (p.Module != null)
+            {
                 moduleName = p.Module.Name;
+                moduleDisplay = p.Module.DisplayName;
+            }
             else
+            {
                 moduleName = DetermineModuleFallback(p.Name);
+                moduleDisplay = FormatGroupLabel(moduleName);
+            }
+
+            if (string.IsNullOrWhiteSpace(moduleDisplay))
+                moduleDisplay = FormatGroupLabel(moduleName);
 
             return new PermissionDto
             {
@@ -232,22 +302,52 @@ namespace soft_carriere_competence.Controllers.Evaluations
                 Description = p.Description,
                 State = p.State,
                 ModuleId = p.ModuleId,
-                ModuleName = moduleName
+                ModuleName = moduleName,
+                ModuleDisplayName = moduleDisplay
             };
+        }
+
+        private static string FormatGroupLabel(string moduleNameOrKey)
+        {
+            if (string.IsNullOrWhiteSpace(moduleNameOrKey) || moduleNameOrKey == "Autre")
+                return "Autres permissions";
+
+            return moduleNameOrKey
+                .Replace("param_", "Param. ")
+                .Replace('_', ' ');
         }
 
         private static string DetermineModuleFallback(string name)
         {
             if (string.IsNullOrEmpty(name)) return "Autre";
-            if (name.Contains("_USERS") || name.Contains("_ROLES") || name.Contains("_PERMISSIONS"))
+            if (name.Contains("_USERS") || name.Contains("_ROLES") || name.Contains("_PERMISSIONS") || name == "MANAGE_ROLES")
                 return "param_utilisateurs";
             if (name.Contains("_EVALUATIONS") || name.Contains("EVALUATION_") || name.Contains("VALIDATE_"))
                 return "evaluations";
-            if (name.Contains("_DEPARTMENTS") || name.Contains("_POSITIONS"))
+            if (name.Contains("SKILL_SETTINGS"))
+                return "param_competences";
+            if (name.Contains("CAREER_SETTINGS"))
+                return "param_carrieres";
+            if (name.Contains("_SKILLS") || name.Contains("COMPETENCE"))
+                return "competences";
+            if (name.Contains("_CAREER") || name.Contains("CAREER"))
+                return "carrieres";
+            if (name.Contains("ORGANIZATION") || name.Contains("_DEPARTMENTS"))
+                return "organigramme";
+            if (name.Contains("ACTIVITY_HISTORY") || name.Contains("_HISTORY"))
+                return "historique";
+            if (name.Contains("_EMPLOYEES") || name.Contains("EMPLOYEE_SYNC") || name.Contains("_POSITIONS"))
                 return "param_employes";
-            if (name.Contains("_CAREER")) return "carrieres";
-            if (name.Contains("_RETIREMENT")) return "retraite";
-            if (name.Contains("_REPORTS")) return "dashboard";
+            if (name.Contains("CERTIFICATE") || name.Contains("ATTESTATION"))
+                return "attestations";
+            if (name.Contains("WISH"))
+                return "souhaits";
+            if (name.Contains("RETIREMENT"))
+                return "retraite";
+            if (name.Contains("DASHBOARD") || name.Contains("_REPORTS"))
+                return "dashboard";
+            if (name.Contains("NOTIFICATION"))
+                return "notifications";
             return "Autre";
         }
     }

@@ -1,45 +1,81 @@
 import React from 'react';
-
 import FormattedDate from '../../helpers/FormattedDate';
-import DateDisplayWithTime from '../../helpers/DateDisplayWithTime';
 import pic1 from '/src/assets/images/male-default.webp';
 import { urlApi } from '../../helpers/utils';
 
-// Gerer le contenu de la description d'un salarie
 function SalaryDescription({ dataEmployeeDescription }) {
+  const fullName = `${dataEmployeeDescription.name || ''} ${dataEmployeeDescription.firstName || ''}`.trim();
+  const photoSrc = dataEmployeeDescription.photo
+    ? urlApi(`/Employee/photo/${dataEmployeeDescription.employeeId}`)
+    : pic1;
+
+  const chips = [
+    { label: 'Compétences', value: dataEmployeeDescription.skillNumber ?? 0, icon: 'mdi-briefcase-check' },
+    { label: 'Diplômes', value: dataEmployeeDescription.educationNumber ?? 0, icon: 'mdi-school' },
+    { label: 'Langues', value: dataEmployeeDescription.languageNumber ?? 0, icon: 'mdi-translate' },
+    { label: 'Autres', value: dataEmployeeDescription.otherFormationNumber ?? 0, icon: 'mdi-certificate' },
+  ];
+
   return (
-    <div className="row">
-        <div className="col-lg-7 grid-margin stretch-card">
-          <div className="card">
-            <div className="card-header d-flex align-items-center" style={{color: '#B8860B'}}>
-              <i className="mdi mdi-note-text me-2 fs-4" style={{fontSize: '30px', marginRight: '10px'}}></i>
-              <h3 className="mb-0" style={{color: '#B8860B'}}> Description </h3>
+    <div className="skills-card">
+      <div className="skills-card-header">
+        <h5>
+          <i className="mdi mdi-account-card-details" />
+          Informations salarié
+        </h5>
+      </div>
+      <div className="skills-card-body">
+        <div className="skills-identity">
+          <img
+            className="skills-identity-photo"
+            src={photoSrc}
+            alt={fullName || dataEmployeeDescription.registrationNumber || 'Employé'}
+          />
+
+          <div className="skills-identity-main">
+            <h2 className="skills-identity-name">{fullName || '—'}</h2>
+            <p className="skills-identity-matricule">
+              Matricule : {dataEmployeeDescription.registrationNumber || '—'}
+            </p>
+
+            <div className="skills-identity-grid">
+              <div className="skills-identity-field">
+                <span className="skills-identity-label">Date de naissance</span>
+                <span className="skills-identity-value">
+                  <FormattedDate date={dataEmployeeDescription.birthday} />
+                </span>
+              </div>
+              <div className="skills-identity-field">
+                <span className="skills-identity-label">Date d&apos;embauche</span>
+                <span className="skills-identity-value">
+                  <FormattedDate date={dataEmployeeDescription.hiringDate} />
+                </span>
+              </div>
+              <div className="skills-identity-field">
+                <span className="skills-identity-label">Département</span>
+                <span className="skills-identity-value">
+                  {dataEmployeeDescription.departmentName || '—'}
+                </span>
+              </div>
+              <div className="skills-identity-field">
+                <span className="skills-identity-label">Dernière mise à jour</span>
+                <span className="skills-identity-value">
+                  <FormattedDate date={dataEmployeeDescription.updatedDate} />
+                </span>
+              </div>
             </div>
-            <div className="card-body">
-              <div className='col-md-3 image-profil'>
-                {dataEmployeeDescription.photo ? (
-                  <img src={urlApi(`/Employee/photo/${dataEmployeeDescription.employeeId}`)} 
-                  alt={'Employe '+dataEmployeeDescription.registrationNumber} width={180} 
-                  style={{ borderRadius: '10px'}} />
-                ) : (
-                  <img
-                    src={pic1}
-                    alt={dataEmployeeDescription.registrationNumber}
-                    width={180}
-                  />
-                )}
-              </div>
-              <div className="col-md-9">
-                <p><strong className="label-title-salary">Employé :</strong><span className="value-profil">{dataEmployeeDescription.name+" "+dataEmployeeDescription.firstName}</span></p>
-                <p><strong className="label-title-salary">Matricule :</strong><span className="value-profil">{dataEmployeeDescription.registrationNumber}</span></p>
-                <p><strong className="label-title-salary">Date naissance :</strong><span className="value-profil"><FormattedDate date={dataEmployeeDescription.birthday} /></span></p>
-                <p><strong className="label-title-salary">Date d'embauche :</strong><span className="value-profil"><FormattedDate date={dataEmployeeDescription.hiringDate} /></span></p>
-                <p><strong className="label-title-salary">Derniere mise a jour :</strong><span className="value-profil"><FormattedDate date={dataEmployeeDescription.updatedDate} /></span></p>
-                <p><strong className="label-title-salary">Departement :</strong><span className="value-profil">{dataEmployeeDescription.departmentName}</span></p>
-              </div>
+
+            <div className="skills-chips">
+              {chips.map((chip) => (
+                <span key={chip.label} className="skills-chip">
+                  <i className={`mdi ${chip.icon}`} />
+                  <strong>{chip.value}</strong> {chip.label}
+                </span>
+              ))}
             </div>
           </div>
         </div>
+      </div>
     </div>
   );
 }

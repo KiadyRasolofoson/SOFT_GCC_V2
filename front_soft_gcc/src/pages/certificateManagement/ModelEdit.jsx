@@ -11,16 +11,13 @@ import {
   mdiFileDocumentEdit,
   mdiEmailFastOutline,
   mdiFileExportOutline,
-  mdiArrowLeft,
+  mdiCancel,
   mdiCheckCircle,
   mdiAlertCircle,
-  mdiCancel
 } from "@mdi/js";
 import {
   Form,
   Button,
-  Card,
-  Container,
   Row,
   Col,
   Dropdown,
@@ -35,10 +32,9 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { QRCodeSVG } from "qrcode.react";
 import { urlApi } from '../../helpers/utils';
-import { faCertificate } from '@fortawesome/free-solid-svg-icons';
 import Loader from '../../helpers/Loader';
-import FormattedDate from '../../helpers/FormattedDate';
 import { v4 as uuidv4 } from 'uuid';
+import './ModelEdit.css';
 
 // Generation d'un token
 const generateToken = () => {
@@ -120,7 +116,7 @@ const sendAttestationEmail = async ({ recipientEmail, subject, body, file }) => 
   }
 };
 
-const ModelEdit = ({ dataEmployee }) => {
+const ModelEdit = ({ dataEmployee, compact = false }) => {
   const [logoPreview, setLogoPreview] = useState(null);
   const [signaturePreview, setSignaturePreview] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -507,331 +503,461 @@ const ModelEdit = ({ dataEmployee }) => {
   };
 
   return (
-    <Container fluid>
-      <h2 className="mb-4 fw-bold">Géneration du document d'attestation</h2>
-      <p>{aboutModel.date}</p>
+    <div className={`attestation-form${compact ? ' attestation-form-compact' : ''}`}>
+      {!compact && (
+        <div className="mb-3">
+          <h2 className="mb-1 fw-bold" style={{ fontSize: '1.25rem' }}>
+            Génération du document d&apos;attestation
+          </h2>
+          <p className="text-muted mb-0" style={{ fontSize: '0.875rem' }}>
+            Renseignez les informations, rédigez le contenu puis génerez l&apos;aperçu.
+          </p>
+        </div>
+      )}
+
       {isLoading && <Loader />}
       {error && <div className="alert alert-danger">{error}</div>}
-      <Form>
-        <Row>
-          <Col md={6}>
-            {/* Bloc gauche */}
-            <Card className="mb-4 shadow-sm">
-              <div className="card-header d-flex align-items-center" style={{ color: '#B8860B' }}>
-                <Icon path={mdiFileDocumentEdit} size={1} className="me-2" style={{ marginRight: '10px' }} />
-                <h3 className="mb-0" style={{ color: '#B8860B' }}>À propos du modèle</h3>
-              </div>
-              <Card.Body>
-                <Form.Group className="mb-3">
-                  <Form.Label>Réference</Form.Label>
-                  <Form.Control type="text" name="reference" value={aboutModel.reference} onChange={handleChange} />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Type d'attestation</Form.Label>
-                  <select name="certificateType" value={aboutModel.certificateType} onChange={handleSelectChange} className="form-control" id="exampleSelectGender">
-                    <option value="">Sélectionner le type</option>
-                    {certificateTypes && certificateTypes.map((item, id) => (
-                      <option key={id} value={item.certificateTypeId}>
-                        {item.certificateTypeName}
-                      </option>
-                    ))}
-                  </select>
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Fait à</Form.Label>
-                  <Form.Control type="text" name="place" placeholder="Antananarivo" value={aboutModel.place} onChange={handleChange} />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Le</Form.Label>
-                  <Form.Control type="date" name="date" placeholder="date de soumission" value={aboutModel.date} onChange={handleChange} />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Par</Form.Label>
-                  <Form.Control type="text" name="signatoryPosition" placeholder="Le Directeur géneral" value={aboutModel.signatoryPosition} onChange={handleChange} />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Motif</Form.Label>
-                  <Form.Control type="text" name="reason" placeholder="Administratif" value={aboutModel.reason} onChange={handleChange} />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Ajouter un logo</Form.Label>
-                  <Form.Control type="file" onChange={handleLogoChange} />
-                  {logoPreview && (
-                    <div className="mt-2">
-                      <img
-                        src={logoPreview}
-                        alt="Logo"
-                        style={{ width: "150px", objectFit: "contain" }}
-                      />
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={removeLogo}
-                        className="mt-2"
-                      >
-                        Supprimer
-                      </Button>
-                    </div>
-                  )}
-                </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Le signataire</Form.Label>
-                  <Form.Control type="text" name="signatoryName" placeholder="Nom complet" value={aboutModel.signatoryName} onChange={handleChange} />
-                </Form.Group>
-              </Card.Body>
-            </Card>
+      {(dataEmployee?.name || dataEmployee?.registrationNumber) && (
+        <div className="att-employee-chip">
+          <Icon path={mdiOfficeBuilding} size={0.7} />
+          {[dataEmployee.civiliteName, dataEmployee.firstName, dataEmployee.name]
+            .filter(Boolean)
+            .join(' ')}
+          {dataEmployee.registrationNumber ? ` · ${dataEmployee.registrationNumber}` : ''}
+        </div>
+      )}
 
-            <Card className="mb-4 shadow-sm">
-              <div className="card-header d-flex align-items-center" style={{ color: '#B8860B' }}>
-                <Icon path={mdiInformationOutline} size={1} className="me-2" style={{ marginRight: '10px' }} />
-                <h3 className="mb-0" style={{ color: '#B8860B' }}> Contenu dynamique</h3>
-              </div>
-              <Card.Body>
-                {sections.map((section) => (
-                  <Card className="mb-3" key={section.id}>
-                    <Card.Body>
-                      <Row className="align-items-start">
-                        <Col md={10}>
-                          <Form.Group>
-                            <Form.Label>Contenu {section.id}</Form.Label>
-                            <ReactQuill
-                              theme="snow"
-                              value={section.content}
-                              onChange={(value) =>
-                                updateSection(section.id, "content", value)
-                              }
-                              modules={{
-                                toolbar: [
-                                  [{ header: [1, 2, false] }],
-                                  ["bold", "italic", "underline"],
-                                  ["link"],
-                                  [{ list: "ordered" }, { list: "bullet" }],
-                                  ["clean"],
-                                ],
-                              }}
-                              className="bg-white"
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col md={2} className="d-flex flex-column align-items-stretch gap-2 justify-content-start pt-1">
-                          <Dropdown onSelect={(variable) => insertVariable(section.id, variable)}>
-                            <Dropdown.Toggle
-                              variant="outline-primary"
-                              size="sm"
-                              className="rounded-3 shadow-sm d-flex align-items-center justify-content-center"
-                            >
-                              <Icon path={mdiFormatListBulleted} size={0.75} className="me-1" />
-                              Champ
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                              {variables.map((v) => (
-                                <Dropdown.Item key={v} eventKey={v}>
-                                  {v}
-                                </Dropdown.Item>
-                              ))}
-                            </Dropdown.Menu>
-                          </Dropdown>
-
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => removeSection(section.id)}
-                            className="rounded-3 shadow-sm d-flex align-items-center justify-content-center"
-                          >
-                            <Icon path={mdiDelete} size={0.75} />
-                          </Button>
-                        </Col>
-                      </Row>
-                    </Card.Body>
-                  </Card>
-                ))}
-                <div className="mt-4">
-                  <Row className="g-3">
-                    <Col xs={12} md="auto">
-                      <Button variant="outline-success" onClick={addSection} className="w-100 shadow-sm rounded-3 px-4">
-                        <Icon path={mdiPlus} size={0.9} className="me-2" />
-                        Ajouter une section
-                      </Button>
-                    </Col>
-                    <Col xs={12} md="auto">
-                      <Button variant="info" onClick={() => setShowPreview(true)} className="w-100 text-white shadow-sm rounded-3 px-4">
-                        <Icon path={mdiEye} size={0.9} className="me-2" />
-                        Voir l’aperçu
-                      </Button>
-                    </Col>
-                  </Row>
+      <Form onSubmit={(e) => e.preventDefault()}>
+        <div className="att-layout">
+          <div className="att-form-col">
+            {/* 1. Identité du document */}
+            <section className="att-section">
+              <div className="att-section-header">
+                <div className="att-section-icon">
+                  <Icon path={mdiFileDocumentEdit} size={0.85} />
                 </div>
-
-              </Card.Body>
-            </Card>
-
-            <div className="my-4">
-              <Row className="g-3">
-                <Col xs={12} md="auto">
-                  <Button variant="success" onClick={handleSend} disabled={sending} className="w-100 shadow-sm rounded-3 px-4">
-                    <Icon path={mdiEmailFastOutline} size={0.9} className="me-2" />
-                    {sending ? "Envoi en cours..." : "Envoyer par e-mail"}
-                  </Button>
-                </Col>
-                <Col xs={12} md="auto">
-                  <Button variant="primary" onClick={handleExportPDF} className="w-100 shadow-sm rounded-3 px-4">
-                    <Icon path={mdiFileExportOutline} size={0.9} className="me-2" />
-                    Export PDF
-                    {uploading ? "Export pdf en cours..." : "Export pdf"}
-                  </Button>
-                </Col>
-                <Col xs={12} md="auto">
-                  <Button variant="outline-secondary" onClick={initializeForm} className="w-100 shadow-sm rounded-3 px-4">
-                    <Icon path={mdiCancel} size={0.9} className="me-2" />
-                    Annuler
-                  </Button>
-                </Col>
-              </Row>
-            </div>
-
-            <br></br>
-            {errorUpload && (
-              <div className="alert alert-danger rounded-3 d-flex align-items-center gap-2">
-                <Icon path={mdiAlertCircle} size={0.8} />
-                {errorUpload}
+                <div>
+                  <h3 className="att-section-title">Identité du document</h3>
+                  <p className="att-section-desc">Type d&apos;attestation et référence unique</p>
+                </div>
               </div>
-            )}
-            {uploadSuccess && (
-              <div className="alert alert-success rounded-3 d-flex align-items-center gap-2">
-                <Icon path={mdiCheckCircle} size={0.8} />
-                {uploadSuccess}
+              <div className="att-section-body">
+                <div className="att-grid-2">
+                  <div className="att-field">
+                    <label className="att-label" htmlFor="certificateType">
+                      Type d&apos;attestation <span className="required">*</span>
+                    </label>
+                    <select
+                      id="certificateType"
+                      name="certificateType"
+                      value={aboutModel.certificateType || ''}
+                      onChange={handleSelectChange}
+                      className="att-select"
+                    >
+                      <option value="">Sélectionner le type</option>
+                      {certificateTypes &&
+                        certificateTypes.map((item, id) => (
+                          <option key={id} value={item.certificateTypeId}>
+                            {item.certificateTypeName}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="att-field">
+                    <label className="att-label" htmlFor="reference">
+                      Référence <span className="required">*</span>
+                    </label>
+                    <input
+                      id="reference"
+                      type="text"
+                      name="reference"
+                      className="att-input"
+                      value={aboutModel.reference || ''}
+                      onChange={handleChange}
+                    />
+                    <span className="att-help">Générée automatiquement, modifiable si besoin</span>
+                  </div>
+                </div>
               </div>
-            )}
-            {uploading && (
-              <Alert variant="info" className="mt-3">
-                Export pdf en cours...
-              </Alert>
-            )}
-            {sending && (
-              <Alert variant="info" className="mt-3">
-                Envoi en cours...
-              </Alert>
-            )}
+            </section>
 
-            {sendSuccess && (
-              <Alert variant="success" className="mt-3">
-                L’attestation a été envoyée avec succès !
-              </Alert>
-            )}
+            {/* 2. Émission */}
+            <section className="att-section">
+              <div className="att-section-header">
+                <div className="att-section-icon">
+                  <Icon path={mdiInformationOutline} size={0.85} />
+                </div>
+                <div>
+                  <h3 className="att-section-title">Informations d&apos;émission</h3>
+                  <p className="att-section-desc">Lieu, date et motif figurant sur le document</p>
+                </div>
+              </div>
+              <div className="att-section-body">
+                <div className="att-grid-3">
+                  <div className="att-field">
+                    <label className="att-label" htmlFor="place">
+                      Fait à
+                    </label>
+                    <input
+                      id="place"
+                      type="text"
+                      name="place"
+                      className="att-input"
+                      placeholder="Antananarivo"
+                      value={aboutModel.place || ''}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="att-field">
+                    <label className="att-label" htmlFor="date">
+                      Date
+                    </label>
+                    <input
+                      id="date"
+                      type="date"
+                      name="date"
+                      className="att-input"
+                      value={aboutModel.date || ''}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="att-field">
+                    <label className="att-label" htmlFor="reason">
+                      Motif
+                    </label>
+                    <input
+                      id="reason"
+                      type="text"
+                      name="reason"
+                      className="att-input"
+                      placeholder="Administratif"
+                      value={aboutModel.reason || ''}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
 
-            {sendError && (
-              <Alert variant="danger" className="mt-3">
-                {sendError}
-              </Alert>
-            )}
-            {info && (
-              <Alert variant="info" className="mt-3">
-                {info}
-              </Alert>
-            )}
-
-          </Col>
-
-          {/* Aperçu PDF */}
-          <Col md={6}>
-            <AnimatePresence>
-              {showPreview && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  <Card className="p-4 shadow-sm mt-4" ref={previewRef}>
-                    {logoPreview && (
-                      <div className="mb-3 text-start">
-                        <img
-                          src={logoPreview}
-                          alt="Logo"
-                          style={{ width: "150px", objectFit: "contain" }}
-                        />
+            {/* 3. Signataire */}
+            <section className="att-section">
+              <div className="att-section-header">
+                <div className="att-section-icon">
+                  <Icon path={mdiOfficeBuilding} size={0.85} />
+                </div>
+                <div>
+                  <h3 className="att-section-title">Signataire & logo</h3>
+                  <p className="att-section-desc">Mention de signature et identité visuelle</p>
+                </div>
+              </div>
+              <div className="att-section-body">
+                <div className="att-grid-2">
+                  <div className="att-field">
+                    <label className="att-label" htmlFor="signatoryPosition">
+                      Fonction du signataire
+                    </label>
+                    <input
+                      id="signatoryPosition"
+                      type="text"
+                      name="signatoryPosition"
+                      className="att-input"
+                      placeholder="Le Directeur général"
+                      value={aboutModel.signatoryPosition || ''}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="att-field">
+                    <label className="att-label" htmlFor="signatoryName">
+                      Nom du signataire
+                    </label>
+                    <input
+                      id="signatoryName"
+                      type="text"
+                      name="signatoryName"
+                      className="att-input"
+                      placeholder="Nom complet"
+                      value={aboutModel.signatoryName || ''}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="att-field span-2">
+                    <label className="att-label" htmlFor="logo">
+                      Logo de l&apos;entreprise
+                    </label>
+                    <div className="att-logo-box">
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <input id="logo" type="file" accept="image/*" className="att-input" onChange={handleLogoChange} />
+                        <span className="att-help">Formats image recommandés (PNG, JPG)</span>
                       </div>
-                    )}
+                      {logoPreview && (
+                        <div>
+                          <img src={logoPreview} alt="Logo" className="att-logo-preview" />
+                          <div className="mt-2">
+                            <button type="button" className="att-btn att-btn-danger-ghost att-btn-sm" onClick={removeLogo}>
+                              <Icon path={mdiDelete} size={0.65} />
+                              Retirer
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
 
-                    <p className="text-center fw-bold" style={{ fontSize: '30px', textTransform: 'uppercase' }}>
-                      <b>{aboutModel.certificateTypeName}</b>
-                    </p>
-
-                    <p className="text-center">
-                      <strong style={{ textDecoration: 'underline' }}>Ref </strong>: {aboutModel.reference}
-                    </p>
-                    {sections.map((section) => (
-                      <div
-                        key={section.id}
-                        className="mb-3"
-                        dangerouslySetInnerHTML={{
-                          __html: replaceVariables(section.content),
+            {/* 4. Contenu */}
+            <section className="att-section">
+              <div className="att-section-header">
+                <div className="att-section-icon">
+                  <Icon path={mdiFormatListBulleted} size={0.85} />
+                </div>
+                <div>
+                  <h3 className="att-section-title">Contenu du document</h3>
+                  <p className="att-section-desc">
+                    Rédigez le texte et insérez des champs dynamiques (Nom, Poste, etc.)
+                  </p>
+                </div>
+              </div>
+              <div className="att-section-body">
+                {sections.map((section, index) => (
+                  <div className="att-content-block" key={section.id}>
+                    <div className="att-content-toolbar">
+                      <p className="att-content-label">Paragraphe {index + 1}</p>
+                      <div className="att-content-actions">
+                        <Dropdown onSelect={(variable) => insertVariable(section.id, variable)}>
+                          <Dropdown.Toggle
+                            variant="outline-primary"
+                            size="sm"
+                            className="att-btn att-btn-ghost att-btn-sm border"
+                          >
+                            <Icon path={mdiFormatListBulleted} size={0.65} className="me-1" />
+                            Insérer un champ
+                          </Dropdown.Toggle>
+                          <Dropdown.Menu>
+                            {variables.map((v) => (
+                              <Dropdown.Item key={v} eventKey={v}>
+                                {v}
+                              </Dropdown.Item>
+                            ))}
+                          </Dropdown.Menu>
+                        </Dropdown>
+                        <button
+                          type="button"
+                          className="att-btn att-btn-danger-ghost att-btn-sm"
+                          onClick={() => removeSection(section.id)}
+                          title="Supprimer ce paragraphe"
+                        >
+                          <Icon path={mdiDelete} size={0.65} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="att-content-editor">
+                      <ReactQuill
+                        theme="snow"
+                        value={section.content}
+                        onChange={(value) => updateSection(section.id, 'content', value)}
+                        modules={{
+                          toolbar: [
+                            [{ header: [1, 2, false] }],
+                            ['bold', 'italic', 'underline'],
+                            ['link'],
+                            [{ list: 'ordered' }, { list: 'bullet' }],
+                            ['clean'],
+                          ],
                         }}
                       />
-                    ))}
+                    </div>
+                  </div>
+                ))}
 
-                    <Row>
-                      <Col md={8}>
-                        <div className="mt-4 text-start">
-                          <p>
-                            <strong style={{ textDecoration: 'underline' }}>Motif </strong>: <strong>{aboutModel.reason}</strong>
-                          </p>
-                        </div>
-                        <div className="mt-4 text-center">
-                          <QRCodeSVG value={qrValue} size={130} />
-                        </div>
-                      </Col>
-                      <Col md={4}>
-                        <div className="mt-4 text-end">
-                          <p>Fait à <strong>{aboutModel.place}</strong>, le <strong><DateDisplayNoTime isoDate={aboutModel.date} /></strong></p>
-                          <p><strong>{aboutModel.signatoryPosition}</strong></p>
-                        </div>
-                        <div className="mt-5 text-end" style={{ paddingTop: '50px' }}>
-                          <p>
-                            <strong>{aboutModel.signatoryName}</strong>
-                          </p>
-                        </div>
-                      </Col>
-                    </Row>
+                <button type="button" className="att-btn att-btn-secondary" onClick={addSection}>
+                  <Icon path={mdiPlus} size={0.75} />
+                  Ajouter un paragraphe
+                </button>
+              </div>
+            </section>
 
+            <div className="att-actions-bar">
+              <button type="button" className="att-btn att-btn-primary" onClick={() => setShowPreview(true)}>
+                <Icon path={mdiEye} size={0.8} />
+                Voir l&apos;aperçu
+              </button>
+              <button type="button" className="att-btn att-btn-success" onClick={handleExportPDF} disabled={uploading}>
+                <Icon path={mdiFileExportOutline} size={0.8} />
+                {uploading ? 'Export en cours…' : 'Exporter PDF'}
+              </button>
+              <button type="button" className="att-btn att-btn-secondary" onClick={handleSend} disabled={sending}>
+                <Icon path={mdiEmailFastOutline} size={0.8} />
+                {sending ? 'Envoi…' : 'Envoyer par e-mail'}
+              </button>
+              <button type="button" className="att-btn att-btn-ghost" onClick={initializeForm}>
+                <Icon path={mdiCancel} size={0.8} />
+                Réinitialiser
+              </button>
+            </div>
 
-                    <footer className="pt-5 text-muted small">
-                      <Row style={{ background: '#e6e9ed', padding: '50px' }}>
+            <div className="att-feedback">
+              {errorUpload && (
+                <Alert variant="danger" className="mb-0 d-flex align-items-center gap-2">
+                  <Icon path={mdiAlertCircle} size={0.8} />
+                  {errorUpload}
+                </Alert>
+              )}
+              {uploadSuccess && (
+                <Alert variant="success" className="mb-0 d-flex align-items-center gap-2">
+                  <Icon path={mdiCheckCircle} size={0.8} />
+                  {uploadSuccess}
+                </Alert>
+              )}
+              {uploading && (
+                <Alert variant="info" className="mb-0">
+                  Export PDF en cours…
+                </Alert>
+              )}
+              {sending && (
+                <Alert variant="info" className="mb-0">
+                  Envoi en cours…
+                </Alert>
+              )}
+              {sendSuccess && (
+                <Alert variant="success" className="mb-0">
+                  L&apos;attestation a été envoyée avec succès !
+                </Alert>
+              )}
+              {sendError && (
+                <Alert variant="danger" className="mb-0">
+                  {sendError}
+                </Alert>
+              )}
+              {info && (
+                <Alert variant="info" className="mb-0">
+                  {info}
+                </Alert>
+              )}
+            </div>
+          </div>
+
+          {/* Colonne aperçu */}
+          <div className="att-preview-col">
+            <div className="att-preview-card">
+              <div className="att-preview-header">
+                <h5>
+                  <Icon path={mdiEye} size={0.85} />
+                  Aperçu
+                </h5>
+                {showPreview && (
+                  <button type="button" className="att-btn att-btn-secondary att-btn-sm" onClick={() => setShowPreview(false)}>
+                    Masquer
+                  </button>
+                )}
+              </div>
+
+              {!showPreview ? (
+                <div className="att-preview-empty">
+                  <Icon path={mdiEye} size={1.4} color="#4B49AC" />
+                  <p>Générez l&apos;aperçu pour visualiser le document avant export ou envoi.</p>
+                  <button type="button" className="att-btn att-btn-primary" onClick={() => setShowPreview(true)}>
+                    <Icon path={mdiEye} size={0.8} />
+                    Afficher l&apos;aperçu
+                  </button>
+                </div>
+              ) : (
+                <AnimatePresence>
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 12 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="att-preview-doc" ref={previewRef}>
+                      {logoPreview && (
+                        <div className="mb-3 text-start">
+                          <img src={logoPreview} alt="Logo" style={{ width: '140px', objectFit: 'contain' }} />
+                        </div>
+                      )}
+
+                      <p className="att-preview-doc-title">{aboutModel.certificateTypeName || 'Attestation'}</p>
+
+                      <p className="att-preview-ref">
+                        <strong style={{ textDecoration: 'underline' }}>Ref</strong> : {aboutModel.reference}
+                      </p>
+
+                      {sections.map((section) => (
+                        <div
+                          key={section.id}
+                          className="mb-3"
+                          dangerouslySetInnerHTML={{
+                            __html: replaceVariables(section.content),
+                          }}
+                        />
+                      ))}
+
+                      <Row>
                         <Col md={8}>
-                          <p className="mb-1">
-                            <strong>Adresse :</strong>{" "}
-                            {companyInfo.adresse || "..."}
-                          </p>
-                          <p className="mb-1">
-                            <strong>Téléphone :</strong>{" "}
-                            {companyInfo.telephone || "..."}
-                          </p>
-                          <p className="mb-1">
-                            <strong>Email :</strong>{" "}
-                            {companyInfo.email || "..."}
-                          </p>
+                          <div className="mt-4 text-start">
+                            <p>
+                              <strong style={{ textDecoration: 'underline' }}>Motif</strong> :{' '}
+                              <strong>{aboutModel.reason}</strong>
+                            </p>
+                          </div>
+                          <div className="mt-4 text-center">
+                            <QRCodeSVG value={qrValue} size={120} />
+                          </div>
                         </Col>
-                        <Col md={4} className="text-md-end">
-                          <p className="mb-1">
-                            <strong>Site web :</strong>{" "}
-                            {companyInfo.site || "..."}
-                          </p>
-                          <p className="mb-1">
-                            <strong>Réseaux sociaux :</strong>{" "}
-                            {companyInfo.reseaux || "..."}
-                          </p>
+                        <Col md={4}>
+                          <div className="mt-4 text-end">
+                            <p>
+                              Fait à <strong>{aboutModel.place}</strong>, le{' '}
+                              <strong>
+                                <DateDisplayNoTime isoDate={aboutModel.date} />
+                              </strong>
+                            </p>
+                            <p>
+                              <strong>{aboutModel.signatoryPosition}</strong>
+                            </p>
+                          </div>
+                          <div className="mt-5 text-end" style={{ paddingTop: '40px' }}>
+                            <p>
+                              <strong>{aboutModel.signatoryName}</strong>
+                            </p>
+                          </div>
                         </Col>
                       </Row>
-                    </footer>
-                  </Card>
-                </motion.div>
+
+                      <footer className="att-preview-footer">
+                        <Row>
+                          <Col md={8}>
+                            <p className="mb-1">
+                              <strong>Adresse :</strong> {companyInfo.adresse || '…'}
+                            </p>
+                            <p className="mb-1">
+                              <strong>Téléphone :</strong> {companyInfo.telephone || '…'}
+                            </p>
+                            <p className="mb-0">
+                              <strong>Email :</strong> {companyInfo.email || '…'}
+                            </p>
+                          </Col>
+                          <Col md={4} className="text-md-end">
+                            <p className="mb-1">
+                              <strong>Site web :</strong> {companyInfo.site || '…'}
+                            </p>
+                            <p className="mb-0">
+                              <strong>Réseaux :</strong> {companyInfo.reseaux || '…'}
+                            </p>
+                          </Col>
+                        </Row>
+                      </footer>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
               )}
-            </AnimatePresence>
-          </Col>
-        </Row>
+            </div>
+          </div>
+        </div>
       </Form>
-    </Container>
+    </div>
   );
 };
 

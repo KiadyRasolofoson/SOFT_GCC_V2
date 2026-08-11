@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Http;
+using soft_carriere_competence.Application.Dtos.EvaluationsDto;
+using soft_carriere_competence.Application.Interfaces;
 using soft_carriere_competence.Core.Entities.Evaluations;
+using soft_carriere_competence.Core.Exceptions;
 using soft_carriere_competence.Core.Interface.DataService;
 using System;
 using System.Collections.Generic;
@@ -10,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
-    public class TrainingSuggestionService
+    public class TrainingSuggestionService : ITrainingSuggestionImportService
     {
         private readonly IEvaluationDataService _dataService;
 
@@ -19,13 +22,30 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             _dataService = dataService;
         }
 
-        public class ImportResult
+        public async Task<TrainingSuggestionImportResultDto> ImportFromCsvAsync(IFormFile file)
+        {
+            if (file is null || file.Length == 0)
+            {
+                throw new ValidationException("Aucun fichier fourni.");
+            }
+
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ValidationException("Seuls les fichiers CSV sont acceptés.");
+            }
+
+            var parseResult = await ParseCsvAsync(file);
+
+            return new TrainingSuggestionImportResultDto(parseResult.ImportedCount, parseResult.Errors);
+        }
+
+        private sealed class ImportResult
         {
             public int ImportedCount { get; set; }
             public List<string> Errors { get; set; } = new List<string>();
         }
 
-        public async Task<ImportResult> ImportFromCsvAsync(IFormFile file)
+        private async Task<ImportResult> ParseCsvAsync(IFormFile file)
         {
             var result = new ImportResult();
 

@@ -2,12 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
 namespace soft_carriere_competence.Controllers.Evaluations
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class BulletinCompetenceController : ControllerBase
+    [RequirePermission("VIEW_COMPETENCE_BULLETIN","VIEW_SKILLS_PROFILES","MANAGE_SKILLS_PROFILES")]
+public class BulletinCompetenceController : ControllerBase
     {
         private readonly IEmployeeSkillService _employeeSkillService;
 

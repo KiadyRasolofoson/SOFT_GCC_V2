@@ -1,6 +1,7 @@
 ﻿using System.Runtime.ConstrainedExecution;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.InkML;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +18,12 @@ using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
 namespace soft_carriere_competence.Controllers.career
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[RequirePermission("VIEW_CAREER","CREATE_CAREER","EDIT_CAREER","DELETE_CAREER","MANAGE_CAREER","VIEW_CERTIFICATES","CREATE_CERTIFICATES","EDIT_CERTIFICATES","DELETE_CERTIFICATES","MANAGE_CERTIFICATES")]
 	public class CareerPlanController : ControllerBase
 	{
 		private readonly ICareerPlanService _careerPlanService;
@@ -498,6 +501,7 @@ namespace soft_carriere_competence.Controllers.career
 
 		[HttpGet]
 		[Route("verify/{token}")]
+		[AllowAnonymous]
 		public async Task<IActionResult> VerifyCertificate(string token)
 		{
 			var cert = await _workCertificatesService.GetValidCertificateByToken(token);

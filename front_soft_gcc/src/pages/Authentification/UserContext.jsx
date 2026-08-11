@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import PropTypes from 'prop-types'; // Importer PropTypes
+import PropTypes from 'prop-types';
 import { urlApi } from '../../helpers/utils';
+import { getAccessMap, getMyModules } from '../../services/ModuleService';
 
 const UserContext = createContext(null);
 
@@ -13,15 +14,63 @@ function useUser() {
     return context;
 }
 
+/** Normalise un chemin URL pour comparaison */
+export function normalizeRoutePath(path) {
+    if (!path || typeof path !== 'string') return '';
+    const clean = path.split('?')[0].split('#')[0].trim();
+    if (!clean) return '';
+    const withSlash = clean.startsWith('/') ? clean : `/${clean}`;
+    return withSlash.replace(/\/+$/, '') || '/';
+}
+
+/**
+ * Vérifie si un pathname est autorisé selon les routes Role_Modules.
+ * - Si le catalogue contient une route couvrant le path : la plus longue doit être dans allowed.
+ * - Sinon (sous-page non déclarée, ex. /evaluations/details/1) : autorise si une section
+ *   /soft-gcc/{area} est couverte par au moins une route autorisée.
+ * - Si le catalogue est vide (tables absentes) : fail-open (true).
+ */
+export function checkRouteAccess(pathname, allowedRoutes = [], catalogRoutes = []) {
+    const path = normalizeRoutePath(pathname);
+    if (!path.startsWith('/soft-gcc')) return true;
+
+    const allowed = (allowedRoutes || []).map(normalizeRoutePath).filter(Boolean);
+    const catalog = (catalogRoutes || []).map(normalizeRoutePath).filter(Boolean);
+
+    // Système modules pas encore en place → ne pas bloquer
+    if (catalog.length === 0) return true;
+
+    const covers = (route, target) => target === route || target.startsWith(`${route}/`);
+
+    const coveringCatalog = catalog
+        .filter(r => covers(r, path))
+        .sort((a, b) => b.length - a.length);
+
+    if (coveringCatalog.length > 0) {
+        const best = coveringCatalog[0];
+        return allowed.includes(best);
+    }
+
+    // Sous-chemin non déclaré dans Modules : même section /soft-gcc/{area}
+    const pathParts = path.split('/').filter(Boolean);
+    if (pathParts.length < 2) return false;
+    const section = `/${pathParts[0]}/${pathParts[1]}`; // /soft-gcc/evaluations
+
+    return allowed.some(r => r === section || r.startsWith(`${section}/`));
+}
+
 export const UserProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [userRole, setUserRole] = useState(null);
     const [userPermissions, setUserPermissions] = useState([]);
     const [visibleModules, setVisibleModules] = useState([]);
+    const [myModules, setMyModules] = useState([]);
+    const [allowedRoutes, setAllowedRoutes] = useState([]);
+    const [catalogRoutes, setCatalogRoutes] = useState([]);
+    const [modulesAccessReady, setModulesAccessReady] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isInitialized, setIsInitialized] = useState(false);
 
-    // Fonction pour nettoyer toutes les données utilisateur
     const clearUserData = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userProfile');
@@ -29,35 +78,60 @@ export const UserProvider = ({ children }) => {
         setUserRole(null);
         setUserPermissions([]);
         setVisibleModules([]);
+        setMyModules([]);
+        setAllowedRoutes([]);
+        setCatalogRoutes([]);
+        setModulesAccessReady(false);
         setIsInitialized(false);
     };
 
-    // Fonction pour vérifier si le token est valide
     const isTokenValid = (token) => {
         try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            const isValid = payload.exp * 1000 > Date.now();
-            return isValid;
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.exp * 1000 > Date.now();
         } catch (error) {
-            console.error("Erreur lors de la vérification du token", error);
+            console.error('Erreur lors de la vérification du token', error);
             return false;
         }
     };
 
-    // Fonction pour récupérer les données utilisateur via le nouvel endpoint profil
+    const loadModuleAccess = async () => {
+        try {
+            const [accessMap, modulesTree] = await Promise.all([
+                getAccessMap().catch(() => ({ allowedRoutes: [], catalogRoutes: [] })),
+                getMyModules().catch(() => [])
+            ]);
+
+            const allowed = Array.isArray(accessMap?.allowedRoutes) ? accessMap.allowedRoutes : [];
+            const catalog = Array.isArray(accessMap?.catalogRoutes) ? accessMap.catalogRoutes : [];
+            const tree = Array.isArray(modulesTree) ? modulesTree : [];
+
+            setAllowedRoutes(allowed);
+            setCatalogRoutes(catalog);
+            setMyModules(tree);
+            setModulesAccessReady(true);
+            return { allowed, catalog, tree };
+        } catch (error) {
+            console.warn('Chargement carte d\'accès modules impossible', error);
+            setAllowedRoutes([]);
+            setCatalogRoutes([]);
+            setMyModules([]);
+            setModulesAccessReady(true);
+            return { allowed: [], catalog: [], tree: [] };
+        }
+    };
+
     const fetchUserData = async (token) => {
         try {
-            // Un seul appel : GET /api/me/profile (RBAC + ABAC + Profile)
-            const profileResponse = await axios.get(urlApi("/me/profile"), {
+            const profileResponse = await axios.get(urlApi('/me/profile'), {
                 headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
             const profile = profileResponse.data;
 
-            // Extraction des données du profil
             const userData = {
                 id: profile.userId,
                 username: profile.userName,
@@ -75,45 +149,49 @@ export const UserProvider = ({ children }) => {
             const modules = profile.visibleModules || [];
 
             if (!Array.isArray(permissions)) {
-                console.error("Format de permissions invalide");
-                throw new Error("Format de permissions invalide");
+                console.error('Format de permissions invalide');
+                throw new Error('Format de permissions invalide');
             }
 
-            // Mise à jour des états
             setUser(userData);
             setUserPermissions(permissions);
             setUserRole(profile.roleTitle);
             setVisibleModules(modules);
 
-            // Stockage dans le localStorage
+            const access = await loadModuleAccess();
+
             localStorage.setItem('userProfile', JSON.stringify({
                 ...userData,
                 permissions,
-                visibleModules: modules
+                visibleModules: modules,
+                allowedRoutes: access.allowed,
+                catalogRoutes: access.catalog
             }));
 
             return true;
         } catch (error) {
-            console.error("Erreur lors de la récupération du profil utilisateur", error);
+            console.error('Erreur lors de la récupération du profil utilisateur', error);
             return false;
         }
     };
 
-    // Fonction d'initialisation qui peut être appelée après la connexion
     const initializeUser = async () => {
         setLoading(true);
-        
+
         const token = localStorage.getItem('token');
 
         if (!token || !isTokenValid(token)) {
             clearUserData();
+            setModulesAccessReady(true);
             setLoading(false);
+            setIsInitialized(true);
             return;
         }
 
         const success = await fetchUserData(token);
         if (!success) {
             clearUserData();
+            setModulesAccessReady(true);
         }
 
         setLoading(false);
@@ -124,20 +202,41 @@ export const UserProvider = ({ children }) => {
         initializeUser();
     }, []);
 
-    //  vérifier si l'utilisateur a une permission spécifique
+    const isAdminUser = () => {
+        const title = (user?.roleTitle || '').trim().toLowerCase();
+        return user?.roleId === 1
+            || title === 'admin'
+            || title === 'administrator'
+            || title === 'administrateur';
+    };
+
     const hasPermission = (permission) => {
+        // Admin : accès complet côté UI (titre ou roleId seed 1)
+        if (isAdminUser()) {
+            return true;
+        }
+
         if (!Array.isArray(userPermissions)) {
             return false;
         }
-        
+
         return userPermissions.some(p => {
-            // Supporte à la fois les chaînes (nouveau profil) et les objets {name} (ancien format)
             const permName = typeof p === 'string' ? p : p?.name;
             return permName === permission;
         });
     };
 
-    //  déconnexion
+    const canAccessRoute = useCallback((pathname) => {
+        if (!modulesAccessReady) return true;
+        const title = (user?.roleTitle || '').trim().toLowerCase();
+        const isAdmin = user?.roleId === 1
+            || title === 'admin'
+            || title === 'administrator'
+            || title === 'administrateur';
+        if (isAdmin) return true;
+        return checkRouteAccess(pathname, allowedRoutes, catalogRoutes);
+    }, [modulesAccessReady, allowedRoutes, catalogRoutes, user?.roleId, user?.roleTitle]);
+
     const logout = () => {
         clearUserData();
     };
@@ -150,10 +249,9 @@ export const UserProvider = ({ children }) => {
         }
 
         try {
-            // Recharger via le même endpoint profil
-            const profileResponse = await axios.get(urlApi("/me/profile"), {
+            const profileResponse = await axios.get(urlApi('/me/profile'), {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
@@ -164,10 +262,12 @@ export const UserProvider = ({ children }) => {
             if (Array.isArray(permissions)) {
                 setUserPermissions(permissions);
                 setVisibleModules(profile.visibleModules || []);
-                // Mettre à jour le localStorage
+                const access = await loadModuleAccess();
                 const stored = JSON.parse(localStorage.getItem('userProfile') || '{}');
                 stored.permissions = permissions;
                 stored.visibleModules = profile.visibleModules || [];
+                stored.allowedRoutes = access.allowed;
+                stored.catalogRoutes = access.catalog;
                 localStorage.setItem('userProfile', JSON.stringify(stored));
             }
         } catch (error) {
@@ -176,16 +276,21 @@ export const UserProvider = ({ children }) => {
     };
 
     return (
-        <UserContext.Provider value={{ 
-            user, 
-            userRole, 
+        <UserContext.Provider value={{
+            user,
+            userRole,
             userPermissions,
             visibleModules,
-            loading, 
+            myModules,
+            allowedRoutes,
+            catalogRoutes,
+            modulesAccessReady,
+            loading,
             isInitialized,
-            setUser, 
+            setUser,
             logout,
             hasPermission,
+            canAccessRoute,
             initializeUser,
             refreshPermissions
         }}>
@@ -195,7 +300,7 @@ export const UserProvider = ({ children }) => {
 };
 
 UserProvider.propTypes = {
-    children: PropTypes.node.isRequired // Valider que "children" est un élément React valide
+    children: PropTypes.node.isRequired
 };
 
 export { useUser };

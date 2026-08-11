@@ -128,18 +128,18 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             // Si l'identifiant contient @, on le considère comme un email
             if (identifier.Contains("@"))
             {
-                user = await _userRepository.GetFirstOrDefaultAsync(u => u.Email == identifier);
+                user = await _userRepository.GetFirstOrDefaultAsync(u => u.Email == identifier, u => u.Role);
             }
             else
             {
                 // Sinon, c'est un nom d'utilisateur
-                user = await _userRepository.GetFirstOrDefaultAsync(u => u.Username == identifier);
+                user = await _userRepository.GetFirstOrDefaultAsync(u => u.Username == identifier, u => u.Role);
                 
                 // Si on ne trouve pas par nom d'utilisateur, on essaie par email
                 // (certains utilisateurs pourraient ne pas avoir de nom d'utilisateur)
                 if (user == null)
                 {
-                    user = await _userRepository.GetFirstOrDefaultAsync(u => u.Email == identifier);
+                    user = await _userRepository.GetFirstOrDefaultAsync(u => u.Email == identifier, u => u.Role);
                 }
             }
 
