@@ -899,14 +899,17 @@ SELECT
   CASE
     WHEN Civilite_id = 1 THEN 'Homme' 
     WHEN Civilite_id = 2 THEN 'Femme'
+    ELSE 'Non renseigné'
   END AS Designation, 
   CASE
     WHEN Civilite_id = 1 THEN '#CCE5FF' 
     WHEN Civilite_id = 2 THEN '#F8D7DA'
+    ELSE '#E2E8F0'
   END AS Background_color, 
    CASE
     WHEN Civilite_id = 1 THEN '#004085' 
     WHEN Civilite_id = 2 THEN '#721C24'
+    ELSE '#475569'
   END AS Color, 
   COUNT(*) AS Number
 FROM employee 
@@ -952,6 +955,7 @@ SELECT
 	CASE
 		WHEN e.Civilite_id = 1 THEN 'Homme' 
 		WHEN e.Civilite_id = 2 THEN 'Femme'
+		ELSE 'Non renseigné'
 	END AS Sexe,
 	e.Registration_number, 
 	e.Name,
@@ -967,6 +971,7 @@ e.Employee_id,
 	CASE
 		WHEN e.Civilite_id = 1 THEN 'Homme' 
 		WHEN e.Civilite_id = 2 THEN 'Femme'
+		ELSE 'Non renseigné'
 	END,
 	e.Registration_number, 
 	e.Name,

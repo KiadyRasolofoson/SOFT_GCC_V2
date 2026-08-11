@@ -1,4 +1,4 @@
-using Microsoft.Data.SqlClient;
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Core.Entities.dashboard;
 using soft_carriere_competence.Core.Entities.Dtos.Dashboard;
@@ -180,7 +180,59 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
 
             using (var command = _context.Database.GetDbConnection().CreateCommand())
             {
-                command.CommandText = @"SELECT * FROM v_sex_activity_number ORDER BY Type";
+                // Ne pas utiliser v_sex_activity_number tel quel : Civilite_id NULL
+                // produit Designation/Background/Color NULL → GetString plante.
+                command.CommandText = @"
+                    SELECT
+                        1 AS Type,
+                        CASE
+                            WHEN Civilite_id = 1 THEN N'Homme'
+                            WHEN Civilite_id = 2 THEN N'Femme'
+                            ELSE N'Non renseigné'
+                        END AS Designation,
+                        CASE
+                            WHEN Civilite_id = 1 THEN N'#CCE5FF'
+                            WHEN Civilite_id = 2 THEN N'#F8D7DA'
+                            ELSE N'#E2E8F0'
+                        END AS Background_color,
+                        CASE
+                            WHEN Civilite_id = 1 THEN N'#004085'
+                            WHEN Civilite_id = 2 THEN N'#721C24'
+                            ELSE N'#475569'
+                        END AS Color,
+                        COUNT(*) AS Number
+                    FROM employee
+                    GROUP BY Civilite_id
+
+                    UNION ALL
+
+                    SELECT
+                        2 AS Type,
+                        StatusLabel,
+                        StatusColor,
+                        Color,
+                        COUNT(*) AS Number
+                    FROM (
+                        SELECT
+                            CASE
+                                WHEN cp.Position_id IS NOT NULL THEN N'Actif'
+                                ELSE N'Non actif'
+                            END AS StatusLabel,
+                            CASE
+                                WHEN cp.Position_id IS NOT NULL THEN N'#D4EDDA'
+                                ELSE N'#E2E3E5'
+                            END AS StatusColor,
+                            CASE
+                                WHEN cp.Position_id IS NOT NULL THEN N'#155724'
+                                ELSE N'#383D41'
+                            END AS Color
+                        FROM employee e
+                        LEFT JOIN career_plan cp
+                            ON e.Registration_number = cp.Registration_number
+                           AND cp.Assignment_type_id = 1
+                           AND cp.State > 0
+                    ) AS sub
+                    GROUP BY StatusLabel, StatusColor, Color";
 
                 command.CommandType = System.Data.CommandType.Text;
 
@@ -192,16 +244,18 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                     {
                         results.Add(new EmployeeNumberSexAndActivityDto
                         {
-                            Label = reader.GetString(1),
-                            Value = reader.GetInt32(4),
-                            BackgroundColor = reader.GetString(2),
-                            Color = reader.GetString(3)
+                            Label = GetNullableString(reader, 1) ?? "Non renseigné",
+                            BackgroundColor = GetNullableString(reader, 2) ?? "#E2E8F0",
+                            Color = GetNullableString(reader, 3) ?? "#475569",
+                            Value = GetNullableInt32(reader, 4) ?? 0
                         });
                     }
                 }
             }
 
-            return results;
+            return results
+                .OrderBy(r => r.Label == "Homme" ? 0 : r.Label == "Femme" ? 1 : r.Label == "Actif" ? 3 : r.Label == "Non actif" ? 4 : 2)
+                .ToList();
         }
 
         public async Task<List<StateWishEvolutionDto>> GetStateValue()
@@ -336,13 +390,13 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                     {
                         results.Add(new DetailsWishEvolutionDto
                         {
-                            EmployeeId = reader.GetInt32(0),
-                            FirstName = reader.GetString(1),
-                            Name = reader.GetString(2),
-                            Motivation = reader.GetString(3),
-                            WishPosition = reader.GetString(4),
-                            PriorityLetter = reader.GetString(5),
-                            StateLetter = reader.GetString(6),
+                            EmployeeId = GetNullableInt32(reader, 0) ?? 0,
+                            FirstName = GetNullableString(reader, 1),
+                            Name = GetNullableString(reader, 2),
+                            Motivation = GetNullableString(reader, 3),
+                            WishPosition = GetNullableString(reader, 4),
+                            PriorityLetter = GetNullableString(reader, 5),
+                            StateLetter = GetNullableString(reader, 6),
                         });
                     }
                 }
@@ -357,7 +411,30 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
 
             using (var command = _context.Database.GetDbConnection().CreateCommand())
             {
-                command.CommandText = @"SELECT * FROM v_details_employee";
+                // Colonnes explicites + COALESCE : Civilite_id / Name / FirstName peuvent être NULL (sync T_SAL)
+                command.CommandText = @"
+                    SELECT
+                        e.Employee_id,
+                        CASE
+                            WHEN e.Civilite_id = 1 THEN N'Homme'
+                            WHEN e.Civilite_id = 2 THEN N'Femme'
+                            ELSE N'Non renseigné'
+                        END AS Sexe,
+                        COALESCE(e.Registration_number, N'') AS Registration_number,
+                        COALESCE(e.Name, N'') AS Name,
+                        COALESCE(e.FirstName, N'') AS FirstName,
+                        CASE
+                            WHEN EXISTS (
+                                SELECT 1
+                                FROM career_plan cp
+                                WHERE cp.Registration_number = e.Registration_number
+                                  AND cp.Assignment_type_id = 1
+                                  AND cp.State > 0
+                            ) THEN N'Actif'
+                            ELSE N'Non actif'
+                        END AS isActive
+                    FROM employee e
+                    ORDER BY e.Employee_id";
 
                 command.CommandType = System.Data.CommandType.Text;
 
@@ -369,12 +446,12 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                     {
                         results.Add(new EmployeeDetailsDto
                         {
-                            EmployeeId = reader.GetInt32(0),
-                            Sex = reader.GetString(1),
-                            RegistrationNumber = reader.GetString(2),
-                            Name = reader.GetString(3),
-                            FirstName = reader.GetString(4),
-                            IsActive = reader.GetString(5)
+                            EmployeeId = ReadAsInt32(reader, 0),
+                            Sex = ReadAsString(reader, 1) ?? "Non renseigné",
+                            RegistrationNumber = ReadAsString(reader, 2),
+                            Name = ReadAsString(reader, 3),
+                            FirstName = ReadAsString(reader, 4),
+                            IsActive = ReadAsString(reader, 5) ?? "Non actif"
                         });
                     }
                 }
@@ -438,11 +515,11 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                     {
                         results.Add(new DetailsEmployeeAgeDistributionDto
                         {
-                            EmployeeId = reader.GetInt32(0),
-                            RegistrationNumber = reader.GetString(1),
-                            Name = reader.GetString(2),
-                            FirstName = reader.GetString(3),
-                            Age = reader.GetInt32(4)
+                            EmployeeId = GetNullableInt32(reader, 0) ?? 0,
+                            RegistrationNumber = GetNullableString(reader, 1),
+                            Name = GetNullableString(reader, 2),
+                            FirstName = GetNullableString(reader, 3),
+                            Age = GetNullableInt32(reader, 4) ?? 0
                         });
                     }
                 }
@@ -476,11 +553,11 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                     {
                         results.Add(new DetailsEmployeeExperienceDistributionDto
                         {
-                            EmployeeId = reader.GetInt32(0),
-                            RegistrationNumber = reader.GetString(1),
-                            Name = reader.GetString(2),
-                            FirstName = reader.GetString(3),
-                            Experience = reader.GetString(4)
+                            EmployeeId = GetNullableInt32(reader, 0) ?? 0,
+                            RegistrationNumber = GetNullableString(reader, 1),
+                            Name = GetNullableString(reader, 2),
+                            FirstName = GetNullableString(reader, 3),
+                            Experience = GetNullableString(reader, 4)
                         });
                     }
                 }
@@ -535,6 +612,49 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                 "ELSE 4 " +
                 "END")
                 .ToListAsync();
+        }
+
+        private static string? GetNullableString(DbDataReader reader, int ordinal)
+        {
+            return ReadAsString(reader, ordinal);
+        }
+
+        private static int? GetNullableInt32(DbDataReader reader, int ordinal)
+        {
+            return ReadAsInt32(reader, ordinal);
+        }
+
+        /// <summary>
+        /// Lecture tolérante aux NULL et aux types SQL non-string (évite SqlNullValueException).
+        /// </summary>
+        private static string? ReadAsString(DbDataReader reader, int ordinal)
+        {
+            if (reader.IsDBNull(ordinal))
+            {
+                return null;
+            }
+
+            var value = reader.GetValue(ordinal);
+            return value is string s ? s : Convert.ToString(value);
+        }
+
+        private static int? ReadAsInt32(DbDataReader reader, int ordinal)
+        {
+            if (reader.IsDBNull(ordinal))
+            {
+                return null;
+            }
+
+            var value = reader.GetValue(ordinal);
+            return value switch
+            {
+                int i => i,
+                long l => checked((int)l),
+                short s => s,
+                byte b => b,
+                decimal d => (int)d,
+                _ => Convert.ToInt32(value)
+            };
         }
     }
 }
