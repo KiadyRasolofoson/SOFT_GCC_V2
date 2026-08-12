@@ -437,13 +437,13 @@ WHERE rp.rn = 1;
 CREATE VIEW v_employee_career AS
 SELECT 
 	ep.Registration_number, 
-	cpen.civilite_id,
+	CASE WHEN 1=1 THEN cpen.civilite_id ELSE NULL END AS civilite_id,
 	cpen.civilite_name,
 	cpen.Name,
 	cpen.FirstName,
-	cpen.Birthday,
-	cpen.hiring_date,
-    ep.Assignment_type_id, 
+	CASE WHEN 1=1 THEN cpen.Birthday ELSE NULL END AS Birthday,
+	CASE WHEN 1=1 THEN cpen.hiring_date ELSE NULL END AS hiring_date,
+    CASE WHEN 1=1 THEN ep.Assignment_type_id ELSE NULL END AS Assignment_type_id, 
     ep.Decision_number,
     ep.Assignment_date,
     ep.decision_date, 

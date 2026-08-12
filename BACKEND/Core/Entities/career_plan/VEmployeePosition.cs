@@ -37,7 +37,7 @@ public int? DepartmentId { get; set; }
 		public string? PositionName { get; set; }
 
 		[Column("Hiring_date")]
-		public DateTime HiringDate { get; set; }
+		public DateTime? HiringDate { get; set; }
 
 		[Column("Seniority")]
 		public string? Seniority { get; set; }

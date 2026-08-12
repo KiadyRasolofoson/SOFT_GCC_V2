@@ -2102,6 +2102,10 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnType("int")
                         .HasColumnName("Career_plan_number");
 
+                    b.Property<int?>("CiviliteId")
+                        .HasColumnType("int")
+                        .HasColumnName("civilite_id");
+
                     b.Property<string>("CiviliteName")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("civilite_name");
@@ -2195,7 +2199,7 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("FirstName");
 
-                    b.Property<DateTime>("HiringDate")
+                    b.Property<DateTime?>("HiringDate")
                         .HasColumnType("datetime2")
                         .HasColumnName("Hiring_date");
 

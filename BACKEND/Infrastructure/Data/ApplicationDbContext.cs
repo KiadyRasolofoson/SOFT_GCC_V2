@@ -209,6 +209,18 @@ namespace soft_carriere_competence.Infrastructure.Data
 			modelBuilder.Entity<VAssignmentAvailability>().HasNoKey();
 			modelBuilder.Entity<VEmployeeCareer>().ToView("v_employee_career");
 			modelBuilder.Entity<VEmployeeCareer>().HasNoKey();
+			modelBuilder.Entity<VEmployeeCareer>(entity =>
+			{
+				// Colonnes date souvent NULL après sync p_sw — forcer le materializer nullable
+				entity.Property(e => e.Birthday).IsRequired(false);
+				entity.Property(e => e.HiringDate).IsRequired(false);
+				entity.Property(e => e.AssignmentDate).IsRequired(false);
+				entity.Property(e => e.DecisionDate).IsRequired(false);
+				entity.Property(e => e.EndingContract).IsRequired(false);
+				entity.Property(e => e.Name).IsRequired(false);
+				entity.Property(e => e.FirstName).IsRequired(false);
+				entity.Property(e => e.AssignmentTypeId).IsRequired(false);
+			});
 			modelBuilder.Entity<VRetirement>().ToView("v_retirement");
 			modelBuilder.Entity<VRetirement>().HasNoKey();
 			modelBuilder.Entity<VWishEvolution>().ToView("v_wish_evolution");
