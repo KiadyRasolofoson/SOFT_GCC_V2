@@ -1,0 +1,578 @@
+/* ── Page header ── */
+.list-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f8f9fc 0%, #ffffff 100%);
+  border-radius: 14px;
+  border: 1px solid #eef0f4;
+}
+
+.list-page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.list-page-header-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #b8860b 0%, #d4a017 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 26px;
+  box-shadow: 0 4px 12px rgba(184, 134, 11, 0.25);
+  flex-shrink: 0;
+}
+
+.list-page-header-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.list-page-header-subtitle {
+  font-size: 13px;
+  color: #888;
+  margin: 4px 0 0 0;
+}
+
+.list-page-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.list-page-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.list-page-btn-primary.success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(40, 167, 69, 0.25);
+}
+
+.list-page-btn-primary.success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(40, 167, 69, 0.35);
+}
+
+.list-page-btn-primary.outline {
+  background: #fff;
+  color: #555;
+  border: 1.5px solid #e0e0e0;
+}
+
+.list-page-btn-primary.outline:hover {
+  border-color: #b8860b;
+  color: #b8860b;
+  background: #fffbf0;
+}
+
+/* ── Filter card ── */
+.list-filter-card {
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 20px;
+  background: #fff;
+}
+
+.list-filter-card .list-filter-header {
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #b8860b;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.list-filter-card .list-filter-header i {
+  font-size: 20px;
+}
+
+.list-filter-card .list-filter-body {
+  padding: 20px;
+}
+
+.list-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.list-filter-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 6px;
+}
+
+.list-filter-field input,
+.list-filter-field select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+  transition: all 0.2s;
+  outline: none;
+  color: #333;
+}
+
+.list-filter-field input:focus,
+.list-filter-field select:focus {
+  border-color: #b8860b;
+  box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.1);
+}
+
+.list-filter-field input::placeholder {
+  color: #aaa;
+}
+
+/* ── Data table card ── */
+.list-data-card {
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  background: #fff;
+  margin-bottom: 20px;
+}
+
+.list-data-card-header {
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.list-data-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #b8860b;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.list-data-card-header-left i {
+  font-size: 20px;
+}
+
+.list-data-count {
+  background: #f0f0f0;
+  color: #666;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+/* ── Desktop table ── */
+.list-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 600px;
+}
+
+.list-table thead {
+  background: #f8f9fc;
+}
+
+.list-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  border-bottom: 2px solid #eef0f4;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.list-table th.sortable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.list-table th.sortable:hover {
+  background: #eef0f4;
+  color: #333;
+}
+
+.list-table th .sort-indicator {
+  margin-left: 4px;
+  font-size: 10px;
+  color: #b8860b;
+}
+
+.list-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #333;
+  vertical-align: middle;
+}
+
+.list-table tbody tr {
+  transition: background 0.15s;
+}
+
+.list-table tbody tr.clickable {
+  cursor: pointer;
+}
+
+.list-table tbody tr.clickable:hover {
+  background: #f8f9fc;
+}
+
+.list-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.list-table .td-avatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.list-table .td-actions {
+  white-space: nowrap;
+}
+
+.list-btn-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #eef5ff;
+  color: #007bff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.list-btn-view:hover {
+  background: #007bff;
+  color: #fff;
+}
+
+.list-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.list-badge.warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.list-badge.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.list-badge.danger {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.list-badge.info {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.list-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: #f0f2f5;
+  font-weight: 600;
+  font-size: 13px;
+  color: #444;
+}
+
+.list-empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #999;
+}
+
+.list-empty-state i {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+  color: #ddd;
+}
+
+.list-empty-state p {
+  margin: 0;
+  font-size: 15px;
+}
+
+/* ── Mobile card view ── */
+.list-mobile-cards {
+  display: none;
+  padding: 12px;
+  gap: 12px;
+}
+
+.list-mobile-card {
+  background: #fff;
+  border: 1px solid #eef0f4;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.list-mobile-card.clickable {
+  cursor: pointer;
+}
+
+.list-mobile-card.clickable:active {
+  transform: scale(0.99);
+}
+
+.list-mobile-card.clickable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.list-mobile-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f8f9fc;
+  border-bottom: 1px solid #eef0f4;
+}
+
+.list-mobile-card-header img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.list-mobile-card-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.list-mobile-card-subtitle {
+  font-size: 12px;
+  color: #888;
+  margin: 2px 0 0 0;
+}
+
+.list-mobile-card-body {
+  padding: 12px 16px;
+}
+
+.list-mobile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.list-mobile-row:last-child {
+  border-bottom: none;
+}
+
+.list-mobile-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #999;
+  flex-shrink: 0;
+  min-width: 100px;
+}
+
+.list-mobile-value {
+  font-size: 14px;
+  color: #333;
+  text-align: right;
+  word-break: break-word;
+}
+
+.list-mobile-card-footer {
+  padding: 10px 16px;
+  border-top: 1px solid #eef0f4;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Pagination ── */
+.list-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-top: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.list-pagination-info {
+  font-size: 13px;
+  color: #888;
+}
+
+.list-pagination-controls {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.list-page-btn {
+  min-width: 36px;
+  height: 36px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  padding: 0 8px;
+}
+
+.list-page-btn:hover:not(:disabled):not(.active) {
+  border-color: #b8860b;
+  color: #b8860b;
+  background: #fffbf0;
+}
+
+.list-page-btn.active {
+  background: #b8860b;
+  border-color: #b8860b;
+  color: #fff;
+}
+
+.list-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Responsive breakpoints ── */
+@media (max-width: 768px) {
+  .list-page-header {
+    padding: 16px;
+  }
+
+  .list-page-header-title {
+    font-size: 18px;
+  }
+
+  .list-page-header-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+  }
+
+  .list-page-actions {
+    width: 100%;
+  }
+
+  .list-page-btn-primary {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .list-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .list-table-desktop {
+    display: none;
+  }
+
+  .list-mobile-cards {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .list-pagination {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .list-data-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (min-width: 769px) {
+  .list-table-desktop {
+    display: block;
+  }
+
+  .list-mobile-cards {
+    display: none;
+  }
+}
