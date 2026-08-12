@@ -141,7 +141,7 @@ function EmployeeSyncPage() {
                                         <FaDatabase />
                                     </div>
                                     <div className="sync-node-title">Base de paie p_sw</div>
-                                    <div className="sync-node-desc">Table source : T_SAL</div>
+                                    <div className="sync-node-desc">T_SAL + T_HST_* (InfoEnCours = 1)</div>
                                 </div>
 
                                 {/* Connecteur */}
@@ -155,9 +155,16 @@ function EmployeeSyncPage() {
                                         <FaServer />
                                     </div>
                                     <div className="sync-node-title">Soft GCC Portal</div>
-                                    <div className="sync-node-desc">Table destination : Employee</div>
+                                    <div className="sync-node-desc">Employee, Career_plan, référentiels</div>
                                 </div>
                             </div>
+                            <p className="text-muted small mt-3 mb-0">
+                                Identité (nom, prénom, email, civilité), département, poste, établissement,
+                                date d&apos;embauche et manager. Les départements Soft GCC sont alignés
+                                uniquement sur <code>T_DEPARTEMENT</code> (p_sw) — les doublons legacy sont fusionnés.
+                                Les dates de naissance NULL ou placeholder (2000-01-01) dans p_sw ne remplacent
+                                pas les dates déjà présentes dans Soft GCC.
+                            </p>
                         </div>
 
                         {/* Zone d'action */}
@@ -165,7 +172,8 @@ function EmployeeSyncPage() {
                             <div className="p-2">
                                 <h5 className="fw-bold mb-2">Lancer une mise à jour</h5>
                                 <p className="text-muted small mb-4">
-                                    Cette opération permet de récupérer en temps réel les nouveaux salariés créés ou les modifications enregistrées dans le système de paie.
+                                    Récupère les salariés et leur organisation courante depuis la paie
+                                    (affectation, poste, établissement, contrat en cours).
                                 </p>
                                 <button
                                     className="btn btn-primary d-inline-flex align-items-center gap-2 px-4 py-2 shadow-sm"

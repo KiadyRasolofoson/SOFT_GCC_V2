@@ -6,7 +6,7 @@ using soft_carriere_competence.Core.Interface.ServiceInterface;
 namespace soft_carriere_competence.Application.Services.EmployeeSync
 {
     /// <summary>
-    /// Service d'arrière-plan qui exécute la synchronisation T_SAL → Employee une fois par jour.
+    /// Service d'arrière-plan qui exécute la synchronisation complète p_sw → Soft_GCC une fois par jour.
     /// </summary>
     public class EmployeeSyncBackgroundService : BackgroundService
     {

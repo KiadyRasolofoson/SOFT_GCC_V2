@@ -3,15 +3,15 @@ using soft_carriere_competence.Core.Entities.salary_skills;
 namespace soft_carriere_competence.Core.Interface.ServiceInterface
 {
     /// <summary>
-    /// Interface du service de synchronisation T_SAL (p_sw) → Employee (Soft_GCC).
+    /// Synchronisation p_sw → Soft_GCC : T_SAL + T_HST_* (InfoEnCours = 1) + référentiels.
     /// </summary>
     public interface IEmployeeSyncService
     {
         /// <summary>
-        /// Synchronise les employés depuis la table T_SAL de p_sw vers la table Employee de Soft_GCC.
-        /// La correspondance se fait par Registration_number = MatriculeSalarie.
+        /// Synchronise les employés depuis p_sw (identité, département, poste, établissement,
+        /// date d'embauche, manager, Career_plan courant) vers Soft_GCC.
+        /// Correspondance : Registration_number = MatriculeSalarie.
         /// </summary>
-        /// <returns>Le log de synchronisation créé.</returns>
         Task<SyncLog> SyncFromTSalAsync();
 
         /// <summary>

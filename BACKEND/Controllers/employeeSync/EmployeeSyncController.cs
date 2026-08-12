@@ -6,12 +6,13 @@ using soft_carriere_competence.Application.Authorization;
 namespace soft_carriere_competence.Controllers.employeeSync
 {
     /// <summary>
-    /// Contrôleur pour la synchronisation manuelle T_SAL (p_sw) → Employee (Soft_GCC).
+    /// Contrôleur pour la synchronisation manuelle p_sw → Soft_GCC
+    /// (T_SAL + T_HST_* InfoEnCours=1 → Employee / Career_plan / référentiels).
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-        [RequirePermission("MANAGE_EMPLOYEE_SYNC","MANAGE_EMPLOYEES","MANAGE_PERMISSIONS")]
-public class EmployeeSyncController : ControllerBase
+    [RequirePermission("MANAGE_EMPLOYEE_SYNC", "MANAGE_EMPLOYEES", "MANAGE_PERMISSIONS")]
+    public class EmployeeSyncController : ControllerBase
     {
         private readonly IEmployeeSyncService _employeeSyncService;
 
@@ -21,7 +22,7 @@ public class EmployeeSyncController : ControllerBase
         }
 
         /// <summary>
-        /// Déclenche manuellement la synchronisation T_SAL → Employee.
+        /// Déclenche manuellement la synchronisation complète des employés.
         /// </summary>
         [HttpPost("run")]
         public async Task<IActionResult> RunSync()
@@ -29,7 +30,7 @@ public class EmployeeSyncController : ControllerBase
             var result = await _employeeSyncService.SyncFromTSalAsync();
             return Ok(new
             {
-                message = "Synchronisation terminée",
+                message = "Synchronisation terminée (T_SAL + organisation HST)",
                 status = result.Status,
                 recordsInserted = result.RecordsInserted,
                 recordsUpdated = result.RecordsUpdated,
