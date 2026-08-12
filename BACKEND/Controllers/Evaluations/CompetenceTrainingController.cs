@@ -2,11 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.Evaluations
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CompetenceTrainingController : ControllerBase
+    [RequirePermission("EVALUATION_SETTINGS","MANAGE_EVALUATIONS")]
+public class CompetenceTrainingController : ControllerBase
     {
         private readonly CompetenceTrainingService _competenceTrainingService;
 

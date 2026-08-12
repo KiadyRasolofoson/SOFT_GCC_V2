@@ -8,11 +8,13 @@ using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
 namespace soft_carriere_competence.Controllers.salary_skills
 {
 	[Route("api/[controller]")]
 	[ApiController]
 	[Authorize]
+	[RequirePermission("VIEW_EMPLOYEES","CREATE_EMPLOYEES","EDIT_EMPLOYEES","DELETE_EMPLOYEES","MANAGE_EMPLOYEES")]
 	public class EmployeeController : ControllerBase
 	{
 		private readonly IEmployeeService _employeeService;
@@ -51,30 +53,41 @@ namespace soft_carriere_competence.Controllers.salary_skills
 			[FromForm] string? email,
 			[FromForm] IFormFile? photo)
 		{
-			byte[]? photoBytes = null;
-			if (photo != null)
+			try
 			{
-				using (var memoryStream = new MemoryStream())
+				byte[]? photoBytes = null;
+				if (photo != null)
 				{
-					await photo.CopyToAsync(memoryStream);
-					photoBytes = memoryStream.ToArray();
+					using (var memoryStream = new MemoryStream())
+					{
+						await photo.CopyToAsync(memoryStream);
+						photoBytes = memoryStream.ToArray();
+					}
 				}
+
+				var employee = new Employee { 
+					RegistrationNumber = registrationNumber,
+					Name = name,
+					FirstName = firstName,
+					Birthday = birthday,
+					Department_id = department_id,
+					Hiring_date = hiring_date,
+					CiviliteId = civiliteId,
+					ManagerId = managerId,
+					Email = email
+				};
+				await _employeeService.Add(employee, photoBytes);
+
+				return CreatedAtAction(nameof(Get), new { id = employee.EmployeeId }, employee);
 			}
-
-			var employee = new Employee { 
-				RegistrationNumber = registrationNumber,
-				Name = name,
-				FirstName = firstName,
-				Birthday = birthday,
-				Department_id = department_id,
-				Hiring_date = hiring_date,
-				CiviliteId = civiliteId,
-				ManagerId = managerId,
-				Email = email
-			};
-			await _employeeService.Add(employee, photoBytes);
-
-			return CreatedAtAction(nameof(Get), new { id = employee.EmployeeId }, employee);
+			catch (InvalidOperationException ex)
+			{
+				return Conflict(new { message = ex.Message });
+			}
+			catch (ArgumentException ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
 		}
 
 		[HttpPut("{id}")]

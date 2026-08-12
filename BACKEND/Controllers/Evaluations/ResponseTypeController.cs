@@ -2,11 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Services.Evaluations;
 using soft_carriere_competence.Core.Entities.Evaluations;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.Evaluations
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ResponseTypeController : ControllerBase
+    [RequirePermission("EVALUATION_SETTINGS","MANAGE_EVALUATIONS")]
+public class ResponseTypeController : ControllerBase
     {
         private readonly ResponseTypeService _responseTypeService;
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using soft_carriere_competence.Application.Dtos.LicenseDto;
 using soft_carriere_competence.Application.Services.license;
@@ -7,10 +8,11 @@ namespace soft_carriere_competence.Controllers.license
 {
     /// <summary>
     /// Contrôleur de gestion des licences.
-    /// Accessible sans authentification JWT (les routes sont publiques par défaut).
+    /// Accessible sans authentification JWT.
     /// </summary>
     [Route("api/license")]
     [ApiController]
+    [AllowAnonymous]
     public class LicenseController : ControllerBase
     {
         private readonly ILicenseService _licenseService;

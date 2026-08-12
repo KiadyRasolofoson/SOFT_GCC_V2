@@ -11,6 +11,7 @@ using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Entities.wish_evolution;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using soft_carriere_competence.Core.Entities;
 
 namespace soft_carriere_competence.Infrastructure.Data
 {
@@ -82,6 +83,8 @@ namespace soft_carriere_competence.Infrastructure.Data
 		public DbSet<EvaluationSupervisors> EvaluationSupervisors { get; set; }
 		public DbSet<Permission> Permissions { get; set; }
 		public DbSet<RolePermission> rolePermissions { get; set; }
+		public DbSet<Module> Modules { get; set; }
+		public DbSet<RoleModule> RoleModules { get; set; }
 		public DbSet<CompetenceLine> competenceLines { get; set; }
 		public DbSet<CompetenceTraining> competenceTrainings { get; set; }
 		public DbSet<EvaluationSelectedQuestions> evaluationSelectedQuestions { get; set; }
@@ -95,6 +98,7 @@ namespace soft_carriere_competence.Infrastructure.Data
 		public DbSet<TemporaryAccount> temporaryAccounts { get; set; }
 		public DbSet<LoginAttempt> loginAttempts { get; set; }
 		public DbSet<EvaluationQuestionConfig> evaluationQuestionConfigs { get; set; }
+		public DbSet<SyncLog> SyncLogs { get; set; }
 
 		public DbSet<EvaluationStatusLog> EvaluationStatusLogs { get; set; }
 		public DbSet<EvaluationDelegation> EvaluationDelegations { get; set; }
@@ -135,9 +139,52 @@ namespace soft_carriere_competence.Infrastructure.Data
 		// Licence
 		public DbSet<License> Licenses { get; set; }
 
+		// Notifications
+		public DbSet<Notification> Notifications { get; set; }
+
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
+		// Notification → User relationship
+		modelBuilder.Entity<Notification>()
+			.HasOne(n => n.User)
+			.WithMany()
+			.HasForeignKey(n => n.UserId)
+			.OnDelete(DeleteBehavior.Cascade);
+
+			// Index composite pour les requêtes de notifications non lues
+			modelBuilder.Entity<Notification>()
+				.HasIndex(n => new { n.UserId, n.IsRead });
+
 			base.OnModelCreating(modelBuilder);
+
+			// Module self-referencing relationship (parent → children)
+			modelBuilder.Entity<Module>()
+				.HasOne(m => m.ParentModule)
+				.WithMany(m => m.ChildModules)
+				.HasForeignKey(m => m.ParentModuleId)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			// Permission → Module relationship
+			modelBuilder.Entity<Permission>()
+				.HasOne(p => p.Module)
+				.WithMany(m => m.Permissions)
+				.HasForeignKey(p => p.ModuleId)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			// RoleModule → Role relationship
+			modelBuilder.Entity<RoleModule>()
+				.HasOne(rm => rm.Role)
+				.WithMany()
+				.HasForeignKey(rm => rm.RoleId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			// RoleModule → Module relationship
+			modelBuilder.Entity<RoleModule>()
+				.HasOne(rm => rm.Module)
+				.WithMany(m => m.RoleModules)
+				.HasForeignKey(rm => rm.ModuleId)
+				.OnDelete(DeleteBehavior.Cascade);
+
 			modelBuilder.Entity<CareerPlan>()
 			.ToTable(tb => tb.HasTrigger("trg_AfterInsert_CareerPlan"));
 

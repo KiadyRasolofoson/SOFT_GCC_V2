@@ -1,185 +1,289 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useUser } from '../pages/Authentification/UserContext';
+import { getMyModules } from '../services/ModuleService';
 
+/**
+ * MenuBar dynamique — le menu est construit à partir des modules
+ * retournés par GET /api/Module/my-modules.
+ * Remplace l'ancien menu codé en dur.
+ */
 function MenuBar() {
-  const location = useLocation();
-  const [openMenu, setOpenMenu] = useState(null);
-  const { visibleModules } = useUser();
+    const location = useLocation();
+    const [openMenu, setOpenMenu] = useState(null);
+    const [modules, setModules] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const { visibleModules, myModules, modulesAccessReady } = useUser();
 
-  // Conversion du tableau visibleModules en Set pour des recherches rapides
-  const modules = new Set(visibleModules || []);
+    useEffect(() => {
+        if (!modulesAccessReady) return;
 
-  useEffect(() => {
-    const pathname = location.pathname;
-    if (pathname.startsWith('/soft-gcc/carrieres') || pathname.startsWith('/soft-gcc/retraite') || pathname.startsWith('/soft-gcc/souhaits-evolution')) {
-      setOpenMenu('carriere');
-    } else if (pathname.startsWith('/soft-gcc/evaluations/') && !pathname.startsWith('/soft-gcc/evaluations/parametres')) {
-      setOpenMenu('evaluation');
-    } else if (pathname.startsWith('/soft-gcc/parametres') || pathname.startsWith('/soft-gcc/evaluations/parametres')) {
-      setOpenMenu('param');
-    } else {
-      setOpenMenu(null);
-    }
-  }, [location.pathname]);
+        // Réutilise le cache UserContext (évite un 2e fetch)
+        if (myModules && myModules.length > 0) {
+            setModules(myModules);
+            setLoading(false);
+            return;
+        }
 
-  const toggleMenu = (menu) => {
-    setOpenMenu(prev => (prev === menu ? null : menu));
-  };
+        const fetchModules = async () => {
+            try {
+                setLoading(true);
+                const data = await getMyModules();
+                if (!data || data.length === 0) {
+                    console.warn('MenuBar: API modules vide, fallback sur visibleModules');
+                    setModules(buildFallbackMenu(visibleModules || []));
+                } else {
+                    setModules(data);
+                }
+            } catch (err) {
+                console.warn('MenuBar: erreur API, fallback sur visibleModules');
+                setModules(buildFallbackMenu(visibleModules || []));
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchModules();
+    }, [visibleModules, myModules, modulesAccessReady]);
 
-  const isActive = (path) => location.pathname.startsWith(path);
+    useEffect(() => {
+        const pathname = location.pathname;
+        let matched = null;
+        for (const mod of modules) {
+            if (mod.route && pathname.startsWith(mod.route.split('?')[0])) {
+                matched = mod.name;
+                break;
+            }
+            if (mod.childModules) {
+                for (const child of mod.childModules) {
+                    if (child.route && pathname.startsWith(child.route.split('?')[0])) {
+                        matched = mod.name;
+                        break;
+                    }
+                }
+                if (matched) break;
+            }
+        }
+        setOpenMenu(matched);
+    }, [location.pathname, modules]);
 
-  return (
-    <nav className="sidebar sidebar-offcanvas" id="sidebar" style={{ paddingTop: '30px' }}>
-      <ul className="nav">
-        {/* Dashboard — visible pour tous les utilisateurs authentifiés */}
-        <li className="nav-item">
-          <Link className={`nav-link ${isActive('/soft-gcc/tableau-de-bord') ? 'active-menu' : ''}`} to="/soft-gcc/tableau-de-bord">
-            <span className="icon-bg"><i className="mdi mdi-view-grid menu-icon"></i></span>
-            <span className="menu-title">Analyse statistiques</span>
-          </Link>
-        </li>
+    // Largeur du menu adaptée au texte le plus long
+    useEffect(() => {
+        if (loading) return;
 
-        {/* Compétences */}
-        {modules.has('competences') && (
-        <li className="nav-item">
-          <Link className={`nav-link ${isActive('/soft-gcc/competences') ? 'active-menu' : ''}`} to="/soft-gcc/competences">
-            <span className="icon-bg"><i className="mdi mdi-school menu-icon"></i></span>
-            <span className="menu-title">Compétences</span>
-          </Link>
-        </li>
-        )}
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
 
-        {/* Carrières */}
-        {modules.has('carrieres') && (
-        <li className="nav-item">
-          <div
-            className={`nav-link ${openMenu === 'carriere' ? 'active-menu' : ''}`}
-            onClick={() => toggleMenu('carriere')}
-            style={{ cursor: 'pointer' }}
-          >
-            <span className="icon-bg"><i className="mdi mdi-crosshairs-gps menu-icon"></i></span>
-            <span className="menu-title">Carrières</span>
-            <i className={`menu-arrow ${openMenu === 'carriere' ? 'rotate-90' : ''}`}></i>
-          </div>
-          {openMenu === 'carriere' && (
-            <ul className="nav flex-column sub-menu">
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/carrieres') ? 'active-menu' : ''}`} to="/soft-gcc/carrieres" onClick={() => setOpenMenu(null)}>Plan de carrière</Link>
-              </li>
-              {modules.has('retraite') && (
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/retraite') ? 'active-menu' : ''}`} to="/soft-gcc/retraite" onClick={() => setOpenMenu(null)}>Départ à la retraite</Link>
-              </li>
-              )}
-              {modules.has('souhaits') && (
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/souhaits-evolution') ? 'active-menu' : ''}`} to="/soft-gcc/souhaits-evolution" onClick={() => setOpenMenu(null)}>Évolution de carrière</Link>
-              </li>
-              )}
+        const MIN_WIDTH = 258;
+        const MAX_WIDTH = 400;
+        let cancelled = false;
+        let outerFrame = 0;
+        let innerFrame = 0;
+
+        const updateSidebarWidth = () => {
+            if (cancelled || document.body.classList.contains('sidebar-icon-only')) return;
+
+            const subMenus = Array.from(sidebar.querySelectorAll('.sub-menu'));
+            const previousVisibility = subMenus.map((el) => ({
+                el,
+                className: el.className,
+            }));
+
+            // Afficher temporairement tous les sous-menus pour mesurer le texte le plus long
+            subMenus.forEach((el) => {
+                el.classList.remove('d-none');
+                el.classList.add('d-block');
+            });
+
+            const previousWidth = sidebar.style.width;
+            const previousOverflow = sidebar.style.overflow;
+            sidebar.style.width = 'max-content';
+            sidebar.style.overflow = 'visible';
+
+            const measured = Math.ceil(sidebar.getBoundingClientRect().width);
+
+            sidebar.style.width = previousWidth;
+            sidebar.style.overflow = previousOverflow;
+            previousVisibility.forEach(({ el, className }) => {
+                el.className = className;
+            });
+
+            const nextWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, measured + 12));
+            document.documentElement.style.setProperty('--sidebar-width', `${nextWidth}px`);
+        };
+
+        outerFrame = requestAnimationFrame(() => {
+            innerFrame = requestAnimationFrame(updateSidebarWidth);
+        });
+
+        return () => {
+            cancelled = true;
+            cancelAnimationFrame(outerFrame);
+            cancelAnimationFrame(innerFrame);
+        };
+    }, [loading, modules]);
+
+    // Nettoyage de la variable CSS au démontage uniquement
+    useEffect(() => {
+        return () => {
+            document.documentElement.style.removeProperty('--sidebar-width');
+        };
+    }, []);
+
+    const toggleMenu = (menuName) => {
+        setOpenMenu(prev => (prev === menuName ? null : menuName));
+    };
+
+    const isActive = (path) => {
+        if (!path) return false;
+        return location.pathname.startsWith(path.split('?')[0]);
+    };
+
+    const renderIcon = (iconClass) => {
+        if (!iconClass) return null;
+        return <span className="icon-bg"><i className={`${iconClass} menu-icon`}></i></span>;
+    };
+
+    const renderSubMenu = (children, parentName) => {
+        if (!children || children.length === 0) return null;
+        const isOpen = openMenu === parentName;
+        return (
+            <ul className={`nav flex-column sub-menu ${isOpen ? 'd-block' : 'd-none'}`}>
+                {children.map(child => (
+                    <li key={child.moduleId} className="nav-item">
+                        <Link
+                            className={`nav-link ${isActive(child.route) ? 'active-menu' : ''}`}
+                            to={child.route || '#'}
+                        >
+                            {child.displayName}
+                        </Link>
+                    </li>
+                ))}
             </ul>
-          )}
-        </li>
-        )}
+        );
+    };
 
-        {/* Évaluations */}
-        {modules.has('evaluations') && (
-        <li className="nav-item">
-          <div className={`nav-link ${openMenu === 'evaluation' ? 'active-menu' : ''}`} onClick={() => toggleMenu('evaluation')} style={{ cursor: 'pointer' }}>
-            <span className="icon-bg"><i className="mdi mdi-lock menu-icon"></i></span>
-            <span className="menu-title">Évaluations</span>
-            <i className={`menu-arrow ${openMenu === 'evaluation' ? 'rotate-90' : ''}`}></i>
-          </div>
-          {openMenu === 'evaluation' && (
-            <ul className="nav flex-column sub-menu">
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/liste') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/liste" onClick={() => setOpenMenu(null)}>Notation d'évaluation</Link>
-              </li>
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/planning') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/planning" onClick={() => setOpenMenu(null)}>Planning d'évaluations</Link>
-              </li>
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/accueil') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/accueil" onClick={() => setOpenMenu(null)}>Entretien d'évaluations</Link>
-              </li>
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/historique') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/historique" onClick={() => setOpenMenu(null)}>Historique d'évaluations</Link>
-              </li>
-            </ul>
-          )}
-        </li>
-        )}
+    const renderModule = (mod) => {
+        const hasChildren = mod.childModules && mod.childModules.length > 0;
+        const isOpen = openMenu === mod.name;
 
-        {/* Organigramme et effectif */}
-        {modules.has('organigramme') && (
-        <li className="nav-item">
-          <Link className={`nav-link ${isActive('/soft-gcc/effectifs') ? 'active-menu' : ''}`} to="/soft-gcc/effectifs">
-            <span className="icon-bg"><i className="mdi mdi-sitemap menu-icon"></i></span>
-            <span className="menu-title">Organigramme et effectif</span>
-          </Link>
-        </li>
-        )}
+        if (hasChildren) {
+            return (
+                <li key={mod.moduleId} className="nav-item">
+                    <div
+                        className={`nav-link ${isOpen || isActive(mod.route) ? 'active-menu' : ''}`}
+                        onClick={() => toggleMenu(mod.name)}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        {renderIcon(mod.icon)}
+                        <span className="menu-title">{mod.displayName}</span>
+                        <i className={`menu-arrow ${isOpen ? 'rotate-90' : ''}`}></i>
+                    </div>
+                    {renderSubMenu(mod.childModules, mod.name)}
+                </li>
+            );
+        }
 
-        {/* Historiques des activités */}
-        {modules.has('historique') && (
-        <li className="nav-item">
-          <Link className={`nav-link ${isActive('/soft-gcc/historique') ? 'active-menu' : ''}`} to="/soft-gcc/historique">
-            <span className="icon-bg"><i className="mdi mdi-history menu-icon"></i></span>
-            <span className="menu-title">Historiques des activités</span>
-          </Link>
-        </li>
-        )}
+        return (
+            <li key={mod.moduleId} className="nav-item">
+                <Link
+                    className={`nav-link ${isActive(mod.route) ? 'active-menu' : ''}`}
+                    to={mod.route || '#'}
+                >
+                    {renderIcon(mod.icon)}
+                    <span className="menu-title">{mod.displayName}</span>
+                </Link>
+            </li>
+        );
+    };
 
-        {/* Paramètres (admin seulement) */}
-        {modules.has('parametrage') && (
-        <li className="nav-item">
-          <div className={`nav-link ${openMenu === 'param' ? 'active-menu' : ''}`} onClick={() => toggleMenu('param')} style={{ cursor: 'pointer' }}>
-            <span className="icon-bg"><i className="mdi mdi-settings menu-icon"></i></span>
-            <span className="menu-title">Paramètres</span>
-            <i className={`menu-arrow ${openMenu === 'param' ? 'rotate-90' : ''}`}></i>
-          </div>
-          {openMenu === 'param' && (
-            <ul className="nav flex-column sub-menu">
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/parametres/competences') ? 'active-menu' : ''}`} to="/soft-gcc/parametres/competences" onClick={() => setOpenMenu(null)}>Gestion Compétences</Link>
-              </li>
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/parametres/carrieres') ? 'active-menu' : ''}`} to="/soft-gcc/parametres/carrieres" onClick={() => setOpenMenu(null)}>Gestion Carrières</Link>
-              </li>
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/parametres/employes/liste') ? 'active-menu' : ''}`} to="/soft-gcc/parametres/employes/liste" onClick={() => setOpenMenu(null)}>Gestion employés</Link>
-              </li>
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/evaluations/parametres') ? 'active-menu' : ''}`} to="/soft-gcc/evaluations/parametres" onClick={() => setOpenMenu(null)}>Gestion des évaluations</Link>
-              </li>
-              <li className="nav-item">
-                <Link className={`nav-link ${isActive('/soft-gcc/parametres/utilisateurs') ? 'active-menu' : ''}`} to="/soft-gcc/parametres/utilisateurs" onClick={() => setOpenMenu(null)}>Gestion des utilisateurs</Link>
-              </li>
-            </ul>
-          )}
-        </li>
-        )}
-
-        {/* Attestations */}
-        {modules.has('attestations') && (
-        <li className="nav-item">
-          <Link className={`nav-link ${isActive('/soft-gcc/attestations') ? 'active-menu' : ''}`} to="/soft-gcc/attestations/modeles">
-            <span className="icon-bg"><i className="mdi mdi-certificate menu-icon"></i></span>
-            <span className="menu-title">Attestations</span>
-          </Link>
-        </li>
-        )}
-
+    const renderLogout = () => (
         <li className="nav-item sidebar-user-actions">
-          <div className="sidebar-user-menu">
-            <a href="#" className="nav-link">
-              <i className="mdi mdi-logout menu-icon"></i>
-              <span className="menu-title">Déconnexion</span>
-            </a>
-          </div>
+            <div className="sidebar-user-menu">
+                <a href="#" className="nav-link" onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('userProfile');
+                    window.location.href = '/login';
+                }}>
+                    <i className="mdi mdi-logout menu-icon"></i>
+                    <span className="menu-title">Déconnexion</span>
+                </a>
+            </div>
         </li>
-      </ul>
-    </nav>
-  );
+    );
+
+    return (
+        <nav className="sidebar sidebar-offcanvas" id="sidebar" style={{ paddingTop: '30px' }}>
+            {loading ? (
+                <div className="text-center py-4">
+                    <div className="spinner-border spinner-border-sm text-light" role="status" />
+                </div>
+            ) : (
+                <ul className="nav">
+                    {modules
+                        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+                        .map(mod => renderModule(mod))}
+                    {renderLogout()}
+                </ul>
+            )}
+        </nav>
+    );
 }
 
 export default MenuBar;
+
+/**
+ * Construit le menu de fallback complet (identique à l'ancien menu statique).
+ * Utilisé uniquement quand les tables Modules/Role_Modules n'existent pas encore.
+ */
+function buildFallbackMenu(visibleModules) {
+    const modules = new Set(visibleModules);
+
+    const menu = [
+        // 1. Dashboard
+        { moduleId: 'dashboard', name: 'dashboard', displayName: 'Analyse statistiques', icon: 'mdi mdi-view-grid', route: '/soft-gcc/tableau-de-bord', sortOrder: 1, childModules: [] },
+
+        // 2. Compétences
+        { moduleId: 'competences', name: 'competences', displayName: 'Compétences', icon: 'mdi mdi-school', route: '/soft-gcc/competences', sortOrder: 2, childModules: [
+            { moduleId: 'competences_profil', name: 'competences_profil', displayName: 'Profil des compétences', route: '/soft-gcc/competences' },
+            { moduleId: 'competences_bulletin', name: 'competences_bulletin', displayName: 'Bulletin de compétences', route: '/soft-gcc/evaluations/bulletin' }
+        ]},
+
+        // 3. Carrières (inclut Retraite + Souhaits)
+        { moduleId: 'carrieres', name: 'carrieres', displayName: 'Carrières', icon: 'mdi mdi-crosshairs-gps', route: '/soft-gcc/carrieres', sortOrder: 3, childModules: [
+            { moduleId: 'carrieres_plan', name: 'carrieres_plan', displayName: 'Plan de carrière', route: '/soft-gcc/carrieres' },
+            ...(modules.has('retraite') ? [{ moduleId: 'retraite', name: 'retraite', displayName: 'Départ à la retraite', route: '/soft-gcc/retraite' }] : []),
+            ...(modules.has('souhaits') ? [{ moduleId: 'souhaits', name: 'souhaits', displayName: 'Évolution de carrière', route: '/soft-gcc/souhaits-evolution' }] : [])
+        ]},
+
+        // 4. Évaluations
+        { moduleId: 'evaluations', name: 'evaluations', displayName: 'Évaluations', icon: 'mdi mdi-clipboard-check', route: '/soft-gcc/evaluations/liste', sortOrder: 4, childModules: [
+            { moduleId: 'eval_notation', name: 'eval_notation', displayName: "Notation d'évaluation", route: '/soft-gcc/evaluations/liste' },
+            { moduleId: 'eval_planning', name: 'eval_planning', displayName: "Planning d'évaluations", route: '/soft-gcc/evaluations/planning' },
+            { moduleId: 'eval_entretien', name: 'eval_entretien', displayName: "Entretien d'évaluations", route: '/soft-gcc/evaluations/accueil' },
+            { moduleId: 'eval_historique', name: 'eval_historique', displayName: "Historique d'évaluations", route: '/soft-gcc/evaluations/historique' },
+            { moduleId: 'eval_objectifs', name: 'eval_objectifs', displayName: 'Récap objectifs', route: '/soft-gcc/evaluations/objectifs' }
+        ]},
+
+        // 5. Organigramme
+        { moduleId: 'organigramme', name: 'organigramme', displayName: 'Organigramme et effectif', icon: 'mdi mdi-sitemap', route: '/soft-gcc/effectifs', sortOrder: 5, childModules: [] },
+
+        // 6. Historique
+        { moduleId: 'historique', name: 'historique', displayName: 'Historiques des activités', icon: 'mdi mdi-history', route: '/soft-gcc/historique', sortOrder: 6, childModules: [] },
+
+        // 7. Paramètres
+        { moduleId: 'parametrage', name: 'parametrage', displayName: 'Paramètres', icon: 'mdi mdi-settings', route: '/soft-gcc/parametres', sortOrder: 7, childModules: [
+            { moduleId: 'param_competences', name: 'param_competences', displayName: 'Gestion Compétences', route: '/soft-gcc/parametres/competences' },
+            { moduleId: 'param_carrieres', name: 'param_carrieres', displayName: 'Gestion Carrières', route: '/soft-gcc/parametres/carrieres' },
+            { moduleId: 'param_employes', name: 'param_employes', displayName: 'Gestion employés', route: '/soft-gcc/parametres/employes/liste' },
+            { moduleId: 'param_evaluations', name: 'param_evaluations', displayName: 'Gestion des évaluations', route: '/soft-gcc/evaluations/parametres' },
+            { moduleId: 'param_utilisateurs', name: 'param_utilisateurs', displayName: 'Gestion des utilisateurs', route: '/soft-gcc/parametres/utilisateurs' },
+            { moduleId: 'param_synchronisation', name: 'param_synchronisation', displayName: 'Synchro. Employés (T_SAL)', route: '/soft-gcc/parametres/synchronisation' }
+        ]},
+
+        // 8. Attestations
+        { moduleId: 'attestations', name: 'attestations', displayName: 'Attestations', icon: 'mdi mdi-certificate', route: '/soft-gcc/attestations', sortOrder: 8, childModules: [] }
+    ];
+
+    // Filtrer par visibleModules
+    return menu.filter(m => modules.has(m.name));
+}

@@ -8,6 +8,8 @@
   -moz-transition:background $action-transition-duration $action-transition-timing-function;
   -ms-transition:background $action-transition-duration $action-transition-timing-function;
   font-family: $type1-medium;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.04); // added modern shadow
+  border-bottom: 1px solid rgba(0,0,0,0.02);
 
   .navbar-brand {
     width: 110px;
@@ -21,6 +23,8 @@
     // background: #ffcc00 !important;
     width: $sidebar-width-lg;
     height: $navbar-height;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1); // shadow for the brand wrapper
+    z-index: 12; // ensure shadow is visible
     @media (max-width: 991px) {
       width: 55px;
     }
@@ -76,9 +80,17 @@
       border: 0;
       color: $nvabar-toggler-color;
       height: $navbar-height;
-      @include border-radius(0px);
-      padding-left: 5px;
-      padding-right: 20px;
+      border-radius: 8px;
+      padding: 0.5rem;
+      margin: 0 10px;
+      transition: background 0.3s ease, color 0.3s ease;
+      &:hover {
+        background: rgba(0, 0, 0, 0.04);
+        color: #333;
+      }
+      &:focus {
+        outline: none;
+      }
       &:not(.navbar-toggler-right) {
         font-size: .875rem;
         @media (max-width: 991px) {
@@ -98,22 +110,35 @@
       .input-group {
         background: $navbar-search-bg;
         width: 305px;
+        border-radius: 50px; // rounded search bar
+        padding: 0 10px;
+        transition: box-shadow 0.3s ease;
+        &:focus-within {
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
         input {
           font-size: $default-font-size;
           padding: .5rem;
+          background: transparent;
+          border: none;
           @include input-placeholder {
             font-size: $navbar-font-size;
             color: $navbar-menu-color;
             font-family: $type1-regular;
           }
+          &:focus {
+            outline: none;
+            box-shadow: none;
+          }
         }
         i {
-          font-size: 14px;
+          font-size: 16px;
           margin-right: 0;
           color: $nvabar-search-icon-color;
         }
         .input-group-text {
           background: transparent;
+          border: none;
         }
       }
       .rtl & {
@@ -207,14 +232,16 @@
           .dropdown-menu { 
             @extend .dropdownAnimation;
             border: none;
-            -webkit-box-shadow: 0px 3px 21px 0px rgba(0, 0, 0, 0.2);
-            -moz-box-shadow: 0px 3px 21px 0px rgba(0, 0, 0, 0.2);
-            box-shadow: 0px 3px 21px 0px rgba(0, 0, 0, 0.2);
-            min-width: 220px;;
+            border-radius: 12px; // rounded corners
+            -webkit-box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+            -moz-box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+            box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+            min-width: 220px;
+            overflow: hidden; // for rounded corners
             &.navbar-dropdown {
               position: absolute;            
               font-size: 0.9rem;
-              margin-top: 0;
+              margin-top: 10px; // space from navbar
               .rtl & {
                 right: auto;
                 left: 0;
@@ -225,12 +252,16 @@
                 @extend .d-flex;
                 @extend .align-items-center;
                 margin-bottom: 0;
-                padding: 11px 13px;
+                padding: 12px 20px; // better padding
                 cursor: pointer;
                 color: $nav-dropdown-color;
                 font-size: .875rem;
                 font-style: normal;
                 font-family: $type1-medium;
+                transition: background 0.2s ease;
+                &:hover {
+                  background: rgba(0, 0, 0, 0.04);
+                }
                 .badge {
                   padding: 2px 6px;
                   font-size: 10px;
@@ -279,14 +310,21 @@
         &.nav-profile {
           .nav-link {
             @extend .d-flex;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            transition: background 0.3s ease;
+            &:hover {
+              background: rgba(0, 0, 0, 0.03);
+            }
             .nav-profile-img {
               position: relative;
-              width: 32px;
-              height: 32px;
+              width: 36px; // slightly larger
+              height: 36px;
               img {
-                width: 32px;
-                height: 32px;
+                width: 36px;
+                height: 36px;
                 border-radius: 100%;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
               }
             }
             .nav-profile-text {
@@ -297,6 +335,8 @@
               }
               p {
                 line-height: 1;
+                font-weight: 600;
+                color: #333;
               }
               @media (max-width: 767px) {
                 display: none;
@@ -305,6 +345,7 @@
             &.dropdown-toggle {
               &:after {
                 line-height: 2;
+                margin-left: 0.5rem;
               }
             }
           }

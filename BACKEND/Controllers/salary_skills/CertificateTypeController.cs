@@ -4,10 +4,13 @@ using soft_carriere_competence.Application.Services.crud_career;
 using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.salary_skills
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[RequirePermission("VIEW_CAREER_SETTINGS","MANAGE_CAREER_SETTINGS","VIEW_CERTIFICATES")]
 	public class CertificateTypeController : ControllerBase
 	{
 		private readonly ICertificateTypeService _certificateTypeService;

@@ -1,16 +1,15 @@
 import React from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import Template from '../pages/Template';
 import SalaryList from '../pages/Evaluations/Notations/SalaryList';
 import Notation from '../pages/Evaluations/Notations/Notation';
 import ListSkillSalaryPage from '../pages/salarySkills/ListSkillSalaryPage';
-import SalaryProfilePage from '../pages/salarySkills/SalaryProfilePage';
 import SalaryListPlanning from '../pages/Evaluations/planning/SalaryListPlanning';
 import ListSalaryPage from '../pages/career/careerPlan/ListCareerPage';
 import CreationCareerPlan from '../pages/career/careerPlan/CreationCareerPlan';
-import CareerProfilePage from '../pages/career/careerPlan/CareerProfilePage';
 import EditAffectation from '../pages/career/careerPlan/EditAffectation';
 import DetailAssignment from '../pages/career/careerPlan/DetailAssignment';
+import EmployeeFichePage from '../pages/employee/EmployeeFichePage';
 import EvalHistory from '../pages/Evaluations/History/EvalHistory';
 import EvaluationInterviews from '../pages/Evaluations/EvaluationInterview/EvaluationInterviews';
 import EvaluationDetails from '../pages/Evaluations/EvaluationInterview/EvaluationDetails';
@@ -33,6 +32,7 @@ import UploadImage from '../pages/settings/UploadImage';
 import CreateEmployeePage from '../pages/settings/employeeManagement/CreateEmployeePage';
 import ListEmployeePage from '../pages/settings/employeeManagement/ListEmployeePage';
 import EvaluationInterviewHome from '../pages/Evaluations/EvaluationInterview/EvaluationInterviewHome';
+import ObjectivesSummary from '../pages/Evaluations/EvaluationInterview/ObjectivesSummary';
 import ProtectedRoute from '../pages/Authentification/ProtectedRoute';
 import Evaluations from '../pages/settings/evaluations/Evaluations';
 import QuestionEvaluation from '../pages/settings/evaluations/Questionnaires/QuestionEvaluation';
@@ -47,10 +47,19 @@ import UserManagement from '../pages/settings/UserManagement/UserManagement';
 import UsersList from '../pages/settings/UserManagement/UsersList';
 import RolesManagement from '../pages/settings/UserManagement/RolesManagement';
 import PermissionsManagement from '../pages/settings/UserManagement/PermissionsManagement';
+import AdminAccessManagement from '../pages/settings/UserManagement/AdminAccessManagement';
 import Unauthorized from '../pages/Authentification/Unauthorized';
 import EvaluationNotation from '../pages/Evaluations/Notations/EvaluationNotation';
 import VerifyAttestationPage from '../pages/certificateManagement/VerifyAttestationPage';
 import EvaluationTypesSettings from '../pages/settings/evaluations/EvaluationTypesSettings';
+import BulletinCompetencesPage from '../pages/Evaluations/Bulletin/BulletinCompetencesPage';
+import EmployeeSyncPage from '../pages/settings/EmployeeSyncPage';
+
+function RedirectToEmployeeFiche({ espace }) {
+  const params = useParams();
+  const key = params.employeeId || params.registrationNumber;
+  return <Navigate to={`/soft-gcc/employes/fiche/${key}?espace=${espace}`} replace />;
+}
 
 function AppRouter() {
   return (
@@ -71,16 +80,25 @@ function AppRouter() {
         {/* Dashboard */}
         <Route path="/soft-gcc/tableau-de-bord" element={<DashboardPage />} />
 
+        {/* Fiche employé unifiée */}
+        <Route path="/soft-gcc/employes/fiche/:employeeKey" element={<EmployeeFichePage />} />
+
         {/* Compétences */}
         <Route path="/soft-gcc/competences" element={<ListSkillSalaryPage />} />
-        <Route path="/soft-gcc/competences/profil/:employeeId" element={<SalaryProfilePage />} />
+        <Route
+          path="/soft-gcc/competences/profil/:employeeId"
+          element={<RedirectToEmployeeFiche espace="competences" />}
+        />
 
         {/* Carrières */}
         <Route path="/soft-gcc/carrieres" element={<ListSalaryPage />} />
         <Route path="/soft-gcc/carrieres/creation" element={<CreationCareerPlan />} />
-        <Route path="/soft-gcc/carrieres/fiche/:registrationNumber" element={<CareerProfilePage />} />
         <Route path="/soft-gcc/carrieres/fiche/modifier/:careerPlanId" element={<EditAffectation />} />
         <Route path="/soft-gcc/carrieres/fiche/detail/:careerPlanId" element={<DetailAssignment />} />
+        <Route
+          path="/soft-gcc/carrieres/fiche/:registrationNumber"
+          element={<RedirectToEmployeeFiche espace="carrieres" />}
+        />
 
         {/* Retraite */}
         <Route path="/soft-gcc/retraite" element={<RetirementPage />} />
@@ -106,6 +124,7 @@ function AppRouter() {
         <Route path="/soft-gcc/evaluations/historique" element={<EvalHistory />} />
         <Route path="/soft-gcc/evaluations/entretiens" element={<EvaluationInterviews />} />
         <Route path="/soft-gcc/evaluations/accueil" element={<EvaluationInterviewHome />} />
+        <Route path="/soft-gcc/evaluations/objectifs" element={<ObjectivesSummary />} />
         <Route path="/soft-gcc/evaluations/details" element={<EvaluationDetails />} />
         <Route path="/soft-gcc/evaluations/details/:interviewId" element={<EvaluationDetails />} />
         <Route path="/soft-gcc/evaluations/notation/employe/:employeeId" element={<EvaluationNotation />} />
@@ -126,6 +145,10 @@ function AppRouter() {
         <Route path="/soft-gcc/parametres/utilisateurs/liste" element={<UsersList />} />
         <Route path="/soft-gcc/parametres/utilisateurs/roles" element={<RolesManagement />} />
         <Route path="/soft-gcc/parametres/utilisateurs/permissions" element={<PermissionsManagement />} />
+        <Route path="/soft-gcc/parametres/utilisateurs/administration" element={<AdminAccessManagement />} />
+
+        {/* Paramètres - Synchro employés */}
+        <Route path="/soft-gcc/parametres/synchronisation" element={<EmployeeSyncPage />} />
 
         {/* Paramètres - Évaluations */}
         <Route path="/soft-gcc/evaluations/parametres" element={<Evaluations />} />
@@ -133,6 +156,7 @@ function AppRouter() {
         <Route path="/soft-gcc/evaluations/parametres/formations" element={<FormationSuggestions />} />
         <Route path="/soft-gcc/evaluations/parametres/administration" element={<AdminSettings />} />
         <Route path="/soft-gcc/evaluations/parametres/types" element={<EvaluationTypesSettings />} />
+        <Route path="/soft-gcc/evaluations/bulletin" element={<BulletinCompetencesPage />} />
 
         {/* Attestations */}
         <Route path="/soft-gcc/attestations" element={<ModelList />} />

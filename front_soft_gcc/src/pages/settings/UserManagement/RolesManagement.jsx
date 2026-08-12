@@ -49,7 +49,7 @@ function RolesManagement() {
     }, []);
 
     // Vérification des permissions après les useEffect
-    if (!hasPermission('MANAGE_ROLES')) {
+    if (!hasPermission('MANAGE_ROLES') && !hasPermission('MANAGE_PERMISSIONS')) {
         return (
             <Template>
                 <div className="container mt-4">

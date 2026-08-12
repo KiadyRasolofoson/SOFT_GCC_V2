@@ -40,6 +40,20 @@ namespace soft_carriere_competence.Application.Services.salary_skills
 
 		public async Task Add(Employee employee, byte[]? photo)
 		{
+			var registrationNumber = employee.RegistrationNumber?.Trim();
+			if (string.IsNullOrWhiteSpace(registrationNumber))
+			{
+				throw new ArgumentException("Le numéro de matricule est requis.", nameof(employee));
+			}
+
+			employee.RegistrationNumber = registrationNumber;
+
+			var existingEmployee = await _repository.GetFirstOrDefaultAsync(e => e.RegistrationNumber == registrationNumber);
+			if (existingEmployee != null)
+			{
+				throw new InvalidOperationException($"Le matricule {registrationNumber} existe déjà.");
+			}
+
 			if (photo != null)
 			{
 				employee.Photo = photo;

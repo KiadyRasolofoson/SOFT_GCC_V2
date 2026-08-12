@@ -8,11 +8,13 @@ using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
 namespace soft_carriere_competence.Controllers.salary_skills
 {
 	[Route("api/[controller]")]
 	[ApiController]
 	[Authorize]
+	[RequirePermission("VIEW_SKILLS_PROFILES","EDIT_SKILLS_PROFILES","MANAGE_SKILLS_PROFILES")]
 	public class EmployeeOtherFormationController : ControllerBase
 	{
 		private readonly IEmployeeOtherFormationService _employeeOtherFormationService;

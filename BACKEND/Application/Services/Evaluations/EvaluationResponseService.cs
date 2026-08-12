@@ -1,13 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Application.Dtos.EvaluationsDto;
-using soft_carriere_competence.Controllers.Evaluations;
+using soft_carriere_competence.Application.Interfaces;
 using soft_carriere_competence.Core.Entities.Evaluations;
+using soft_carriere_competence.Core.Exceptions;
 using soft_carriere_competence.Core.Interface;
 using soft_carriere_competence.Core.Interface.DataService;
 
 namespace soft_carriere_competence.Application.Services.Evaluations
 {
-    public class EvaluationResponseService
+    public class EvaluationResponseService : IEvaluationResponseService
     {
         private readonly IEvaluationDataService _dataService;
         private readonly IGenericRepository<EvaluationResponses> _responseRepository;
@@ -91,11 +92,18 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             };
         }
 
+        public async Task<EvaluationResponses> GetRequiredResponseAsync(int evaluationId, int questionId)
+        {
+            return await GetResponseAsync(evaluationId, questionId)
+                   ?? throw new NotFoundException(
+                       $"Aucune réponse enregistrée pour la question {questionId} de l'évaluation {evaluationId}.");
+        }
+
         public async Task<bool> UpdateResponseAsync(int responseId, EvaluationResponseDto responseDto)
         {
             var response = await _responseRepository.GetByIdAsync(responseId);
             if (response == null)
-                throw new Exception($"Réponse avec l'ID {responseId} non trouvée");
+                throw new NotFoundException("Réponse", responseId);
 
             response.ResponseType = responseDto.ResponseType;
             response.ResponseValue = responseDto.ResponseValue;
@@ -264,7 +272,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             return false;
         }
 
-        public async Task<bool> ProcessResponsesAfterSubmission(int evaluationId)
+        public async Task<bool> ProcessResponsesAfterSubmissionAsync(int evaluationId)
         {
             try
             {

@@ -140,7 +140,7 @@ const SUGGESTIONS = {
   auth:
     "Votre session a peut-être expiré. Veuillez vous reconnecter.",
   forbidden:
-    "Vous n'avez pas les droits nécessaires pour effectuer cette action. Contactez votre administrateur si vous pensez que c'est une erreur.",
+    "Cette action est réservée à certains profils. Demandez à votre administrateur d'ajuster vos permissions dans Administration des accès.",
   notFound:
     "L'élément demandé est introuvable. Il a peut-être été supprimé ou déplacé.",
   server:
@@ -159,6 +159,24 @@ const SUGGESTIONS = {
     "Une erreur inattendue est survenue. Si le problème persiste, contactez le support technique.",
 };
 
+/** Message générique lisible pour une permission refusée (403). */
+export const PERMISSION_DENIED_MESSAGE =
+  "Vous n'avez pas les droits nécessaires pour effectuer cette action. Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.";
+
+export const PERMISSION_DENIED_TITLE = "Permission refusée";
+
+/**
+ * Extrait un message utilisateur pour une erreur 403 liée aux permissions.
+ */
+export function getPermissionDeniedMessage(errorOrData) {
+  const data = errorOrData?.response?.data ?? errorOrData;
+  if (data && typeof data === "object") {
+    if (data.error === "permission_denied" && data.message) return data.message;
+    if (typeof data.message === "string" && data.message.trim()) return data.message;
+  }
+  return PERMISSION_DENIED_MESSAGE;
+}
+
 /**
  * Retourne un objet structuré prêt à être affiché à l'utilisateur.
  *
@@ -170,7 +188,14 @@ export function getUserMessage(error, context = "chargement") {
   const parsed = parseError(error);
   const ctx = CONTEXTS[context] || CONTEXTS.chargement;
 
-  const title = ctx.title;
+  // Titre spécifique pour les permissions refusées
+  let title = ctx.title;
+  if (parsed.type === "forbidden") {
+    title = PERMISSION_DENIED_TITLE;
+  } else if (parsed.type === "auth" && context !== "connexion") {
+    title = "Authentification requise";
+  }
+
   let suggestion = SUGGESTIONS[parsed.type] || SUGGESTIONS.unknown;
 
   // Pour le contexte "connexion" avec une erreur auth, le message "session expirée" est trompeur
@@ -194,11 +219,17 @@ export function getUserMessage(error, context = "chargement") {
           ? parsed.message
           : "Identifiant ou mot de passe incorrect. Vérifiez vos informations de connexion.";
       } else {
-        message = `Impossible de ${ctx.verb} ${ctx.noun} car votre session a expiré.`;
+        message = parsed.message && parsed.message.length > 10
+          ? parsed.message
+          : `Impossible de ${ctx.verb} ${ctx.noun} car votre session a expiré. Veuillez vous reconnecter.`;
       }
       break;
     case "forbidden":
-      message = `Vous n'avez pas l'autorisation de ${ctx.verb} ${ctx.noun}.`;
+      message = getPermissionDeniedMessage(error);
+      // Enrichit légèrement avec le contexte d'action
+      if (ctx.verb && ctx.noun && !message.includes(ctx.verb)) {
+        message = `Impossible de ${ctx.verb} ${ctx.noun}. ${message}`;
+      }
       break;
     case "notFound":
       message = `${ctx.noun.charAt(0).toUpperCase() + ctx.noun.slice(1)} introuvable. Il a peut-être été supprimé.`;
@@ -249,4 +280,4 @@ export function getUserMessage(error, context = "chargement") {
   };
 }
 
-export default { parseError, getUserMessage };
+export default { parseError, getUserMessage, getPermissionDeniedMessage, PERMISSION_DENIED_MESSAGE, PERMISSION_DENIED_TITLE };

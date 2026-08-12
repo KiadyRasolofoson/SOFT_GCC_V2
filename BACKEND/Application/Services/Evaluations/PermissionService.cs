@@ -42,6 +42,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             existingPermission.Name = permission.Name;
             existingPermission.Description = permission.Description;
             existingPermission.State = permission.State;
+            existingPermission.ModuleId = permission.ModuleId;
             await _dataService.UpdatePermissionAsync(existingPermission);
             return existingPermission;
         }
@@ -74,13 +75,16 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
         public async Task UpdateRolePermissionsAsync(int roleId, List<int> permissionIds)
         {
-            // Supprimer les anciennes permissions
+            var role = await _dataService.GetRoleByIdAsync(roleId);
+            if (role == null)
+                throw new Exception($"Le rôle avec l'ID {roleId} n'existe pas.");
+
+            // Remplacer entièrement l'affectation
             await _dataService.DeleteRolePermissionsAsync(roleId);
 
-            // Ajouter les nouvelles associations
-            foreach (var permissionId in permissionIds)
+            permissionIds ??= new List<int>();
+            foreach (var permissionId in permissionIds.Distinct())
             {
-                // Vérifier si la permission existe et est active
                 var permission = await _dataService.GetPermissionByIdAsync(permissionId);
                 if (permission == null || permission.State != 1)
                     throw new Exception($"La permission avec l'ID {permissionId} n'existe pas ou n'est pas active.");
@@ -93,30 +97,91 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
         }
 
+        /// <summary>Rôle Admin seed classique (Role_id = 1) — peut différer si les rôles ont été créés dans un autre ordre.</summary>
+        public const int AdminRoleId = 1;
+
+        /// <summary>
+        /// Détecte un rôle Administrateur par titre (fiable) ou par id seed 1.
+        /// Les migrations SQL n'attribuent le plein accès qu'à role_id=1 ; certaines bases
+        /// ont « Admin » sous un autre id (ex. 3).
+        /// </summary>
+        public static bool IsAdminRole(int roleId, string? roleTitle = null)
+        {
+            if (!string.IsNullOrWhiteSpace(roleTitle))
+            {
+                var t = roleTitle.Trim();
+                if (t.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+                    || t.Equals("Administrator", StringComparison.OrdinalIgnoreCase)
+                    || t.Equals("Administrateur", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return roleId == AdminRoleId;
+        }
+
         public async Task<IEnumerable<Permission>> GetUserPermissionsAsync(int userId)
         {
-            // Récupérer l'utilisateur avec son rôle
-            var user = await _userRepository.GetFirstOrDefaultAsync(u => u.Id == userId, u => u.Role);
+            // Ne pas exiger la navigation Role (Include peut être null sans bloquer RoleId)
+            var user = await _userRepository.GetFirstOrDefaultAsync(u => u.Id == userId);
 
-            if (user == null || user.Role == null)
+            if (user == null)
             {
-                Console.WriteLine($"Utilisateur {userId} ou son rôle non trouvé");
                 return new List<Permission>();
             }
 
-            Console.WriteLine($"Récupération des permissions pour l'utilisateur {userId} avec le rôle {user.Role.Title}");
-
-            // Récupérer les permissions associées au rôle de l'utilisateur
             var rolePermissions = await _dataService.GetPermissionsByRoleIdAsync(user.RoleId);
-            var permissions = rolePermissions.Select(rp => rp.Permission).Where(p => p != null).Select(p => p!).ToList();
+            return rolePermissions.Select(rp => rp.Permission).Where(p => p != null).Select(p => p!).ToList();
+        }
 
-            Console.WriteLine($"Nombre de permissions trouvées: {permissions.Count}");
-            foreach (var permission in permissions)
-            {
-                Console.WriteLine($"Permission: {permission.Name}");
-            }
+        /// <summary>
+        /// Vérifie si l'utilisateur possède au moins une des permissions nommées (Role_Permissions).
+        /// </summary>
+        public async Task<bool> UserHasAnyPermissionAsync(int userId, params string[] permissionNames)
+        {
+            if (permissionNames == null || permissionNames.Length == 0)
+                return false;
 
-            return permissions;
+            var user = await _userRepository.GetFirstOrDefaultAsync(u => u.Id == userId, u => u.Role);
+            if (user == null)
+                return false;
+
+            // Admin : accès complet (évite le blocage si le seed Role_Permissions cible le mauvais id)
+            if (IsAdminRole(user.RoleId, user.Role?.Title))
+                return true;
+
+            var permissions = await GetUserPermissionsAsync(userId);
+            var owned = permissions
+                .Select(p => p.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            return permissionNames.Any(n => owned.Contains(n));
+        }
+
+        /// <summary>
+        /// Vérifie si l'utilisateur possède toutes les permissions nommées.
+        /// </summary>
+        public async Task<bool> UserHasAllPermissionsAsync(int userId, params string[] permissionNames)
+        {
+            if (permissionNames == null || permissionNames.Length == 0)
+                return false;
+
+            var user = await _userRepository.GetFirstOrDefaultAsync(u => u.Id == userId, u => u.Role);
+            if (user == null)
+                return false;
+
+            if (IsAdminRole(user.RoleId, user.Role?.Title))
+                return true;
+
+            var permissions = await GetUserPermissionsAsync(userId);
+            var owned = permissions
+                .Select(p => p.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            return permissionNames.All(n => owned.Contains(n));
         }
     }
 } 

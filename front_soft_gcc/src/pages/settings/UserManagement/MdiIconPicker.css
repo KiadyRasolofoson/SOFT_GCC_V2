@@ -1,0 +1,111 @@
+/* MdiIconPicker — grille searchable d'icônes MDI */
+
+.mdi-icon-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.mdi-icon-picker-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.mdi-icon-picker-preview-box {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--admin-bg-light, #f8f9fa);
+  border: 1px solid var(--admin-border-color, #e9ecef);
+  border-radius: var(--admin-radius-sm, 6px);
+  color: var(--admin-primary, #4B49AC);
+}
+
+.mdi-icon-picker-search {
+  position: relative;
+  flex: 1;
+}
+
+.mdi-icon-picker-search .admin-form-control {
+  padding-left: 2rem;
+}
+
+.mdi-icon-picker-search-icon {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--admin-text-muted, #6c757d);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.mdi-icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--admin-bg-light, #f8f9fa);
+  border: 1px solid var(--admin-border-color, #e9ecef);
+  border-radius: var(--admin-radius-sm, 6px);
+}
+
+.mdi-icon-picker-item {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--admin-text-main, #2b2d42);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.mdi-icon-picker-item:hover {
+  border-color: var(--admin-primary, #4B49AC);
+  color: var(--admin-primary, #4B49AC);
+  background: var(--admin-primary-light, rgba(75, 73, 172, 0.08));
+}
+
+.mdi-icon-picker-item.selected {
+  border-color: var(--admin-primary, #4B49AC);
+  background: var(--admin-primary-light, rgba(75, 73, 172, 0.08));
+  color: var(--admin-primary, #4B49AC);
+  box-shadow: inset 0 0 0 1px var(--admin-primary, #4B49AC);
+}
+
+.mdi-icon-picker-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--admin-text-muted, #6c757d);
+  padding: 1rem 0.5rem;
+}
+
+.mdi-icon-picker-custom-toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  background: transparent;
+  color: var(--admin-text-muted, #6c757d);
+  font-size: 0.78rem;
+  padding: 0;
+  cursor: pointer;
+}
+
+.mdi-icon-picker-custom-toggle:hover {
+  color: var(--admin-primary, #4B49AC);
+}

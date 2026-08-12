@@ -1,3 +1,7 @@
+:root {
+  --sidebar-width: 258px;
+}
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -27,6 +31,85 @@ body {
     text-transform: uppercase;
 }
 
+/* Sidebar : largeur dynamique selon le texte du menu */
+.sidebar {
+  width: var(--sidebar-width) !important;
+  transition: width 0.25s ease;
+}
+
+.sidebar .nav .nav-item .nav-link {
+  white-space: nowrap;
+}
+
+.sidebar .nav .nav-item .nav-link .menu-title {
+  white-space: nowrap;
+  word-break: normal;
+}
+
+.sidebar .nav .nav-item .nav-link .icon-bg {
+  min-width: 30px;
+  flex-shrink: 0;
+}
+
+.navbar .navbar-brand-wrapper {
+  width: var(--sidebar-width) !important;
+  transition: width 0.25s ease;
+}
+
+.navbar .navbar-menu-wrapper {
+  width: calc(100% - var(--sidebar-width)) !important;
+  transition: width 0.25s ease;
+}
+
+.main-panel {
+  width: calc(100% - var(--sidebar-width)) !important;
+  transition: width 0.25s ease, margin 0.25s ease;
+}
+
+@media (min-width: 992px) {
+  .sidebar-fixed .main-panel {
+    margin-left: var(--sidebar-width) !important;
+  }
+
+  .sidebar-icon-only .sidebar {
+    width: 70px !important;
+  }
+
+  .sidebar-icon-only .navbar .navbar-brand-wrapper {
+    width: 70px !important;
+  }
+
+  .sidebar-icon-only .navbar .navbar-menu-wrapper {
+    width: calc(100% - 70px) !important;
+  }
+
+  .sidebar-icon-only .main-panel,
+  .sidebar-fixed.sidebar-icon-only .main-panel {
+    width: calc(100% - 70px) !important;
+    margin-left: 70px !important;
+  }
+}
+
+@media screen and (max-width: 991px) {
+  .sidebar-offcanvas {
+    width: var(--sidebar-width) !important;
+    right: calc(-1 * var(--sidebar-width));
+  }
+
+  .sidebar-offcanvas.active {
+    right: 0;
+  }
+
+  .main-panel {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  .navbar .navbar-menu-wrapper {
+    width: auto !important;
+  }
+}
+
 .loader-overlay {
   position: fixed;
   top: 64px;
@@ -42,7 +125,12 @@ body {
 
 @media (min-width: 992px) {
   .loader-overlay {
-    left: 258px;
-    width: calc(100% - 258px);
+    left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+  }
+
+  body.sidebar-icon-only .loader-overlay {
+    left: 70px;
+    width: calc(100% - 70px);
   }
 }

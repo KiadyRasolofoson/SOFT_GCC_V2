@@ -17,6 +17,9 @@ const departmentImages = {
 
 // Fonction pour obtenir le chemin de l'image
 const getDepartmentImage = (departmentName) => {
+    if (!departmentName) {
+        return departmentImages.default;
+    }
     return departmentImages[departmentName.toLowerCase()] || departmentImages.default;
 };
 
@@ -86,7 +89,9 @@ function DepartmentEffective() {
             </div>
 
             <div className="row">
-                {numberEmployeeByDepartment.map((item) => (
+                {numberEmployeeByDepartment.map((item) => {
+                    const departmentName = item.departmentName || 'Département inconnu';
+                    return (
                     <div onClick={() => (handleClickDetails(item.departmentId))} key={item.departmentId} className="col-lg-3 col-md-6 col-sm-12 grid-margin stretch-card">
                         <div className="card department-card">
                             {item.departmentPhoto ? (
@@ -96,17 +101,18 @@ function DepartmentEffective() {
                             ) : (
                                 <img
                                 src={getDepartmentImage(item.departmentName)}
-                                alt={item.departmentName}
+                                alt={departmentName}
                                 className="department-image"
                             />
                             )}
                             <div className="card-body text-center">
-                                <h5 className="department-name">{item.departmentName.toUpperCase()}</h5>
+                                <h5 className="department-name">{departmentName.toUpperCase()}</h5>
                                 <p className="employee-count">{item.nEmployee} employés</p>
                             </div>
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         </Template>
     );

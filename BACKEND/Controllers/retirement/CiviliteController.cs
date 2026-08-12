@@ -6,10 +6,13 @@ using soft_carriere_competence.Core.Entities.crud_career;
 using soft_carriere_competence.Core.Entities.retirement;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.retirement
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[RequirePermission("VIEW_CAREER_SETTINGS","MANAGE_CAREER_SETTINGS")]
 	public class CiviliteController : ControllerBase
 	{
 		private readonly ICiviliteService _civiliteService;

@@ -987,6 +987,61 @@ namespace soft_carriere_competence.Migrations
                     b.ToTable("LoginAttempts");
                 });
 
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.Module", b =>
+                {
+                    b.Property<int>("ModuleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("module_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ModuleId"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("icon");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("ParentModuleId")
+                        .HasColumnType("int")
+                        .HasColumnName("parent_module_id");
+
+                    b.Property<string>("Route")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("route");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<int>("State")
+                        .HasColumnType("int")
+                        .HasColumnName("state");
+
+                    b.HasKey("ModuleId");
+
+                    b.HasIndex("ParentModuleId");
+
+                    b.ToTable("Modules");
+                });
+
             modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.PerformanceEvolution", b =>
                 {
                     b.Property<int>("Id")
@@ -1031,6 +1086,10 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("description");
 
+                    b.Property<int?>("ModuleId")
+                        .HasColumnType("int")
+                        .HasColumnName("module_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1042,6 +1101,8 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("state");
 
                     b.HasKey("PermissionId");
+
+                    b.HasIndex("ModuleId");
 
                     b.ToTable("Permissions");
                 });
@@ -1091,6 +1152,32 @@ namespace soft_carriere_competence.Migrations
                     b.HasKey("Roleid");
 
                     b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.RoleModule", b =>
+                {
+                    b.Property<int>("RoleModuleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("role_module_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleModuleId"));
+
+                    b.Property<int>("ModuleId")
+                        .HasColumnType("int")
+                        .HasColumnName("module_id");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int")
+                        .HasColumnName("role_id");
+
+                    b.HasKey("RoleModuleId");
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("Role_Modules");
                 });
 
             modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.RolePermission", b =>
@@ -1501,6 +1588,64 @@ namespace soft_carriere_competence.Migrations
                     b.ToTable((string)null);
 
                     b.ToView("VEvaluationHistory", (string)null);
+                });
+
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("notification_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_read");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("link");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Payload")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("payload");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("type");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("notifications");
                 });
 
             modelBuilder.Entity("soft_carriere_competence.Core.Entities.career_plan.CareerPlan", b =>
@@ -1949,7 +2094,7 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnType("float")
                         .HasColumnName("Base_salary");
 
-                    b.Property<DateTime>("Birthday")
+                    b.Property<DateTime?>("Birthday")
                         .HasColumnType("datetime2")
                         .HasColumnName("Birthday");
 
@@ -1958,7 +2103,6 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("Career_plan_number");
 
                     b.Property<string>("CiviliteName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("civilite_name");
 
@@ -2033,7 +2177,7 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Civilite_name");
 
-                    b.Property<int>("DepartmentId")
+                    b.Property<int?>("DepartmentId")
                         .HasColumnType("int")
                         .HasColumnName("Department_id");
 
@@ -3166,6 +3310,46 @@ namespace soft_carriere_competence.Migrations
                     b.ToTable("Study_path");
                 });
 
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.salary_skills.SyncLog", b =>
+                {
+                    b.Property<int>("SyncLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("SyncLog_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SyncLogId"));
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ErrorMessage");
+
+                    b.Property<int>("RecordsFailed")
+                        .HasColumnType("int")
+                        .HasColumnName("RecordsFailed");
+
+                    b.Property<int>("RecordsInserted")
+                        .HasColumnType("int")
+                        .HasColumnName("RecordsInserted");
+
+                    b.Property<int>("RecordsUpdated")
+                        .HasColumnType("int")
+                        .HasColumnName("RecordsUpdated");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("Status");
+
+                    b.Property<DateTime>("SyncDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("SyncDate");
+
+                    b.HasKey("SyncLogId");
+
+                    b.ToTable("SyncLog");
+                });
+
             modelBuilder.Entity("soft_carriere_competence.Core.Entities.salary_skills.VEmployee", b =>
                 {
                     b.Property<DateTime?>("Birthday")
@@ -3176,7 +3360,7 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Civilite_name");
 
-                    b.Property<int>("DepartmentId")
+                    b.Property<int?>("DepartmentId")
                         .HasColumnType("int")
                         .HasColumnName("Department_id");
 
@@ -4231,6 +4415,16 @@ namespace soft_carriere_competence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.Module", b =>
+                {
+                    b.HasOne("soft_carriere_competence.Core.Entities.Evaluations.Module", "ParentModule")
+                        .WithMany("ChildModules")
+                        .HasForeignKey("ParentModuleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentModule");
+                });
+
             modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.PerformanceEvolution", b =>
                 {
                     b.HasOne("soft_carriere_competence.Core.Entities.Evaluations.EvaluationQuestionnaire", "EvaluationQuestionnaire")
@@ -4250,10 +4444,39 @@ namespace soft_carriere_competence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.Permission", b =>
+                {
+                    b.HasOne("soft_carriere_competence.Core.Entities.Evaluations.Module", "Module")
+                        .WithMany("Permissions")
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Module");
+                });
+
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.RoleModule", b =>
+                {
+                    b.HasOne("soft_carriere_competence.Core.Entities.Evaluations.Module", "Module")
+                        .WithMany("RoleModules")
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("soft_carriere_competence.Core.Entities.Evaluations.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Module");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.RolePermission", b =>
                 {
                     b.HasOne("soft_carriere_competence.Core.Entities.Evaluations.Permission", "Permission")
-                        .WithMany()
+                        .WithMany("RolePermissions")
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -4319,6 +4542,17 @@ namespace soft_carriere_competence.Migrations
                     b.Navigation("evaluationType");
                 });
 
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.Notification", b =>
+                {
+                    b.HasOne("User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("soft_carriere_competence.Core.Entities.wish_evolution.SkillPosition", b =>
                 {
                     b.HasOne("soft_carriere_competence.Core.Entities.crud_career.Position", "Position")
@@ -4355,6 +4589,20 @@ namespace soft_carriere_competence.Migrations
             modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.Evaluation", b =>
                 {
                     b.Navigation("Supervisors");
+                });
+
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.Module", b =>
+                {
+                    b.Navigation("ChildModules");
+
+                    b.Navigation("Permissions");
+
+                    b.Navigation("RoleModules");
+                });
+
+            modelBuilder.Entity("soft_carriere_competence.Core.Entities.Evaluations.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
                 });
 #pragma warning restore 612, 618
         }

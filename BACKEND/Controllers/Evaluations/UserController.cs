@@ -2,9 +2,11 @@
 using soft_carriere_competence.Application.Services.Evaluations;
 using Microsoft.AspNetCore.Authorization;
 
+using soft_carriere_competence.Application.Authorization;
 [Route("api/User")]
 [ApiController]
 [Authorize]
+[RequirePermission("VIEW_USERS","CREATE_USERS","EDIT_USERS","DELETE_USERS","MANAGE_PERMISSIONS")]
 public class UserController : ControllerBase
 {
 	private readonly UserService _employeeService;

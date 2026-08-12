@@ -5,10 +5,13 @@ using soft_carriere_competence.Application.Services.salary_skills;
 using soft_carriere_competence.Core.Entities.salary_skills;
 using soft_carriere_competence.Core.Interface.ServiceInterface;
 
+using soft_carriere_competence.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
 namespace soft_carriere_competence.Controllers.salary_skills
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[RequirePermission("VIEW_SKILL_SETTINGS","MANAGE_SKILL_SETTINGS")]
 	public class DegreeController : ControllerBase
 	{
 		private readonly IDegreeService _degreeService;

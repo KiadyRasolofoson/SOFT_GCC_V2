@@ -34,8 +34,10 @@ using soft_carriere_competence.Application.Authorization.Handlers;
 using soft_carriere_competence.Core.Entities.history;
 using soft_carriere_competence.Application.Services.history;
 using soft_carriere_competence.Core.Entities.Evaluations;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using System.Configuration;
+using soft_carriere_competence.Hubs;
+using soft_carriere_competence.Application.Interfaces;
+using soft_carriere_competence.Application.Services;
+using soft_carriere_competence.Core.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 //Connect base SQLSERVER
@@ -148,12 +150,23 @@ builder.Services.AddScoped<IGenericRepository<WorkCertificates>, GenericReposito
 // EVALUATIONS
 builder.Services.AddScoped<IGenericRepository<User>, GenericRepository<User>>();
 builder.Services.AddScoped<EvaluationService>();
+
+// Les controllers du module Évaluation dépendent d'abstractions ciblées (ISP) toutes servies
+// par la même instance scoped d'EvaluationService, pour ne pas dupliquer l'état par requête.
+builder.Services.AddScoped<IEvaluationService>(sp => sp.GetRequiredService<EvaluationService>());
+builder.Services.AddScoped<IEvaluationQuestionService>(sp => sp.GetRequiredService<EvaluationService>());
+builder.Services.AddScoped<IEvaluationTrainingSuggestionService>(sp => sp.GetRequiredService<EvaluationService>());
+builder.Services.AddScoped<IEvaluationResponseService>(sp => sp.GetRequiredService<EvaluationResponseService>());
+builder.Services.AddScoped<ICompetenceLineService>(sp => sp.GetRequiredService<CompetenceLineService>());
+builder.Services.AddScoped<IResponseTypeService>(sp => sp.GetRequiredService<ResponseTypeService>());
+builder.Services.AddScoped<ITrainingSuggestionImportService>(sp => sp.GetRequiredService<TrainingSuggestionService>());
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<EvaluationPlanningService>();
 builder.Services.AddScoped<EvaluationInterviewService>();
 builder.Services.AddScoped<RoleService>();
 builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<CompetenceLineService>();
 builder.Services.AddScoped<CompetenceTrainingService>();
 builder.Services.AddScoped<EvaluationResponseService>();
@@ -196,6 +209,18 @@ builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddMemoryCache();
 
 // ========================================
+// SignalR — Notifications temps réel
+// ========================================
+builder.Services.AddSignalR();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IGenericRepository<Notification>, GenericRepository<Notification>>();
+
+// Employee Sync (T_SAL p_sw → Employee Soft_GCC)
+builder.Services.AddScoped<soft_carriere_competence.Core.Interface.ServiceInterface.IEmployeeSyncService, soft_carriere_competence.Application.Services.EmployeeSync.EmployeeSyncService>();
+builder.Services.AddScoped<IGenericRepository<SyncLog>, GenericRepository<SyncLog>>();
+builder.Services.AddHostedService<soft_carriere_competence.Application.Services.EmployeeSync.EmployeeSyncBackgroundService>();
+
+// ========================================
 // ABAC Authorization — Module Évaluation
 // ========================================
 builder.Services.AddScoped<IManagerHierarchyService, ManagerHierarchyService>();
@@ -206,6 +231,9 @@ builder.Services.AddScoped<IAuthorizationHandler, CanViewEvaluationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, CanEditEvaluationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, CanValidateEvaluationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, CanDelegateEvaluationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, FrenchAuthorizationMiddlewareResultHandler>();
 
 #endregion
 
@@ -235,6 +263,7 @@ builder.Services.AddCors(options =>
 
 #region dbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration["ConnectionStrings:DefaultConnection"]), ServiceLifetime.Scoped);
+builder.Services.AddDbContext<P_SWDbContext>(options => options.UseSqlServer(builder.Configuration["ConnectionStrings:P_SWConnection"]), ServiceLifetime.Scoped);
 
 #endregion
 
@@ -245,6 +274,22 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
 {
+    // Permettre à SignalR de passer le token via query string (?access_token=...)
+    // car les WebSockets ne supportent pas les headers HTTP personnalisés
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -259,8 +304,10 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
-    // RBAC baseline (existing roles) — applied to all modules
-    // Aucune policy par défaut pour ne pas casser les modules existants
+    // Deny by default : toute action non marquée [AllowAnonymous] exige un JWT valide.
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
 
     // ABAC — Module Évaluation
     options.AddPolicy("CanViewEvaluation", policy =>
@@ -272,7 +319,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("CanDelegateEvaluation", policy =>
         policy.Requirements.Add(new CanDelegateEvaluationRequirement()));
 
-    // Policy admin : restreint aux rôles Admin, RH, DG (role_id 1, 3, 4)
+    // Policy admin legacy : rôles Admin, RH, DG (role_id 1, 3, 4)
+    // Préférer [RequirePermission(...)] pour les nouvelles protections.
     options.AddPolicy("RequireAdminRole", policy =>
         policy.RequireAssertion(context =>
             context.User.HasClaim(c => c.Type == "roleId" &&
@@ -281,7 +329,12 @@ builder.Services.AddAuthorization(options =>
 #endregion
 
 #region Swagger
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // Les actions asynchrones gardent leur suffixe Async (convention de nommage interne) ;
+        // sans cette option MVC le tronquerait et nameof(...) ne résoudrait plus dans CreatedAtAction.
+        options.SuppressAsyncSuffixInActionNames = false;
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
@@ -320,6 +373,10 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// Placé en premier pour intercepter toute exception du pipeline et la traduire en réponse normalisée.
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+
 app.UseCors("AllowReactApp");
 // Activer Swagger UI
 if (app.Environment.IsDevelopment())
@@ -341,6 +398,9 @@ app.UseAuthentication();
 app.UseMiddleware<LicenseCheckMiddleware>();
 
 app.UseAuthorization();
+
+// SignalR Hub — Notifications temps réel
+app.MapHub<NotificationHub>("/hubs/notification");
 
 app.MapControllers();
 

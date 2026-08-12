@@ -62,23 +62,21 @@ function UsersList() {
         setCurrentPage(1);
     }, [searchQuery]);
 
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            // Afficher les paramètres envoyés à l'API pour le débogage
-            console.log("Paramètres de la requête:", {
-                pageNumber: currentPage,
-                pageSize: pageSize,
-                search: searchQuery
-            });
-            
-            // Inclure tous les paramètres dans la requête API
             const response = await axios.get(urlApi('/User/paginated'), {
                 params: {
                     pageNumber: currentPage,
                     pageSize: pageSize,
                     search: searchQuery
-                }
+                },
+                headers: getAuthHeaders()
             });
             console.log("Réponse de l'API:", response.data);
             setUsers(response.data.users);
@@ -94,7 +92,9 @@ function UsersList() {
 
     const fetchRoles = async () => {
         try {
-            const response = await axios.get(urlApi('/User/roles'));
+            const response = await axios.get(urlApi('/User/roles'), {
+                headers: getAuthHeaders()
+            });
             setRoles(response.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des rôles:', error);
@@ -116,7 +116,7 @@ function UsersList() {
                     username: formData.username,
                     email: formData.email,
                     roleId: parseInt(formData.roleId)
-                });
+                }, { headers: getAuthHeaders() });
             } else {
                 await axios.post(urlApi('/Authentification/register'), {
                     lastName: formData.lastName,
@@ -125,7 +125,7 @@ function UsersList() {
                     email: formData.email,
                     password: formData.password,
                     roleId: parseInt(formData.roleId)
-                });
+                }, { headers: getAuthHeaders() });
             }
             setShowModal(false);
             fetchUsers();

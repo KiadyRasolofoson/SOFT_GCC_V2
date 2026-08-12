@@ -16,6 +16,10 @@ function UserManagement() {
         navigate("/soft-gcc/parametres/utilisateurs/permissions");
     };
 
+    const handleAdminAccessClick = () => {
+        navigate("/soft-gcc/parametres/utilisateurs/administration");
+    };
+
     return (
         <Template>
             <div className="content-wrapper">
@@ -61,6 +65,19 @@ function UserManagement() {
                                 <h5 className="card-text">
                                     <i className="mdi mdi-shield-account settings-icon"></i>
                                     <span className='settings-title'>Gestion des Permissions</span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Carte Administration des Accès (NOUVEAU) */}
+                    <div className="col-md-4 grid-margin stretch-card">
+                        <div className="card settings-card" onClick={handleAdminAccessClick} style={{ borderLeft: '4px solid #4B49AC' }}>
+                            <div className="card-body">
+                                <h5 className="card-text">
+                                    <i className="mdi mdi-shield-lock settings-icon"></i>
+                                    <span className='settings-title'>Administration des Accès</span>
+                                    <br /><small className="text-muted">Rôles, Modules & Permissions</small>
                                 </h5>
                             </div>
                         </div>

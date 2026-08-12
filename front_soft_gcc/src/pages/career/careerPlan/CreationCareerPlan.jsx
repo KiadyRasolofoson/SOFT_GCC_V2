@@ -1,20 +1,20 @@
-import React, {useState, useEffect} from 'react';
+import {useState, useEffect, useMemo} from 'react';
 import Template from '../../Template';
-import PageHeader from '../../../components/PageHeader';
 import AppointmentForm from '../../../components/career/AppointmentForm';
 import AdvancementForm from '../../../components/career/AdvancementForm';
 import LayOffForm from '../../../components/career/LayOffForm';
+import SearchableSelect from '../../../components/common/SearchableSelect';
 import axios from 'axios';
 import { urlApi } from '../../../helpers/utils';
 import Loader from '../../../helpers/Loader';
 import BreadcrumbPers from '../../../helpers/BreadcrumbPers';
-import CancelButton from '../../../helpers/CancelButton';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../helpers/api';
 import ErrorMessage from '../../../helpers/ErrorMessage';
+import './CreationCareerPlan.css';
 
 // Page de creation d'un plan de carriere
-function CreationCareerPlan({ onSearch }) {
+function CreationCareerPlan() {
     // Initialisation des states
     const [selectedItem, setSelectedItem] = useState('1');
     const [formErrors, setFormErrors] = useState({});
@@ -49,19 +49,19 @@ function CreationCareerPlan({ onSearch }) {
         fetchData();
     }, []);
 
-
-    // Fonction qui gère le changement dans la liste déroulante
-    const handleSelectChange = (event) => {
-        setSelectedItem(event.target.value);
-        handleChange(event);
-        initializeForm();
-    };
+    const employeeOptions = useMemo(
+        () =>
+            (dataEmployee || []).map((item) => ({
+                value: item.registrationNumber,
+                label: `${item.registrationNumber} - ${item.name} ${item.firstName}`,
+            })),
+        [dataEmployee]
+    );
 
     // Fonction qui gère le retour en arrière de la page
     const handleRetour = () => {
-        navigate(`/soft-gcc/carriere`);
+        navigate(`/soft-gcc/carrieres`);
     };
-
 
     // Gestion état du formulaire
     const [formData, setFormData] = useState({
@@ -106,6 +106,23 @@ function CreationCareerPlan({ onSearch }) {
     }
   };
 
+  // Fonction qui gère le changement dans la liste déroulante
+  const handleSelectChange = (event) => {
+      setSelectedItem(String(event.target.value));
+      handleChange(event);
+      initializeForm();
+  };
+
+  const handleEmployeeChange = (option) => {
+      const value = option ? option.value : undefined;
+      setFormData((prevData) => ({
+          ...prevData,
+          registrationNumber: value,
+      }));
+      if (formErrors.registrationNumber) {
+          validateField('registrationNumber', value);
+      }
+  };
 
   // Gestion de validation des données
   const validateField = (fieldName, value) => {
@@ -163,7 +180,7 @@ function CreationCareerPlan({ onSearch }) {
         };
         console.log(dataToSend);
   
-        const response = await axios.post(urlApi('/CareerPlan'), dataToSend);
+        await api.post(urlApi('/CareerPlan'), dataToSend);
         handleRetour();
     } catch (err) {
         console.error('Erreur lors de l\'insertion :', err);
@@ -199,6 +216,8 @@ function CreationCareerPlan({ onSearch }) {
     };
 
     const initializeAllForm = () => {
+        setSelectedItem('1');
+        setFormErrors({});
         setFormData({
             assignmentTypeId: 1,
             registrationNumber: undefined,
@@ -223,120 +242,188 @@ function CreationCareerPlan({ onSearch }) {
             assigningInstitution: undefined,
             startDate: undefined,
             endDate: undefined,
-            echelonId: undefined
+            echelonId: undefined,
+            state: 1,
         });
     };
+
     return (
         <Template>
             {isLoading && <Loader />}
             <ErrorMessage error={error} context="chargement" onRetry={fetchData} />
             <ErrorMessage error={submitError} context="insertion" />
 
-            <div className="title-container">
-                <div className="col-lg-10 skill-header">
-                    <i className="mdi mdi-map-marker-path skill-icon"></i>
-                    <p className="skill-title">CREATION D'UN PLAN DE CARRIÈRE</p>
-                </div>
-                <div className="col-lg-2">
-                    <CancelButton to="carrieres" />
-                </div>  
-            </div>
-            <BreadcrumbPers
-                items={[
-                { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
-                { label: 'Plan de carrière', path: '/soft-gcc/carriere' },
-                { label: 'Creation', path: '/soft-gcc/carrieres/creation' }
-                ]}
-            />
-            
-            <div className="row">
-                <div className="button-save-profil">
-                    <button onClick={handleSubmit} type="button" className="btn btn-success btn-fw">
-                        <i className="mdi mdi-content-save-edit" style={{paddingRight: '5px'}}></i>Enregistrer
-                    </button>
-                    <button onClick={initializeAllForm} type="button" className="btn btn-light btn-fw">
-                        <i className="mdi mdi-backspace-outline" style={{paddingRight: '5px'}}></i>
-                        Annuler
-                    </button>
-                </div>
-            </div>
+            <div className="career-create">
+                <BreadcrumbPers
+                    items={[
+                        { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+                        { label: 'Plan de carrière', path: '/soft-gcc/carrieres' },
+                        { label: 'Création', path: '/soft-gcc/carrieres/creation' },
+                    ]}
+                />
 
-            <form className="forms-sample">
-                <div className="row">            
-                    <div className="col-md-6 grid-margin stretch-card">
-                        <div className="card">
-                            <div className="card-body">
-                                <div className="form-group">
-                                    <label htmlFor="exampleInputUsername1">Matricule</label>
-                                    <select name="registrationNumber" value={formData.registrationNumber} onChange={handleChange} className="form-control" id="exampleSelectGender">
-                                        <option value="">Sélectionner une matricule</option>
-                                        {dataEmployee && dataEmployee.map((item, id) => (
-                                            <option key={id} value={item.registrationNumber}>
-                                                {item.registrationNumber + " - " + item.name + " " + item.firstName}
-                                            </option>
-                                        ))}
-                                    </select>   
-                                    {formErrors.registrationNumber && (
-                                        <p className="text-danger">{formErrors.registrationNumber}</p>
-                                    )} 
-                                </div>
-                            </div>
+                <div className="career-page-header">
+                    <div className="career-header-left">
+                        <div className="career-header-icon">
+                            <i className="mdi mdi-map-marker-path" />
                         </div>
+                        <h1 className="career-header-title">Création d&apos;un plan de carrière</h1>
                     </div>
-                    <div className="col-md-6 grid-margin stretch-card">
-                        <div className="card">
-                            <div className="card-body">
-                                <div className="form-group">
-                                    <label htmlFor="exampleInputUsername1">Type d'affectation</label>
-                                    <select name="assignmentTypeId" value={formData.assignmentTypeId} onChange={handleSelectChange} className="form-control" id="exampleSelectGender">
-                                        <option value="">Sélectionner une affectation</option>
-                                        {dataAssignmentType && dataAssignmentType.map((item, id) => (
-                                            <option key={item.assignmentTypeId} value={item.assignmentTypeId}>
-                                                {item.assignmentTypeName}
-                                            </option>
-                                        ))}
-                                    </select>   
-                                    {formErrors.assignmentTypeId && (
-                                        <p className="text-danger">{formErrors.assignmentTypeId}</p>
-                                    )} 
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="exampleInputEmail1">Numero de decision</label>
-                                    <input type="text" name="decisionNumber" value={formData.decisionNumber} onChange={handleChange} className="form-control" id="exampleInputEmail1"/>
-                                    {formErrors.decisionNumber && (
-                                        <p className="text-danger">{formErrors.decisionNumber}</p>
-                                    )}
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="exampleInputEmail1">Date de decision</label>
-                                    <input type="date" name="decisionDate" value={formData.decisionDate} onChange={handleChange} className="form-control" id="exampleInputEmail1"/>
-                                    {formErrors.decisionDate && (
-                                        <p className="text-danger">{formErrors.decisionDate}</p>
-                                    )}
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="exampleInputEmail1">Date d'affectation</label>
-                                    <input type="date" name="assignmentDate" value={formData.assignmentDate} onChange={handleChange} className="form-control" id="exampleInputEmail1"/>
-                                    {formErrors.assignmentDate && (
-                                        <p className="text-danger">{formErrors.assignmentDate}</p>
-                                    )}
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="exampleInputEmail1">Description</label>
-                                    <textarea name="description" value={formData.description} onChange={handleChange} className="form-control" id="exampleTextarea1" rows="4"></textarea>
-                                </div>
-                            </div>
-                        </div>
+                    <div className="career-header-actions">
+                        <button onClick={handleSubmit} type="button" className="career-btn career-btn-primary">
+                            <i className="mdi mdi-content-save" />
+                            Enregistrer
+                        </button>
+                        <button onClick={initializeAllForm} type="button" className="career-btn career-btn-secondary">
+                            <i className="mdi mdi-refresh" />
+                            Réinitialiser
+                        </button>
                     </div>
                 </div>
-                {selectedItem === '1' ? (   //  Type nomination
-                    <AppointmentForm formData={formData} setFormData={setFormData} />
-                  ) : selectedItem === '2' ? (  // Type mise en disponibilité
-                    <LayOffForm handleChange={handleChange} formData={formData} />
-                  ) : ( // Type avancement
-                    <AdvancementForm handleChange={handleChange} formData={formData} />
-                  )}
-            </form>
+
+                <form className="career-form" onSubmit={(e) => e.preventDefault()}>
+                    <div className="career-section">
+                        <div className="career-card">
+                            <div className="career-card-header">
+                                <h5>
+                                    <i className="mdi mdi-account-check" />
+                                    Identification
+                                </h5>
+                            </div>
+                            <div className="career-card-body">
+                                <div className="row g-3">
+                                    <div className="col-md-6">
+                                        <div className="career-form-group">
+                                            <label className="career-form-label" htmlFor="registrationNumber">
+                                                Employé
+                                            </label>
+                                            <SearchableSelect
+                                                name="registrationNumber"
+                                                inputId="registrationNumber"
+                                                options={employeeOptions}
+                                                value={formData.registrationNumber}
+                                                onChange={handleEmployeeChange}
+                                                placeholder="Rechercher par matricule ou nom…"
+                                                noOptionsMessage={() => 'Aucun employé trouvé'}
+                                            />
+                                            {formErrors.registrationNumber && (
+                                                <p className="career-field-error">{formErrors.registrationNumber}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="career-form-group">
+                                            <label className="career-form-label" htmlFor="assignmentTypeId">
+                                                Type d&apos;affectation
+                                            </label>
+                                            <select
+                                                name="assignmentTypeId"
+                                                id="assignmentTypeId"
+                                                value={formData.assignmentTypeId}
+                                                onChange={handleSelectChange}
+                                                className="career-form-control"
+                                            >
+                                                <option value="">Sélectionner une affectation</option>
+                                                {dataAssignmentType &&
+                                                    dataAssignmentType.map((item) => (
+                                                        <option
+                                                            key={item.assignmentTypeId}
+                                                            value={item.assignmentTypeId}
+                                                        >
+                                                            {item.assignmentTypeName}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                            {formErrors.assignmentTypeId && (
+                                                <p className="career-field-error">{formErrors.assignmentTypeId}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="career-form-group">
+                                            <label className="career-form-label" htmlFor="decisionNumber">
+                                                Numéro de décision
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="decisionNumber"
+                                                id="decisionNumber"
+                                                value={formData.decisionNumber || ''}
+                                                onChange={handleChange}
+                                                className="career-form-control"
+                                                placeholder="Ex. DEC-2026-001"
+                                            />
+                                            {formErrors.decisionNumber && (
+                                                <p className="career-field-error">{formErrors.decisionNumber}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <div className="career-form-group">
+                                            <label className="career-form-label" htmlFor="decisionDate">
+                                                Date de décision
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="decisionDate"
+                                                id="decisionDate"
+                                                value={formData.decisionDate || ''}
+                                                onChange={handleChange}
+                                                className="career-form-control"
+                                            />
+                                            {formErrors.decisionDate && (
+                                                <p className="career-field-error">{formErrors.decisionDate}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <div className="career-form-group">
+                                            <label className="career-form-label" htmlFor="assignmentDate">
+                                                Date d&apos;affectation
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="assignmentDate"
+                                                id="assignmentDate"
+                                                value={formData.assignmentDate || ''}
+                                                onChange={handleChange}
+                                                className="career-form-control"
+                                            />
+                                            {formErrors.assignmentDate && (
+                                                <p className="career-field-error">{formErrors.assignmentDate}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="col-12">
+                                        <div className="career-form-group">
+                                            <label className="career-form-label" htmlFor="description">
+                                                Description
+                                            </label>
+                                            <textarea
+                                                name="description"
+                                                id="description"
+                                                value={formData.description || ''}
+                                                onChange={handleChange}
+                                                className="career-form-control"
+                                                rows="3"
+                                                placeholder="Informations complémentaires (optionnel)"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {selectedItem === '1' ? (
+                        <AppointmentForm formData={formData} setFormData={setFormData} />
+                    ) : selectedItem === '2' ? (
+                        <LayOffForm handleChange={handleChange} formData={formData} />
+                    ) : (
+                        <AdvancementForm handleChange={handleChange} formData={formData} />
+                    )}
+                </form>
+            </div>
         </Template>
     );
 }
