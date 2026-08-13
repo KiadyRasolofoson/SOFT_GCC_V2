@@ -108,3 +108,6 @@ packages/
 *.snupkg
 
 /rapport
+
+apiToProd.sh
+frontToProd.sh
