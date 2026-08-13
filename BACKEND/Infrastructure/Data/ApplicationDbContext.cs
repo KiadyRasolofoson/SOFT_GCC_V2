@@ -231,8 +231,16 @@ namespace soft_carriere_competence.Infrastructure.Data
 			modelBuilder.Entity<PcdSuggestionPosition>().HasNoKey();
 			modelBuilder.Entity<VSkillPosition>().ToView("v_skill_position");
 			modelBuilder.Entity<VSkillPosition>().HasNoKey();
-			modelBuilder.Entity<VEmployeePosition>().ToView("v_employee_position");
-			modelBuilder.Entity<VEmployeePosition>().HasNoKey();
+			modelBuilder.Entity<VEmployeePosition>(entity =>
+			{
+				entity.ToView("v_employee_position");
+				entity.HasNoKey();
+				// Colonnes de la vue peuvent être NULL (LEFT JOIN département / données incomplètes)
+				entity.Property(e => e.RegistrationNumber).IsRequired(false);
+				entity.Property(e => e.Name).IsRequired(false);
+				entity.Property(e => e.FirstName).IsRequired(false);
+				entity.Property(e => e.DepartmentName).IsRequired(false);
+			});
             modelBuilder.Entity<VStateNumber>().ToView("v_state_number");
             modelBuilder.Entity<VStateNumber>().HasNoKey();
 

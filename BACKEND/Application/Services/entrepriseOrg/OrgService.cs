@@ -34,11 +34,14 @@ namespace soft_carriere_competence.Application.Services.entrepriseOrg
 				.Where(e => e.ManagerId == managerId)
 				.Select(e => new EmployeeNode
 				{
-					Name = e.Name ?? "",
-					FirstName = e.FirstName ?? "",
-					Department = e.DepartmentName ?? "",
-					Civilite = e.CiviliteName ?? "",
-					Position = e.PositionName ?? "",
+					EmployeeId = e.EmployeeId,
+					DepartmentId = e.DepartmentId,
+					Name = e.Name ?? string.Empty,
+					FirstName = e.FirstName ?? string.Empty,
+					Department = e.DepartmentName ?? "Non assigné",
+					Civilite = e.CiviliteName ?? string.Empty,
+					Position = e.PositionName ?? "Poste non défini",
+					HasPhoto = e.Photo != null && e.Photo.Length > 0,
 					Children = BuildOrgChart(employees, e.EmployeeId)
 				})
 				.ToList();

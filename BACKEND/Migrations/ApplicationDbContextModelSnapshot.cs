@@ -2186,7 +2186,6 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("Department_id");
 
                     b.Property<string>("DepartmentName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Department_name");
 
@@ -2195,7 +2194,6 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("Employee_id");
 
                     b.Property<string>("FirstName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("FirstName");
 
@@ -2208,7 +2206,6 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("Manager_id");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Name");
 
@@ -2225,7 +2222,6 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("Position_name");
 
                     b.Property<string>("RegistrationNumber")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Registration_number");
 
