@@ -28,7 +28,7 @@ export function normalizeRoutePath(path) {
  * - Si le catalogue contient une route couvrant le path : la plus longue doit être dans allowed.
  * - Sinon (sous-page non déclarée, ex. /evaluations/details/1) : autorise si une section
  *   /soft-gcc/{area} est couverte par au moins une route autorisée.
- * - Si le catalogue est vide (tables absentes) : fail-open (true).
+ * - Catalogue vide : refuse /soft-gcc (pas de fail-open). Les routes hors /soft-gcc restent libres.
  */
 export function checkRouteAccess(pathname, allowedRoutes = [], catalogRoutes = []) {
     const path = normalizeRoutePath(pathname);
@@ -37,8 +37,8 @@ export function checkRouteAccess(pathname, allowedRoutes = [], catalogRoutes = [
     const allowed = (allowedRoutes || []).map(normalizeRoutePath).filter(Boolean);
     const catalog = (catalogRoutes || []).map(normalizeRoutePath).filter(Boolean);
 
-    // Système modules pas encore en place → ne pas bloquer
-    if (catalog.length === 0) return true;
+    // Pas de catalogue modules → ne pas ouvrir tout /soft-gcc
+    if (catalog.length === 0) return false;
 
     const covers = (route, target) => target === route || target.startsWith(`${route}/`);
 
@@ -204,14 +204,13 @@ export const UserProvider = ({ children }) => {
 
     const isAdminUser = () => {
         const title = (user?.roleTitle || '').trim().toLowerCase();
-        return user?.roleId === 1
-            || title === 'admin'
+        return title === 'admin'
             || title === 'administrator'
             || title === 'administrateur';
     };
 
     const hasPermission = (permission) => {
-        // Admin : accès complet côté UI (titre ou roleId seed 1)
+        // Admin : accès complet côté UI (titre uniquement)
         if (isAdminUser()) {
             return true;
         }
@@ -229,13 +228,12 @@ export const UserProvider = ({ children }) => {
     const canAccessRoute = useCallback((pathname) => {
         if (!modulesAccessReady) return true;
         const title = (user?.roleTitle || '').trim().toLowerCase();
-        const isAdmin = user?.roleId === 1
-            || title === 'admin'
+        const isAdmin = title === 'admin'
             || title === 'administrator'
             || title === 'administrateur';
         if (isAdmin) return true;
         return checkRouteAccess(pathname, allowedRoutes, catalogRoutes);
-    }, [modulesAccessReady, allowedRoutes, catalogRoutes, user?.roleId, user?.roleTitle]);
+    }, [modulesAccessReady, allowedRoutes, catalogRoutes, user?.roleTitle]);
 
     const logout = () => {
         clearUserData();

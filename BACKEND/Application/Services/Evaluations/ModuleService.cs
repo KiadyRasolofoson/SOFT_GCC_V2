@@ -135,7 +135,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 .OrderBy(m => m.SortOrder)
                 .ToListAsync();
 
-            // Admin : tous les modules (détecté par titre — pas seulement role_id = 1)
+            // Admin (titre Admin / Administrator / Administrateur) : tous les modules
             HashSet<int> assignedSet;
             if (PermissionService.IsAdminRole(user.RoleId, user.Role?.Title))
             {
@@ -152,13 +152,6 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     return Enumerable.Empty<Module>();
 
                 assignedSet = assignedIds.ToHashSet();
-
-                // Parent assigné ⇒ tous ses enfants actifs (filet si migration 05 incomplète)
-                foreach (var parentId in assignedIds.ToList())
-                {
-                    foreach (var child in allActive.Where(c => c.ParentModuleId == parentId))
-                        assignedSet.Add(child.ModuleId);
-                }
             }
 
             var byId = allActive.ToDictionary(m => m.ModuleId);
@@ -247,13 +240,6 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 .ToListAsync();
 
             var assignedSet = assignedIds.ToHashSet();
-
-            // Parent assigné ⇒ routes des enfants (garde front exige le match le plus long du catalogue)
-            foreach (var parentId in assignedIds)
-            {
-                foreach (var child in allActive.Where(c => c.ParentModuleId == parentId))
-                    assignedSet.Add(child.ModuleId);
-            }
 
             var allowedRoutes = allActive
                 .Where(m => assignedSet.Contains(m.ModuleId) && !string.IsNullOrWhiteSpace(m.Route))
