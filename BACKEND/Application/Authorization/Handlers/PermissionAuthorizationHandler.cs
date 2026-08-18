@@ -26,7 +26,7 @@ namespace soft_carriere_competence.Application.Authorization.Handlers
                 return;
             }
 
-            // Bypass Admin via claims JWT (titre prioritaire : Admin peut avoir un autre role_id)
+            // Bypass Admin via claim JWT roleTitle uniquement (pas role_id = 1)
             var roleIdClaim = context.User.FindFirst("roleId")?.Value;
             var roleTitleClaim = context.User.FindFirst("roleTitle")?.Value;
             _ = int.TryParse(roleIdClaim, out var roleId);

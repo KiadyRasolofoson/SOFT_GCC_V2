@@ -1,133 +1,237 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import PageHeader from '../../components/PageHeader';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Template from '../Template';
 import { urlApi } from '../../helpers/utils';
-import axios from "axios";
+import axios from 'axios';
 import Loader from '../../helpers/Loader';
 import '../../styles/orgChart.css';
-import pic1 from '/src/assets/images/faces-clipart/pic-1.png';
-import '../../styles/skillsStyle.css';
-import { useParams } from "react-router-dom";
-import CancelButton from '../../helpers/CancelButton';
+import { useNavigate, useParams } from 'react-router-dom';
 import BreadcrumbPers from '../../helpers/BreadcrumbPers';
 
-// Page pour les nombres des employés par département
+function getInitials(name, firstName) {
+  const a = (name || '').trim().charAt(0);
+  const b = (firstName || '').trim().charAt(0);
+  return `${a}${b}`.toUpperCase() || '?';
+}
+
+function formatDate(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('fr-FR');
+}
+
 function DetailDepartment() {
-    // Initialisation des states
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const { departmentId: DepartmentId } = useParams();
-    const [employeeList, setEmployeeList] = useState([]);
-    const [department, setDepartment] = useState(null);
+  const navigate = useNavigate();
+  const { departmentId: DepartmentId } = useParams();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [employeeList, setEmployeeList] = useState([]);
+  const [department, setDepartment] = useState(null);
+  const [search, setSearch] = useState('');
 
-    // Appel des API
-    const fetchData = useCallback(async () => {
-        if (!DepartmentId) {
-            setError("ID du département introuvable.");
-            return;
-        }
+  const fetchData = useCallback(async () => {
+    if (!DepartmentId) {
+      setError('ID du département introuvable.');
+      return;
+    }
 
-        setLoading(true);
-        setError(null); 
+    setLoading(true);
+    setError(null);
 
-        try {
-            const [employeeListResponse, departmentResponse] = await Promise.all([
-                axios.get(urlApi(`/Org/detailDepartement/${DepartmentId}`)),
-                axios.get(urlApi(`/Department/${DepartmentId}`))
-            ]);
+    try {
+      const [employeeListResponse, departmentResponse] = await Promise.all([
+        axios.get(urlApi(`/Org/detailDepartement/${DepartmentId}`)),
+        axios.get(urlApi(`/Department/${DepartmentId}`)),
+      ]);
 
-            setEmployeeList(employeeListResponse.data || []);
-            setDepartment(departmentResponse.data || {});
-        } catch (error) {
-            setError(`Erreur lors de la récupération des données : ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
-    }, [DepartmentId]);
+      setEmployeeList(employeeListResponse.data || []);
+      setDepartment(departmentResponse.data || {});
+    } catch (err) {
+      setError(`Erreur lors de la récupération des données : ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [DepartmentId]);
 
-    // Effet pour déclencher les fetch
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    return (
-        <Template>
-            {loading && <Loader />} 
-            {department && (
-                <>
-                    <div className="title-container">
-                        <div className="col-lg-10 skill-header">
-                            <i className="mdi mdi-domain skill-icon"></i>
-                            <p className="skill-title"> DÉPARTEMENT : {department.name || "Inconnu"}</p>
-                        </div>
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return employeeList;
+    return employeeList.filter((item) => {
+      const fullName = `${item.name || ''} ${item.firstName || ''}`.toLowerCase();
+      const matricule = (item.registrationNumber || '').toLowerCase();
+      const poste = (item.positionName || '').toLowerCase();
+      return fullName.includes(q) || matricule.includes(q) || poste.includes(q);
+    });
+  }, [employeeList, search]);
 
-                        <div className="col-lg-2">
-                            <CancelButton to="effectifs" />
-                        </div>  
-                    </div>
-                    <BreadcrumbPers
-                        items={[
-                            { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
-                            { label: 'Effectif par département', path: '/soft-gcc/effectif' },
-                            { label: 'Détails', path: `/soft-gcc/effectifs/details/${DepartmentId}` },
-                        ]}
-                    />
-                    {error && <div className="alert alert-danger">{error}</div>}
+  return (
+    <Template>
+      {loading && <Loader />}
 
-                    <div className="row">
-                        <div className="col-lg-12 grid-margin stretch-card">
-                            <div className="card">
-                                <div className="card-header d-flex align-items-center" style={{color: '#B8860B'}}>
-                                    <i className="mdi mdi-format-list-bulleted me-2 fs-4" style={{fontSize: '30px', marginRight: '10px'}}></i>
-                                    <h3 className="mb-0" style={{color: '#B8860B'}}>Liste des employés</h3>
-                                </div>
-                                <div className="card-body">
-                                    <table className="table table-competences">
-                                        <thead>
-                                            <tr>
-                                                <th>Photo</th>
-                                                <th>Matricule</th>
-                                                <th>Nom complet</th>
-                                                <th>Poste</th>
-                                                <th>Naissance</th>
-                                                <th>Ancienneté</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {employeeList.length > 0 ? (
-                                                employeeList.map((item, index) => (
-                                                    <tr key={index}>
-                                                        <td className="py-1">
-                                                            {item.photo ? (
-                                                                <img src={urlApi(`/Employee/photo/${item.employeeId}`)} alt={'Employe '+item.registrationNumber} />
-                                                            ) : (
-                                                                <p>Aucun photo</p>
-                                                                )}
-                                                        </td>  
-                                                        <td>{item.registrationNumber}</td>
-                                                        <td>{`${item.name} ${item.firstName}`}</td>
-                                                        <td>{item.positionName}</td>
-                                                        <td>{new Date(item.hiringDate).toLocaleDateString()}</td>
-                                                        <td style={{color: '#44ce42'}}>{item.seniority}</td>
-                                                    </tr>
-                                                ))
-                                            ) : (
-                                                <tr>
-                                                    <td colSpan="6" className="text-center">
-                                                        Aucun employé trouvé.
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
+      <div className="org-page">
+        <div className="org-breadcrumb">
+          <BreadcrumbPers
+            items={[
+              { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+              { label: 'Effectifs', path: '/soft-gcc/effectifs' },
+              {
+                label: department?.name || 'Détails',
+                path: `/soft-gcc/effectifs/details/${DepartmentId}`,
+              },
+            ]}
+          />
+        </div>
+
+        <header className="org-header">
+          <div>
+            <p className="org-header__eyebrow">Effectifs</p>
+            <h1 className="org-header__title">
+              {department?.name || 'Département'}
+            </h1>
+            <p className="org-header__subtitle">
+              Liste des collaborateurs rattachés à ce département.
+            </p>
+          </div>
+          <div className="org-header__actions">
+            <button
+              type="button"
+              className="org-btn org-btn--ghost"
+              onClick={() => navigate('/soft-gcc/effectifs')}
+            >
+              <i className="mdi mdi-arrow-left" />
+              Retour
+            </button>
+            <button
+              type="button"
+              className="org-btn org-btn--soft"
+              onClick={() => navigate('/soft-gcc/organigramme')}
+            >
+              <i className="mdi mdi-sitemap" />
+              Organigramme
+            </button>
+          </div>
+        </header>
+
+        {error && <div className="org-alert">{error}</div>}
+
+        <div className="org-kpi-row">
+          <div className="org-kpi">
+            <span className="org-kpi__icon org-kpi__icon--blue">
+              <i className="mdi mdi-account-group" />
+            </span>
+            <div>
+              <p className="org-kpi__label">Effectif</p>
+              <p className="org-kpi__value">{employeeList.length}</p>
+            </div>
+          </div>
+          <div className="org-kpi">
+            <span className="org-kpi__icon org-kpi__icon--cyan">
+              <i className="mdi mdi-filter-outline" />
+            </span>
+            <div>
+              <p className="org-kpi__label">Résultats</p>
+              <p className="org-kpi__value">{filtered.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="org-panel">
+          <div className="org-panel__head">
+            <div className="org-panel__title-wrap">
+              <span className="org-panel__icon">
+                <i className="mdi mdi-format-list-bulleted" />
+              </span>
+              <div>
+                <h2 className="org-panel__title">Collaborateurs</h2>
+                <p className="org-panel__desc">
+                  Matricule, poste, date d&apos;embauche et ancienneté.
+                </p>
+              </div>
+            </div>
+            <div className="org-search">
+              <i className="mdi mdi-magnify" />
+              <input
+                type="search"
+                placeholder="Nom, matricule, poste…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Filtrer les collaborateurs"
+              />
+            </div>
+          </div>
+
+          <div className="org-panel__body">
+            {filtered.length === 0 ? (
+              <div className="org-empty">
+                <i className="mdi mdi-account-off-outline" />
+                Aucun collaborateur trouvé.
+              </div>
+            ) : (
+              <div className="org-table-wrap">
+                <table className="org-table">
+                  <thead>
+                    <tr>
+                      <th>Collaborateur</th>
+                      <th>Matricule</th>
+                      <th>Poste</th>
+                      <th>Embauche</th>
+                      <th>Ancienneté</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((item) => {
+                      const fullName = `${item.name || ''} ${item.firstName || ''}`.trim() || '—';
+                      return (
+                        <tr key={item.employeeId ?? item.registrationNumber}>
+                          <td>
+                            <div className="org-employee-cell">
+                              {item.photo ? (
+                                <img
+                                  className="org-avatar"
+                                  src={urlApi(`/Employee/photo/${item.employeeId}`)}
+                                  alt=""
+                                />
+                              ) : (
+                                <span className="org-avatar org-avatar--initials">
+                                  {getInitials(item.name, item.firstName)}
+                                </span>
+                              )}
+                              <div>
+                                <p className="org-employee-name">{fullName}</p>
+                                <p className="org-employee-sub">
+                                  {item.civiliteName || '—'}
+                                </p>
+                              </div>
                             </div>
-                        </div>
-                    </div>
-                </>
+                          </td>
+                          <td>
+                            <span className="org-badge">
+                              {item.registrationNumber || '—'}
+                            </span>
+                          </td>
+                          <td>{item.positionName || 'Poste non défini'}</td>
+                          <td>{formatDate(item.hiringDate)}</td>
+                          <td>
+                            <span className="org-badge org-badge--success">
+                              {item.seniority || '—'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
-        </Template>
-    );
+          </div>
+        </div>
+      </div>
+    </Template>
+  );
 }
 
 export default DetailDepartment;

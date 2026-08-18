@@ -1,121 +1,204 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import PageHeader from '../../components/PageHeader';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Template from '../Template';
 import { useNavigate } from 'react-router-dom';
 import { urlApi } from '../../helpers/utils';
-import axios from "axios";
+import axios from 'axios';
 import Loader from '../../helpers/Loader';
 import '../../styles/orgChart.css';
-import defaultImg from '../../assets/images/default.jpg';
-import ModalImportEmployee from '../../components/organizationalChart/ModalImportEmployee';
 import BreadcrumbPers from '../../helpers/BreadcrumbPers';
+import { useUser } from '../Authentification/UserContext';
+import PermissionService from '../../services/PermissionService';
 
-// Map des images des départements
-const departmentImages = {
-    default: defaultImg,
-};
-
-// Fonction pour obtenir le chemin de l'image
-const getDepartmentImage = (departmentName) => {
-    if (!departmentName) {
-        return departmentImages.default;
-    }
-    return departmentImages[departmentName.toLowerCase()] || departmentImages.default;
-};
-
-
-// Page pour les nombres des employés par département
 function DepartmentEffective() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { hasPermission } = useUser();
+  const canImport = PermissionService.hasFunctionalPermission(hasPermission, 'IMPORT_ORG');
 
-    // Initialisation des states
-    const [numberEmployeeByDepartment, setNumberEmployeeByDepartment] = useState([]); 
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null); 
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
 
-    // Navigation pour ajout
-    const handleClickOrg = () => {
-        navigate('/soft-gcc/organigramme');
-    };
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(urlApi('/Org/effectifDepartement'));
+      setDepartments(response.data || []);
+    } catch (err) {
+      setError(`Erreur lors de la récupération des données : ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    // Navigation pour details
-    const handleClickDetails = (departmentId) => {
-        navigate(`/soft-gcc/effectifs/details/${departmentId}`);
-    };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    // Récupération des données à l'aide de l'API
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const numberEmployeeByDepartmentResponse = await axios.get(urlApi('/Org/effectifDepartement'));
-            setNumberEmployeeByDepartment(numberEmployeeByDepartmentResponse.data);
-        } catch (error) {
-            setError(`Erreur lors de la récupération des données : ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Effet pour déclencher les fetch
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    return (
-        <Template>
-            {loading && <Loader />}
-
-            <div className="title-container">
-                <div className="col-lg-10 skill-header">
-                    <i className="mdi mdi-calendar-check skill-icon"></i>
-                    <p className="skill-title">EFFECTIF PAR DÉPARTEMENT</p>
-                </div>
-            </div>
-            <BreadcrumbPers
-                items={[
-                    { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
-                    { label: 'Effectif par département', path: '/soft-gcc/effectif' },
-                    { label: 'Liste', path: '/soft-gcc/effectif' }
-                ]}
-            />
-            {error && <div className="alert alert-danger">{error}</div>}
-            <div className="row mt-3">
-                <div className="col-12 d-flex justify-content-end" style={{marginBottom: '10px'}}>
-                    <button className="btn-add btn-success btn-fw" onClick={handleClickOrg} style={{float: 'right'}}>
-                        <i className="mdi mdi-sitemap"></i>
-                        Voir organigramme
-                    </button>
-                </div>
-            </div>
-
-            <div className="row">
-                {numberEmployeeByDepartment.map((item) => {
-                    const departmentName = item.departmentName || 'Département inconnu';
-                    return (
-                    <div onClick={() => (handleClickDetails(item.departmentId))} key={item.departmentId} className="col-lg-3 col-md-6 col-sm-12 grid-margin stretch-card">
-                        <div className="card department-card">
-                            {item.departmentPhoto ? (
-                                <img src={urlApi(`/Department/photo/${item.departmentId}`)} 
-                                alt="Photo" 
-                                className="department-image"/>
-                            ) : (
-                                <img
-                                src={getDepartmentImage(item.departmentName)}
-                                alt={departmentName}
-                                className="department-image"
-                            />
-                            )}
-                            <div className="card-body text-center">
-                                <h5 className="department-name">{departmentName.toUpperCase()}</h5>
-                                <p className="employee-count">{item.nEmployee} employés</p>
-                            </div>
-                        </div>
-                    </div>
-                    );
-                })}
-            </div>
-        </Template>
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return departments;
+    return departments.filter((d) =>
+      (d.departmentName || 'Département inconnu').toLowerCase().includes(q)
     );
+  }, [departments, search]);
+
+  const totalEmployees = useMemo(
+    () => departments.reduce((sum, d) => sum + (d.nEmployee || 0), 0),
+    [departments]
+  );
+
+  const assignedDepts = useMemo(
+    () => departments.filter((d) => d.departmentId != null).length,
+    [departments]
+  );
+
+  return (
+    <Template>
+      {loading && <Loader />}
+
+      <div className="org-page">
+        <div className="org-breadcrumb">
+          <BreadcrumbPers
+            items={[
+              { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+              { label: 'Effectifs', path: '/soft-gcc/effectifs' },
+            ]}
+          />
+        </div>
+
+        <header className="org-header">
+          <div>
+            <p className="org-header__eyebrow">Organisation</p>
+            <h1 className="org-header__title">Effectifs par département</h1>
+            <p className="org-header__subtitle">
+              Répartition des collaborateurs et accès rapide à l&apos;organigramme.
+            </p>
+          </div>
+          <div className="org-header__actions">
+            {canImport && (
+              <button
+                type="button"
+                className="org-btn org-btn--ghost"
+                onClick={() => navigate('/soft-gcc/effectifs/importer')}
+              >
+                <i className="mdi mdi-upload" />
+                Importer CSV
+              </button>
+            )}
+            <button
+              type="button"
+              className="org-btn org-btn--primary"
+              onClick={() => navigate('/soft-gcc/organigramme')}
+            >
+              <i className="mdi mdi-sitemap" />
+              Organigramme
+            </button>
+          </div>
+        </header>
+
+        {error && <div className="org-alert">{error}</div>}
+
+        <div className="org-kpi-row">
+          <div className="org-kpi">
+            <span className="org-kpi__icon org-kpi__icon--blue">
+              <i className="mdi mdi-account-group" />
+            </span>
+            <div>
+              <p className="org-kpi__label">Collaborateurs</p>
+              <p className="org-kpi__value">{totalEmployees}</p>
+            </div>
+          </div>
+          <div className="org-kpi">
+            <span className="org-kpi__icon org-kpi__icon--cyan">
+              <i className="mdi mdi-office-building" />
+            </span>
+            <div>
+              <p className="org-kpi__label">Départements</p>
+              <p className="org-kpi__value">{assignedDepts}</p>
+            </div>
+          </div>
+          <div className="org-kpi">
+            <span className="org-kpi__icon org-kpi__icon--green">
+              <i className="mdi mdi-eye-outline" />
+            </span>
+            <div>
+              <p className="org-kpi__label">Affichés</p>
+              <p className="org-kpi__value">{filtered.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="org-toolbar">
+          <div className="org-search">
+            <i className="mdi mdi-magnify" />
+            <input
+              type="search"
+              placeholder="Rechercher un département…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Rechercher un département"
+            />
+          </div>
+        </div>
+
+        {filtered.length === 0 && !loading ? (
+          <div className="org-panel">
+            <div className="org-empty">
+              <i className="mdi mdi-domain-off" />
+              Aucun département trouvé.
+            </div>
+          </div>
+        ) : (
+          <div className="org-dept-grid">
+            {filtered.map((item) => {
+              const departmentName = item.departmentName || 'Département inconnu';
+              const key = item.departmentId ?? `unknown-${departmentName}`;
+              return (
+                <button
+                  type="button"
+                  key={key}
+                  className="org-dept-card"
+                  onClick={() => {
+                    if (item.departmentId != null) {
+                      navigate(`/soft-gcc/effectifs/details/${item.departmentId}`);
+                    }
+                  }}
+                  disabled={item.departmentId == null}
+                >
+                  <div className="org-dept-card__media">
+                    {item.departmentPhoto && item.departmentId != null ? (
+                      <img
+                        src={urlApi(`/Department/photo/${item.departmentId}`)}
+                        alt=""
+                      />
+                    ) : (
+                      <span className="org-dept-card__media-fallback">
+                        <i className="mdi mdi-office-building-outline" />
+                      </span>
+                    )}
+                  </div>
+                  <div className="org-dept-card__body">
+                    <h3 className="org-dept-card__name">{departmentName}</h3>
+                    <p className="org-dept-card__meta">
+                      <i className="mdi mdi-account-multiple-outline" />
+                      {item.nEmployee || 0}{' '}
+                      {(item.nEmployee || 0) > 1 ? 'collaborateurs' : 'collaborateur'}
+                    </p>
+                    <div className="org-dept-card__footer">
+                      <span>Voir le détail</span>
+                      <span className="org-dept-card__count">{item.nEmployee || 0}</span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Template>
+  );
 }
 
 export default DepartmentEffective;

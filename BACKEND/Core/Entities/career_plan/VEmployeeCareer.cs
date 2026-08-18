@@ -8,6 +8,9 @@ namespace soft_carriere_competence.Core.Entities.career_plan
 		[Column("Registration_number")]
 		public string? RegistrationNumber { get; set; }
 
+		[Column("civilite_id")]
+		public int? CiviliteId { get; set; }
+
         [Column("civilite_name")]
         public string? CiviliteName { get; set; }
 

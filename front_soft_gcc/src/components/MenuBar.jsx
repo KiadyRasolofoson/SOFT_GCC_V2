@@ -18,8 +18,8 @@ function MenuBar() {
     useEffect(() => {
         if (!modulesAccessReady) return;
 
-        // Réutilise le cache UserContext (évite un 2e fetch)
-        if (myModules && myModules.length > 0) {
+        // Cache UserContext : tableau (éventuellement vide) = vérité Role_Modules
+        if (Array.isArray(myModules)) {
             setModules(myModules);
             setLoading(false);
             return;
@@ -29,12 +29,7 @@ function MenuBar() {
             try {
                 setLoading(true);
                 const data = await getMyModules();
-                if (!data || data.length === 0) {
-                    console.warn('MenuBar: API modules vide, fallback sur visibleModules');
-                    setModules(buildFallbackMenu(visibleModules || []));
-                } else {
-                    setModules(data);
-                }
+                setModules(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.warn('MenuBar: erreur API, fallback sur visibleModules');
                 setModules(buildFallbackMenu(visibleModules || []));
@@ -232,8 +227,9 @@ function MenuBar() {
 export default MenuBar;
 
 /**
- * Construit le menu de fallback complet (identique à l'ancien menu statique).
- * Utilisé uniquement quand les tables Modules/Role_Modules n'existent pas encore.
+ * Construit le menu de fallback (ancien menu statique).
+ * Utilisé uniquement en cas d'erreur réseau — un tableau vide Role_Modules
+ * doit rester un menu vide, pas ce catalogue complet.
  */
 function buildFallbackMenu(visibleModules) {
     const modules = new Set(visibleModules);

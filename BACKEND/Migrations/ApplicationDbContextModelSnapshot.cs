@@ -2102,6 +2102,10 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnType("int")
                         .HasColumnName("Career_plan_number");
 
+                    b.Property<int?>("CiviliteId")
+                        .HasColumnType("int")
+                        .HasColumnName("civilite_id");
+
                     b.Property<string>("CiviliteName")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("civilite_name");
@@ -2182,7 +2186,6 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("Department_id");
 
                     b.Property<string>("DepartmentName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Department_name");
 
@@ -2191,11 +2194,10 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("Employee_id");
 
                     b.Property<string>("FirstName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("FirstName");
 
-                    b.Property<DateTime>("HiringDate")
+                    b.Property<DateTime?>("HiringDate")
                         .HasColumnType("datetime2")
                         .HasColumnName("Hiring_date");
 
@@ -2204,7 +2206,6 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("Manager_id");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Name");
 
@@ -2221,7 +2222,6 @@ namespace soft_carriere_competence.Migrations
                         .HasColumnName("Position_name");
 
                     b.Property<string>("RegistrationNumber")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Registration_number");
 

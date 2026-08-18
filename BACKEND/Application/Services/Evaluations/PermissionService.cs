@@ -97,28 +97,22 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             }
         }
 
-        /// <summary>Rôle Admin seed classique (Role_id = 1) — peut différer si les rôles ont été créés dans un autre ordre.</summary>
-        public const int AdminRoleId = 1;
-
         /// <summary>
-        /// Détecte un rôle Administrateur par titre (fiable) ou par id seed 1.
-        /// Les migrations SQL n'attribuent le plein accès qu'à role_id=1 ; certaines bases
-        /// ont « Admin » sous un autre id (ex. 3).
+        /// Détecte un rôle Administrateur uniquement par titre.
+        /// Ne pas s'appuyer sur role_id = 1 : sur les bases existantes l'Admin
+        /// a souvent un autre id (ex. 3), et l'id 1 peut être Manager / RH.
         /// </summary>
         public static bool IsAdminRole(int roleId, string? roleTitle = null)
         {
-            if (!string.IsNullOrWhiteSpace(roleTitle))
-            {
-                var t = roleTitle.Trim();
-                if (t.Equals("Admin", StringComparison.OrdinalIgnoreCase)
-                    || t.Equals("Administrator", StringComparison.OrdinalIgnoreCase)
-                    || t.Equals("Administrateur", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
+            _ = roleId; // conservé pour compatibilité des appels existants (plus de bypass par id)
 
-            return roleId == AdminRoleId;
+            if (string.IsNullOrWhiteSpace(roleTitle))
+                return false;
+
+            var t = roleTitle.Trim();
+            return t.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+                || t.Equals("Administrator", StringComparison.OrdinalIgnoreCase)
+                || t.Equals("Administrateur", StringComparison.OrdinalIgnoreCase);
         }
 
         public async Task<IEnumerable<Permission>> GetUserPermissionsAsync(int userId)

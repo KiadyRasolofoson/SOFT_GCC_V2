@@ -46,6 +46,15 @@ front_soft_gcc/dist-ssr/
 # === FRONTEND - Dépendances ===
 front_soft_gcc/node_modules/
 
+# === DESIGN SYSTEM (Angular, indépendant) ===
+design-system/node_modules/
+design-system/dist/
+
+# === FRONTEND ANGULAR ===
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
 # === FRONTEND - Historique des backups ===
 front_soft_gcc/.history/
 
@@ -108,3 +117,8 @@ packages/
 *.snupkg
 
 /rapport
+
+apiToProd.sh
+frontToProd.sh
+
+design-system/

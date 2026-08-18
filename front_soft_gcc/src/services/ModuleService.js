@@ -11,6 +11,36 @@ const getAuthHeaders = () => {
     return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+/** Normalise une réponse API : tableau direct ou enveloppe { data: [] } */
+const asArray = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    return [];
+};
+
+const toId = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+};
+
+const normalizeModule = (m) => {
+    if (!m || typeof m !== 'object') return null;
+    const moduleId = toId(m.moduleId ?? m.ModuleId);
+    if (moduleId == null) return null;
+    const parentRaw = m.parentModuleId ?? m.ParentModuleId;
+    return {
+        ...m,
+        moduleId,
+        parentModuleId: parentRaw == null || parentRaw === '' ? null : toId(parentRaw),
+        name: m.name ?? m.Name ?? '',
+        displayName: m.displayName ?? m.DisplayName ?? '',
+        icon: m.icon ?? m.Icon ?? '',
+        route: m.route ?? m.Route ?? '',
+        sortOrder: m.sortOrder ?? m.SortOrder ?? 0,
+        childModules: asArray(m.childModules ?? m.ChildModules).map(normalizeModule).filter(Boolean),
+    };
+};
+
 /**
  * Récupère tous les modules (arbre complet : parents + enfants)
  */
@@ -18,7 +48,7 @@ export const getAllModules = async () => {
     const response = await axios.get(urlApi('/Module'), {
         headers: getAuthHeaders()
     });
-    return response.data;
+    return asArray(response.data).map(normalizeModule).filter(Boolean);
 };
 
 /**
@@ -90,10 +120,7 @@ export const getRoleModules = async (roleId) => {
     const response = await axios.get(urlApi(`/Module/role/${roleId}`), {
         headers: getAuthHeaders()
     });
-    return asArray(response.data).map(m => ({
-        ...m,
-        moduleId: toId(m.moduleId ?? m.ModuleId),
-    })).filter(m => m.moduleId != null);
+    return asArray(response.data).map(normalizeModule).filter(Boolean);
 };
 
 /**
@@ -114,7 +141,7 @@ export const getMyModules = async () => {
     const response = await axios.get(urlApi('/Module/my-modules'), {
         headers: getAuthHeaders()
     });
-    return response.data;
+    return asArray(response.data).map(normalizeModule).filter(Boolean);
 };
 
 /**
@@ -124,24 +151,16 @@ export const getAccessMap = async () => {
     const response = await axios.get(urlApi('/Module/access-map'), {
         headers: getAuthHeaders()
     });
-    return response.data;
+    const data = response.data || {};
+    return {
+        allowedRoutes: asArray(data.allowedRoutes ?? data.AllowedRoutes),
+        catalogRoutes: asArray(data.catalogRoutes ?? data.CatalogRoutes),
+    };
 };
 
 /**
  * Récupère toutes les permissions
  */
-/** Normalise une réponse API : tableau direct ou enveloppe { data: [] } */
-const asArray = (payload) => {
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.data)) return payload.data;
-    return [];
-};
-
-const toId = (value) => {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null;
-};
-
 export const getAllPermissions = async () => {
     const response = await axios.get(urlApi('/Permission'), {
         headers: getAuthHeaders()

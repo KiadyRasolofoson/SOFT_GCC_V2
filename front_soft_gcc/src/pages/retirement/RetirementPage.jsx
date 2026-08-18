@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import PageHeader from '../../components/PageHeader';
 import Template from '../Template';
-import '../../styles/skillsStyle.css';
 import Loader from '../../helpers/Loader';
-import '../../styles/pagination.css';
 import ModalParameter from '../../components/retirement/ModalParameter';
 import Fetcher from '../../components/Fetcher';
 import useSWR from 'swr';
 import FormattedDate from '../../helpers/FormattedDate';
 import BreadcrumbPers from '../../helpers/BreadcrumbPers';
+import ListPageHeader from '../../components/listPage/ListPageHeader';
+import FilterCard, { FilterField, FilterGrid } from '../../components/listPage/FilterCard';
+import ResponsiveDataTable from '../../components/listPage/ResponsiveDataTable';
+import '../../styles/listPage.css';
 
 function RetirementPage() {
   const [filters, setFilters] = useState({
@@ -31,121 +32,102 @@ function RetirementPage() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [sortColumn, setSortColumn] = useState('updatedDate');
 
-  // Récupération des options pour les filtres
   const { data: dataCivilite } = useSWR('/Civilite', Fetcher);
   const { data: dataDepartment } = useSWR('/Department', Fetcher);
-  const { data: dataPosition } = useSWR('/Position', Fetcher); 
-  
+  const { data: dataPosition } = useSWR('/Position', Fetcher);
+
   const [paginationResult, setPaginationResult] = useState({
     totalRecords: 0,
     pageSize: 0,
     currentPage: 0,
-    totalPages: 0
+    totalPages: 0,
   });
 
-  // Fonction de mise à jour des filtres
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prevFilters) => ({ ...prevFilters, [name]: value }));
   };
 
-  // Fonction de recherche des données avec filtres
-  const fetchFilteredData = useCallback(async (appliedFilters) => {
-    setLoading(true);
-    setError(null);
-  
-    try {
-      const queryParams = new URLSearchParams({
-        ...appliedFilters,
-        page: currentPage,
-        pageSize,
-      }).toString();
-  
-      const response = await Fetcher(`/Retirement/filter?${queryParams}`);
-  
-      if (response.success) {
-        if (!Array.isArray(response.data)) {
-          console.error("Données invalides reçues :", response.data);
-          setError("Données invalides reçues :", response.data);
-          setDataRetirement([]);
-        } else {
-          setDataRetirement(response.data);
-        }
-  
-        setError(null);
-        setTotalPages(response.totalPages || 0);
-        setPaginationResult({
-          totalRecords: response.totalCount || 0,
-          pageSize: response.pageSize || 0,
-          currentPage: response.currentPage || 0,
-          totalPages: response.totalPages || 0
-        });
-      } else {
-        setError(response.message + " " + response.details);
-        setDataRetirement([]);
-      }
-    } catch (err) {
-      setError("Erreur inattendue lors du chargement des données : " + err.message);
-      setDataRetirement([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, pageSize]);
-  
+  const fetchFilteredData = useCallback(
+    async (appliedFilters) => {
+      setLoading(true);
+      setError(null);
 
-  // Mise à jour des données triées
-  // Appliquer le tri chaque fois que `sortDirection` ou `careers` change
+      try {
+        const queryParams = new URLSearchParams({
+          ...appliedFilters,
+          page: currentPage,
+          pageSize,
+        }).toString();
+
+        const response = await Fetcher(`/Retirement/filter?${queryParams}`);
+
+        if (response.success) {
+          if (!Array.isArray(response.data)) {
+            setError('Données invalides reçues.');
+            setDataRetirement([]);
+          } else {
+            setDataRetirement(response.data);
+          }
+
+          setTotalPages(response.totalPages || 0);
+          setPaginationResult({
+            totalRecords: response.totalCount || 0,
+            pageSize: response.pageSize || 0,
+            currentPage: response.currentPage || 0,
+            totalPages: response.totalPages || 0,
+          });
+        } else {
+          setError(`${response.message} ${response.details || ''}`);
+          setDataRetirement([]);
+        }
+      } catch (err) {
+        setError(`Erreur inattendue lors du chargement des données : ${err.message}`);
+        setDataRetirement([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [currentPage, pageSize]
+  );
+
   useEffect(() => {
     if (!Array.isArray(dataRetirement)) {
-      console.error("dataRetirement n'est pas un tableau :", dataRetirement);
       setSortedDataRetirement([]);
       return;
     }
-  
+
     const sorted = [...dataRetirement].sort((a, b) => {
       const valueA = a[sortColumn];
       const valueB = b[sortColumn];
-  
+
       if (sortColumn === 'dateDepart') {
         const dateA = new Date(valueA);
         const dateB = new Date(valueB);
         return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
-      } else {
-        if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
-        if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
       }
+      if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
+      if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
     });
-  
+
     setSortedDataRetirement(sorted);
   }, [sortDirection, dataRetirement, sortColumn]);
-  
 
-  // Debounce des filtres
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedFilters(filters);
-      if (currentPage !== 1) {
-        setCurrentPage(1);
-      }
+      if (currentPage !== 1) setCurrentPage(1);
     }, 1000);
     return () => clearTimeout(handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  // Effet unique pour le chargement initial, la pagination et les filtres
   useEffect(() => {
     fetchFilteredData(debouncedFilters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, debouncedFilters]);
-
-  // Gestion de la pagination
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-    }
-  };
 
   const handleSort = (column) => {
     if (sortColumn === column) {
@@ -156,214 +138,156 @@ function RetirementPage() {
     }
   };
 
+  const columns = [
+    { key: 'civiliteName', header: 'Civilité', sortable: true },
+    {
+      key: 'name',
+      header: 'Nom complet',
+      sortable: true,
+      render: (item) => <span style={{ fontWeight: 500 }}>{`${item.name} ${item.firstName}`}</span>,
+    },
+    { key: 'registrationNumber', header: 'Matricule', sortable: true },
+    { key: 'departmentName', header: 'Département', sortable: true },
+    { key: 'positionName', header: 'Poste', sortable: true },
+    {
+      key: 'age',
+      header: 'Âge',
+      sortable: true,
+      render: (item) => <span className="list-stat-pill">{item.age}</span>,
+    },
+    {
+      key: 'dateDepart',
+      header: 'Départ à la retraite',
+      sortable: true,
+      render: (item) => (
+        <span style={{ color: '#0d6efd', fontWeight: 500 }}>
+          <FormattedDate date={item.dateDepart} />
+        </span>
+      ),
+    },
+  ];
+
   return (
     <Template>
       {loading && <Loader />}
-      <ModalParameter Fetcher={Fetcher} showParameter={showParameter} handleCloseParameter={() => setShowParameter(false)} fetchFilteredData={fetchFilteredData} />
+      <ModalParameter
+        Fetcher={Fetcher}
+        showParameter={showParameter}
+        handleCloseParameter={() => setShowParameter(false)}
+        fetchFilteredData={fetchFilteredData}
+      />
 
-      <div className="title-container">
-        <div className="col-lg-10 skill-header">
-          <i className="mdi mdi-calendar-check skill-icon"></i>
-          <p className="skill-title">DÉPART À LA RETRAITE</p>
-        </div>
-      </div>
+      <ListPageHeader
+        icon="mdi-calendar-check"
+        title="Départ à la retraite"
+        subtitle="Anticipez et planifiez les départs en retraite"
+        actions={
+          <button
+            className="list-page-btn-primary outline"
+            type="button"
+            onClick={() => setShowParameter(true)}
+          >
+            <i className="mdi mdi-cog"></i>
+            Paramètres
+          </button>
+        }
+      />
+
       <BreadcrumbPers
         items={[
           { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
           { label: 'Retraite', path: '/soft-gcc/retraite' },
-          { label: 'Liste', path: '/soft-gcc/retraite' }
+          { label: 'Liste', path: '/soft-gcc/retraite' },
         ]}
       />
+
       {error && <div className="alert alert-danger">{error}</div>}
-      <div className="row mt-3">
-        <div className="col-12 d-flex justify-content-end" style={{marginBottom: '10px'}}>
-          <button className="btn-add btn-success btn-fw" onClick={() => setShowParameter(true)} style={{float: 'right'}}>
-            <i className="mdi mdi-settings"></i>
-              Paramètre
-          </button>
-        </div>
-      </div>
 
-      <div className="row">
-        <div className="col-lg-12 grid-margin stretch-card">
-          <div className="card search-card">
-           <div className="card-header d-flex align-items-center" style={{color: '#B8860B'}}>
-              <i className="mdi mdi-filter-outline me-2 fs-4" style={{fontSize: '30px', marginRight: '10px'}}></i>
-              <h3 className="mb-0" style={{color: '#B8860B'}}>Filtres</h3>
-            </div>
-            <div className="card-body">
-              <form className="form-sample">
-                <div className="form-group row">
-                  <div className="col-sm-4">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Nom, prénom ou matricule"
-                      name="keyWord"
-                      value={filters.keyWord}
-                      onChange={handleFilterChange}
-                    />
-                  </div>
-                  <div className="col-sm-4">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Âge, ex: 24 ou 20-50"
-                      name="age"
-                      value={filters.age}
-                      onChange={handleFilterChange}
-                    />
-                  </div>
-                  <div className="col-sm-4">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Année, ex: 2024 ou 2030-2040"
-                      name="year"
-                      value={filters.year}
-                      onChange={handleFilterChange}
-                    />
-                  </div>
-                </div>
-                <div className="form-group row">
-                  <div className="col-sm-4">
-                    <select
-                      name="civiliteId"
-                      className="form-control"
-                      value={filters.civiliteId}
-                      onChange={handleFilterChange}
-                    >
-                      <option value="">Filtrer par civilité</option>
-                      {dataCivilite?.map((item) => (
-                        <option key={item.civiliteId} value={item.civiliteId}>
-                          {item.civiliteName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-sm-4">
-                    <select
-                      name="departmentId"
-                      className="form-control"
-                      value={filters.departmentId}
-                      onChange={handleFilterChange}
-                    >
-                      <option value="">Filtrer par département</option>
-                      {dataDepartment?.map((item) => (
-                        <option key={item.departmentId} value={item.departmentId}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-sm-4">
-                    <select
-                      name="positionId"
-                      className="form-control"
-                      value={filters.positionId}
-                      onChange={handleFilterChange}
-                    >
-                      <option value="">Filtrer par poste</option>
-                      {dataPosition?.map((item) => (
-                        <option key={item.positionId} value={item.positionId}>
-                          {item.positionName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </form>
-              {error && <p className="text-danger">{error}</p>}
-            </div>
-          </div>
-        </div>
-      </div>
+      <FilterCard>
+        <FilterGrid>
+          <FilterField label="Recherche">
+            <input
+              type="text"
+              placeholder="Nom, prénom ou matricule"
+              name="keyWord"
+              value={filters.keyWord}
+              onChange={handleFilterChange}
+            />
+          </FilterField>
+          <FilterField label="Âge">
+            <input
+              type="text"
+              placeholder="Ex : 24 ou 20-50"
+              name="age"
+              value={filters.age}
+              onChange={handleFilterChange}
+            />
+          </FilterField>
+          <FilterField label="Année de départ">
+            <input
+              type="text"
+              placeholder="Ex : 2024 ou 2030-2040"
+              name="year"
+              value={filters.year}
+              onChange={handleFilterChange}
+            />
+          </FilterField>
+          <FilterField label="Civilité">
+            <select name="civiliteId" value={filters.civiliteId} onChange={handleFilterChange}>
+              <option value="">Toutes les civilités</option>
+              {dataCivilite?.map((item) => (
+                <option key={item.civiliteId} value={item.civiliteId}>
+                  {item.civiliteName}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+          <FilterField label="Département">
+            <select name="departmentId" value={filters.departmentId} onChange={handleFilterChange}>
+              <option value="">Tous les départements</option>
+              {dataDepartment?.map((item) => (
+                <option key={item.departmentId} value={item.departmentId}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+          <FilterField label="Poste">
+            <select name="positionId" value={filters.positionId} onChange={handleFilterChange}>
+              <option value="">Tous les postes</option>
+              {dataPosition?.map((item) => (
+                <option key={item.positionId} value={item.positionId}>
+                  {item.positionName}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+        </FilterGrid>
+      </FilterCard>
 
-      <div className="row">
-        <div className="col-lg-12 grid-margin stretch-card">
-          <div className="card">
-            <div className="card-header d-flex align-items-center" style={{color: '#B8860B'}}>
-              <i className="mdi mdi-format-list-bulleted me-2 fs-4" style={{fontSize: '30px', marginRight: '10px'}}></i>
-              <h3 className="mb-0" style={{color: '#B8860B'}}>Liste</h3>
-            </div>
-            <div className="card-body">
-              {!loading && dataRetirement?.length > 0 ? (
-                <>
-                  <table className="table table-competences">
-                    <thead>
-                      <tr>
-                        <th onClick={() => handleSort('civiliteName')} className="sortable-header">
-                          Civilité {sortColumn === 'civiliteName' ? (sortDirection === 'asc' ? '▼' : '▲') : ''}
-                        </th>
-                        <th onClick={() => handleSort('name')} className="sortable-header">
-                          Nom complet {sortColumn === 'name' ? (sortDirection === 'asc' ? '▼' : '▲') : ''}
-                        </th>
-                        <th onClick={() => handleSort('registrationNumber')} className="sortable-header">
-                          Matricule {sortColumn === 'registrationNumber' ? (sortDirection === 'asc' ? '▼' : '▲') : ''}
-                        </th>
-                        <th onClick={() => handleSort('departmentName')} className="sortable-header">
-                          Département {sortColumn === 'departmentName' ? (sortDirection === 'asc' ? '▼' : '▲') : ''}
-                        </th>
-                        <th onClick={() => handleSort('positionName')} className="sortable-header">
-                          Poste {sortColumn === 'positionName' ? (sortDirection === 'asc' ? '▼' : '▲') : ''}
-                        </th>
-                        <th onClick={() => handleSort('age')} className="sortable-header">
-                          Âge {sortColumn === 'age' ? (sortDirection === 'asc' ? '▼' : '▲') : ''}
-                        </th>
-                        <th onClick={() => handleSort('dateDepart')} className="sortable-header">
-                          Départ à la retraite {sortColumn === 'dateDepart' ? (sortDirection === 'asc' ? '▼' : '▲') : ''}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                    {Array.isArray(sortedDataRetirement) && sortedDataRetirement.length ? (
-                      sortedDataRetirement.map((item, index) => (
-                        <tr key={index}>
-                          <td>{item.civiliteName}</td>
-                          <td style={{color: '#58d8a3'}}>{`${item.name} ${item.firstName}`}</td>
-                          <td>{item.registrationNumber}</td>
-                          <td>{item.departmentName}</td>
-                          <td>{item.positionName}</td>
-                          <td>{item.age}</td>
-                          <td style={{color: '#57c7d4'}}><FormattedDate date={item.dateDepart} /></td>
-                        </tr>
-                     ))) : (
-                        <tr> 
-                          <td colSpan="7" className="text-center">
-                            Aucun résultat trouvé.
-                          </td>
-                        </tr>
-)}
-
-                    </tbody>
-                  </table>
-                  <div className="pagination">
-                    <h4>{paginationResult.totalRecords} resultats aux totals</h4>
-                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
-                      Précédent
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <button
-                        key={i + 1}
-                        className={`pagination-button ${i + 1 === currentPage ? 'active' : ''}`}
-                        onClick={() => handlePageChange(i + 1)}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
-                      Suivant
-                    </button>
-                    <h4>Page {paginationResult.currentPage} sur {paginationResult.totalPages} pour {paginationResult.pageSize} resultats</h4>
-                  </div>
-                </>
-              ) : (
-                !loading && !error && <p className="text-center">Aucun résultat trouvé.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      {!loading && (
+        <>
+          <ResponsiveDataTable
+            title="Liste des départs prévus"
+            count={paginationResult.totalRecords}
+            columns={columns}
+            data={sortedDataRetirement}
+            rowKey={(item) => item.registrationNumber}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            mobileTitle={(item) => `${item.name} ${item.firstName}`}
+            mobileSubtitle={(item) => `${item.civiliteName} — ${item.registrationNumber}`}
+            pagination={{
+              currentPage,
+              totalPages,
+              totalRecords: paginationResult.totalRecords,
+              pageSize: paginationResult.pageSize,
+              onPageChange: setCurrentPage,
+            }}
+          />
+        </>
+      )}
     </Template>
   );
 }

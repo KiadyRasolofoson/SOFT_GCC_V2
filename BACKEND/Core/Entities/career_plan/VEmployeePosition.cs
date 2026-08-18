@@ -8,18 +8,19 @@ namespace soft_carriere_competence.Core.Entities.career_plan
 		public int EmployeeId { get; set; }
 
 		[Column("Registration_number")]
-public string RegistrationNumber { get; set; } = string.Empty;
+		public string? RegistrationNumber { get; set; }
 
-        [Column("Name")]
-        public string Name { get; set; } = string.Empty;
+		[Column("Name")]
+		public string? Name { get; set; }
 
-        [Column("FirstName")]
-        public string FirstName { get; set; } = string.Empty;
+		[Column("FirstName")]
+		public string? FirstName { get; set; }
 
 		[Column("Department_id")]
-public int? DepartmentId { get; set; }
+		public int? DepartmentId { get; set; }
+
 		[Column("Department_name")]
-		public string DepartmentName { get; set; } = string.Empty;
+		public string? DepartmentName { get; set; }
 
 		[Column("Civilite_id")]
 		public int? civiliteId { get; set; }
@@ -37,12 +38,12 @@ public int? DepartmentId { get; set; }
 		public string? PositionName { get; set; }
 
 		[Column("Hiring_date")]
-		public DateTime HiringDate { get; set; }
+		public DateTime? HiringDate { get; set; }
 
 		[Column("Seniority")]
 		public string? Seniority { get; set; }
 
-        [Column("employee_photo")]
-        public byte[]? Photo { get; set; }
-    }
+		[Column("employee_photo")]
+		public byte[]? Photo { get; set; }
+	}
 }

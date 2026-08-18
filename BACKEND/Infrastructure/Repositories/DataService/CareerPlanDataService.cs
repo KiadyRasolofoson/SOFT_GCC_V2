@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using soft_carriere_competence.Core.Entities.career_plan;
@@ -58,109 +57,115 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
                 .ToListAsync();
         }
 
-        public async Task<VEmployeeCareer?> GetCareerByEmployee(string registrationNumber)
-        {
-            return await _context.VEmployeeCareer
-                .FromSqlRaw("SELECT * FROM v_employee_career WHERE Registration_number = @RegistrationNumber",
-                            new SqlParameter("@RegistrationNumber", registrationNumber))
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
-        }
+		public async Task<VEmployeeCareer?> GetCareerByEmployee(string registrationNumber)
+		{
+			return await _context.VEmployeeCareer
+				.AsNoTracking()
+				.FirstOrDefaultAsync(c => c.RegistrationNumber == registrationNumber);
+		}
 
-        public async Task<object> GetAllCareers(int pageNumber = 1, int pageSize = 10)
-        {
-            var totalRecords = await _context.VEmployeeCareer.CountAsync();
+		public async Task<object> GetAllCareers(int pageNumber = 1, int pageSize = 10)
+		{
+			var query = _context.VEmployeeCareer.AsNoTracking();
+			var totalRecords = await query.CountAsync();
 
-            var careers = await _context.VEmployeeCareer
-                .FromSqlRaw("SELECT * FROM v_employee_career")
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+			var careers = await query
+				.Skip((pageNumber - 1) * pageSize)
+				.Take(pageSize)
+				.ToListAsync();
 
-            var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+			var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
 
-            return new
-            {
-                Data = careers,
-                TotalRecords = totalRecords,
-                PageSize = pageSize,
-                CurrentPage = pageNumber,
-                TotalPages = totalPages
-            };
-        }
+			return new
+			{
+				Data = careers,
+				TotalRecords = totalRecords,
+				PageSize = pageSize,
+				CurrentPage = pageNumber,
+				TotalPages = totalPages
+			};
+		}
 
-        public async Task<(List<VEmployeeCareer> Data, int TotalCount)> GetAllCareersFilter(
-            string? keyWord = null,
-            string? departmentId = null,
-            string? positionId = null,
-            string? dateAssignmentMin = null,
-            string? dateAssignmentMax = null,
-            int page = 1,
-            int pageSize = 10)
-        {
-            var sql = new StringBuilder("SELECT * FROM v_employee_career WHERE 1=1");
-            var parameters = new List<SqlParameter>();
+		public async Task<(List<VEmployeeCareer> Data, int TotalCount)> GetAllCareersFilter(
+			string? keyWord = null,
+			string? departmentId = null,
+			string? positionId = null,
+			string? dateAssignmentMin = null,
+			string? dateAssignmentMax = null,
+			int page = 1,
+			int pageSize = 10)
+		{
+			IQueryable<VEmployeeCareer> query = _context.VEmployeeCareer.AsNoTracking();
 
-            if (!string.IsNullOrWhiteSpace(keyWord))
-            {
-                sql.Append(" AND (registration_number LIKE @KeyWord OR name LIKE @KeyWord OR firstname LIKE @KeyWord)");
-                parameters.Add(new SqlParameter("@KeyWord", $"%{keyWord}%"));
-            }
+			if (!string.IsNullOrWhiteSpace(keyWord))
+			{
+				var kw = keyWord.Trim();
+				query = query.Where(c =>
+					(c.RegistrationNumber != null && c.RegistrationNumber.Contains(kw)) ||
+					(c.Name != null && c.Name.Contains(kw)) ||
+					(c.FirstName != null && c.FirstName.Contains(kw)));
+			}
 
-            if (!string.IsNullOrWhiteSpace(departmentId))
-            {
-                sql.Append(" AND department_id = @DepartmentId");
-                parameters.Add(new SqlParameter("@DepartmentId", departmentId));
-            }
+			if (!string.IsNullOrWhiteSpace(departmentId) && int.TryParse(departmentId, out var deptId))
+			{
+				query = query.Where(c => c.DepartmentId == deptId);
+			}
 
-            if (!string.IsNullOrWhiteSpace(positionId))
-            {
-                sql.Append(" AND position_id = @PositionId");
-                parameters.Add(new SqlParameter("@PositionId", positionId));
-            }
-            if (!string.IsNullOrWhiteSpace(dateAssignmentMin) && !string.IsNullOrWhiteSpace(dateAssignmentMax))
-            {
-                sql.Append(" AND Assignment_date BETWEEN @DateAssignmentMin AND @DateAssignmentMax");
-                parameters.Add(new SqlParameter("@DateAssignmentMin", dateAssignmentMin));
-                parameters.Add(new SqlParameter("@DateAssignmentMax", dateAssignmentMax));
-            }
+			if (!string.IsNullOrWhiteSpace(positionId) && int.TryParse(positionId, out var posId))
+			{
+				query = query.Where(c => c.PositionId == posId);
+			}
 
-            var filteredQuery = _context.VEmployeeCareer
-                .FromSqlRaw(sql.ToString(), parameters.ToArray());
+			if (!string.IsNullOrWhiteSpace(dateAssignmentMin) && !string.IsNullOrWhiteSpace(dateAssignmentMax)
+				&& DateTime.TryParse(dateAssignmentMin, out var dateMin)
+				&& DateTime.TryParse(dateAssignmentMax, out var dateMax))
+			{
+				query = query.Where(c => c.AssignmentDate != null
+					&& c.AssignmentDate >= dateMin
+					&& c.AssignmentDate <= dateMax);
+			}
 
-            var totalCount = await filteredQuery.CountAsync();
+			var totalCount = await query.CountAsync();
 
-            var data = await filteredQuery
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+			var data = await query
+				.Skip((page - 1) * pageSize)
+				.Take(pageSize)
+				.ToListAsync();
 
-            return (data, totalCount);
-        }
+			return (data, totalCount);
+		}
 
-        public async Task<object> GetAllCareersFilter(string keyWord, int pageNumber = 1, int pageSize = 10)
-        {
-            var filteredQuery = _context.VEmployeeCareer
-                .FromSqlRaw("SELECT * FROM v_employee_career WHERE Registration_number LIKE @p0 OR name LIKE @p0 OR firstname LIKE @p0", $"%{keyWord}%");
+		public async Task<object> GetAllCareersFilter(string keyWord, int pageNumber = 1, int pageSize = 10)
+		{
+			IQueryable<VEmployeeCareer> filteredQuery = _context.VEmployeeCareer.AsNoTracking();
 
-            var totalRecords = await filteredQuery.CountAsync();
+			if (!string.IsNullOrWhiteSpace(keyWord))
+			{
+				var kw = keyWord.Trim();
+				filteredQuery = filteredQuery.Where(c =>
+					(c.RegistrationNumber != null && c.RegistrationNumber.Contains(kw)) ||
+					(c.Name != null && c.Name.Contains(kw)) ||
+					(c.FirstName != null && c.FirstName.Contains(kw)));
+			}
 
-            var careers = await filteredQuery
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+			var totalRecords = await filteredQuery.CountAsync();
 
-            var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+			var careers = await filteredQuery
+				.Skip((pageNumber - 1) * pageSize)
+				.Take(pageSize)
+				.ToListAsync();
 
-            return new
-            {
-                Data = careers,
-                TotalRecords = totalRecords,
-                PageSize = pageSize,
-                CurrentPage = pageNumber,
-                TotalPages = totalPages
-            };
-        }
+			var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+
+			return new
+			{
+				Data = careers,
+				TotalRecords = totalRecords,
+				PageSize = pageSize,
+				CurrentPage = pageNumber,
+				TotalPages = totalPages
+			};
+		}
 
         public async Task<bool> DeleteCareerPlan(int careerPlanId)
         {

@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import PageHeader from '../../components/PageHeader';
 import Template from '../Template';
-import '../../styles/skillsStyle.css';
-import '../../styles/pagination.css';
 import ChartLine from '../../components/ChartLine';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Loader from '../../helpers/Loader';
-import '../../styles/pagination.css';
 import Fetcher from '../../components/Fetcher';
 import useSWR from 'swr';
 import BreadcrumbPers from '../../helpers/BreadcrumbPers';
 import { mdiEyeOutline } from '@mdi/js';
 import Icon from '@mdi/react';
+import ListPageHeader from '../../components/listPage/ListPageHeader';
+import FilterCard, { FilterField, FilterGrid } from '../../components/listPage/FilterCard';
+import ResponsiveDataTable from '../../components/listPage/ResponsiveDataTable';
+import '../../styles/listPage.css';
 
- 
-// Fonction pour initialiser les données du graphe
 function initializeGraph(setWishesEvolutionGraph) {
   setWishesEvolutionGraph([
     { month: 1, monthLetter: 'Jan', DemandRequestValue: 0 },
@@ -32,14 +30,16 @@ function initializeGraph(setWishesEvolutionGraph) {
   ]);
 }
 
-// Page de suivi des souhaits d'évolution
-function FollowedWishEvolution() {
-  const module = 'Souhait évolution';
-  const action = 'Suivi';
-  const url = '/SouhaitEvolution/Suivi';
-  const navigate = useNavigate();
+function getStateBadgeClass(state) {
+  if (state === 10) return 'success';
+  if (state === 0) return 'danger';
+  return 'warning';
+}
 
-  // États principaux
+function FollowedWishEvolution() {
+  const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [wishesEvolution, setWishesEvolution] = useState([]);
@@ -47,17 +47,15 @@ function FollowedWishEvolution() {
   const [totalPages, setTotalPages] = useState(0);
   const [wishesEvolutionGraph, setWishesEvolutionGraph] = useState([]);
   const [dataGraph, setDataGraph] = useState([]);
-  const currentYear = new Date().getFullYear();
   const [pageSize] = useState(10);
 
   const [paginationResult, setPaginationResult] = useState({
     totalRecords: 0,
     pageSize: 0,
     currentPage: 0,
-    totalPages: 0
+    totalPages: 0,
   });
 
-  // États pour les filtres
   const [filters, setFilters] = useState({
     keyWord: '',
     dateRequestMin: '',
@@ -69,17 +67,14 @@ function FollowedWishEvolution() {
     year: currentYear,
   });
 
-  // Données pour les options de filtres
   const { data: dataWishType } = useSWR('/WishType', Fetcher);
   const { data: dataPosition } = useSWR('/Position', Fetcher);
 
-  // Gestion des filtres
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prevFilters) => ({ ...prevFilters, [name]: value }));
   };
 
-  // Fetch des données avec filtres
   const fetchFilteredData = useCallback(
     async (appliedFilters) => {
       setLoading(true);
@@ -100,7 +95,7 @@ function FollowedWishEvolution() {
             totalRecords: response.totalCount,
             pageSize: response.pageSize,
             currentPage: response.currentPage,
-            totalPages: response.totalPages
+            totalPages: response.totalPages,
           });
         } else {
           setWishesEvolution([]);
@@ -108,15 +103,14 @@ function FollowedWishEvolution() {
         }
       } catch (err) {
         setWishesEvolution([]);
-        setError('Erreur inattendue : ' + err.message);
+        setError(`Erreur inattendue : ${err.message}`);
       } finally {
         setLoading(false);
       }
     },
-    [currentPage]
+    [currentPage, pageSize]
   );
 
-  // Fetch des données pour le graphe
   const fetchFilteredGraph = useCallback(async () => {
     try {
       const response = await Fetcher(`/WishEvolution/graphe/${filters.year}`);
@@ -127,313 +121,229 @@ function FollowedWishEvolution() {
     }
   }, [filters.year]);
 
-  // Effet pour synchroniser les données du graphe
   useEffect(() => {
     initializeGraph(setWishesEvolutionGraph);
     if (dataGraph.length > 0) {
-      const updatedGraph = wishesEvolutionGraph.map((entry) => {
-        const match = dataGraph.find((data) => data.month === entry.month);
-        return match
-          ? { ...entry, DemandRequestValue: match.totalRequests }
-          : entry;
-      });
-      setWishesEvolutionGraph(updatedGraph);
+      setWishesEvolutionGraph((prev) =>
+        prev.map((entry) => {
+          const match = dataGraph.find((data) => data.month === entry.month);
+          return match ? { ...entry, DemandRequestValue: match.totalRequests } : entry;
+        })
+      );
     }
   }, [dataGraph]);
 
-  // Debounce des filtres
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedFilters(filters);
-      if (currentPage !== 1) {
-        setCurrentPage(1);
-      }
+      if (currentPage !== 1) setCurrentPage(1);
     }, 1000);
     return () => clearTimeout(handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  // Effet unique pour le chargement initial, la pagination et les filtres
   useEffect(() => {
     fetchFilteredData(debouncedFilters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, debouncedFilters]);
 
-  // Fetch graph (debounced, ne modifie pas le loading du tableau)
   useEffect(() => {
     const handler = setTimeout(() => {
       fetchFilteredGraph();
     }, 1000);
     return () => clearTimeout(handler);
-  }, [filters.year]);
+  }, [filters.year, fetchFilteredGraph]);
 
-  // Navigation pour ajout
-  const handleClick = () => {
-    navigate('/soft-gcc/souhaits-evolution/ajouter');
+  const handleWishEvolutionDetails = (item) => {
+    navigate(`/soft-gcc/souhaits-evolution/details/${item.wishEvolutionCareerId}`);
   };
 
-  // Navigation pour details souhait evolution
-  const handleWishEvolutionDetails = (wishEvolutionId) => {
-    navigate(`/soft-gcc/souhaits-evolution/details/${wishEvolutionId}`);
-  };
+  const columns = [
+    { key: 'registrationNumber', header: 'Matricule' },
+    {
+      key: 'employee',
+      header: 'Employé',
+      render: (item) => `${item.firstName} ${item.name}`,
+    },
+    { key: 'wishTypeName', header: 'Type de souhait' },
+    {
+      key: 'wishPositionName',
+      header: 'Poste souhaité',
+      render: (item) => <span style={{ color: '#b8860b', fontWeight: 500 }}>{item.wishPositionName}</span>,
+    },
+    { key: 'priorityLetter', header: 'Priorité' },
+    {
+      key: 'requestDate',
+      header: 'Date de demande',
+      render: (item) => new Date(item.requestDate).toLocaleDateString('fr-FR'),
+    },
+    {
+      key: 'state',
+      header: 'Statut',
+      render: (item) => (
+        <span className={`list-badge ${getStateBadgeClass(item.state)}`}>{item.stateLetter}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: () => (
+        <button className="list-btn-view" type="button">
+          <Icon path={mdiEyeOutline} size={0.8} /> Voir demande
+        </button>
+      ),
+    },
+  ];
 
-  // Gestion de la pagination
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-    }
-  };
+  const yearOptions = Array.from({ length: 7 }, (_, i) => currentYear - i);
 
-    return (
-        <Template>
-          {loading && <Loader />} {/* Affichez le loader lorsque `loading` est true */}
+  return (
+    <Template>
+      {loading && <Loader />}
 
-          <div className="title-container">
-            <div className="col-lg-10 skill-header">
-              <i className="mdi mdi-trending-up skill-icon"></i>
-              <p className="skill-title">SOUHAIT D'ÉVOLUTION</p>
-            </div>
-                                
-          </div>
-          <BreadcrumbPers
-            items={[
-              { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
-              { label: 'Souhait évolution', path: '/soft-gcc/souhaits-evolution/suivi' },
-              { label: 'Liste', path: '/soft-gcc/souhaits-evolution/suivi' }
-            ]}
+      <ListPageHeader
+        icon="mdi-trending-up"
+        title="Souhait d'évolution"
+        subtitle="Suivez les demandes d'évolution de carrière"
+        actions={
+          <button
+            className="list-page-btn-primary success"
+            type="button"
+            onClick={() => navigate('/soft-gcc/souhaits-evolution/ajouter')}
+          >
+            <i className="mdi mdi-plus"></i>
+            Ajouter
+          </button>
+        }
+      />
+
+      <BreadcrumbPers
+        items={[
+          { label: 'Accueil', path: '/soft-gcc/tableau-de-bord' },
+          { label: 'Souhait évolution', path: '/soft-gcc/souhaits-evolution' },
+          { label: 'Liste', path: '/soft-gcc/souhaits-evolution' },
+        ]}
+      />
+
+      {error && <div className="alert alert-danger">{error}</div>}
+
+      <FilterCard>
+        <FilterGrid>
+          <FilterField label="Recherche">
+            <input
+              type="text"
+              placeholder="Nom, prénom ou matricule"
+              name="keyWord"
+              value={filters.keyWord}
+              onChange={handleFilterChange}
+            />
+          </FilterField>
+          <FilterField label="Date demande min">
+            <input
+              type="date"
+              name="dateRequestMin"
+              value={filters.dateRequestMin}
+              onChange={handleFilterChange}
+            />
+          </FilterField>
+          <FilterField label="Date demande max">
+            <input
+              type="date"
+              name="dateRequestMax"
+              value={filters.dateRequestMax}
+              onChange={handleFilterChange}
+            />
+          </FilterField>
+          <FilterField label="Type de souhait">
+            <select name="wishTypeId" value={filters.wishTypeId} onChange={handleFilterChange}>
+              <option value="">Tous les types</option>
+              {dataWishType?.map((item) => (
+                <option key={item.wishTypeId} value={item.wishTypeId}>
+                  {item.designation}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+          <FilterField label="Poste souhaité">
+            <select name="positionId" value={filters.positionId} onChange={handleFilterChange}>
+              <option value="">Tous les postes</option>
+              {dataPosition?.map((item) => (
+                <option key={item.positionId} value={item.positionId}>
+                  {item.positionName}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+          <FilterField label="Priorité">
+            <select name="priority" value={filters.priority} onChange={handleFilterChange}>
+              <option value="">Toutes les priorités</option>
+              <option value="1">Bas</option>
+              <option value="5">Moyen</option>
+              <option value="10">Élevé</option>
+            </select>
+          </FilterField>
+          <FilterField label="Statut">
+            <select name="state" value={filters.state} onChange={handleFilterChange}>
+              <option value="">Tous les statuts</option>
+              <option value="1">En attente</option>
+              <option value="5">En cours</option>
+              <option value="10">Validé</option>
+              <option value="0">Refusé</option>
+            </select>
+          </FilterField>
+        </FilterGrid>
+      </FilterCard>
+
+      {!loading && (
+        <>
+          <ResponsiveDataTable
+            title="Liste des demandes"
+            count={paginationResult.totalRecords}
+            columns={columns}
+            data={wishesEvolution}
+            rowKey={(item) => item.wishEvolutionCareerId}
+            onRowClick={handleWishEvolutionDetails}
+            mobileTitle={(item) => `${item.firstName} ${item.name}`}
+            mobileSubtitle={(item) => `Matricule : ${item.registrationNumber}`}
+            pagination={{
+              currentPage,
+              totalPages,
+              totalRecords: paginationResult.totalRecords,
+              pageSize: paginationResult.pageSize,
+              onPageChange: setCurrentPage,
+            }}
           />
-          {error && <div className="alert alert-danger">{error}</div>}
-          <div className="row mt-3">
-            <div className="col-12 d-flex justify-content-end" style={{marginBottom: '10px'}}>
-              <button className="btn-add btn-success btn-fw" onClick={handleClick} style={{float: 'right'}}>
-                <i className="mdi mdi-plus"></i>
-                Ajouter
-              </button>
-            </div>
-          </div>
+        </>
+      )}
 
-          <div className="row">
-            <div className="col-lg-12 grid-margin stretch-card">
-              <div className="card search-card">
-                <div className="card-header d-flex align-items-center" style={{color: '#B8860B'}}>
-                  <i className="mdi mdi-filter-outline me-2 fs-4" style={{fontSize: '30px', marginRight: '10px'}}></i>
-                  <h3 className="mb-0" style={{color: '#B8860B'}}>Filtres</h3>
-                </div>
-                <div className="card-body">
-                  <form className="form-sample">
-                    <div className="form-group row">
-                      <div className="col-sm-6">
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Nom, prénom ou matricule"
-                          name="keyWord"
-                          value={filters.keyWord}
-                          onChange={handleFilterChange}
-                        />
-                      </div>
-                      <div className="col-sm-3">
-                        <input
-                          type="date"
-                          className="form-control"
-                          placeholder="Date demande min"
-                          name="dateRequestMin"
-                          value={filters.dateRequestMin}
-                          onChange={handleFilterChange}
-                        />
-                      </div>
-                      <div className="col-sm-3">
-                        <input
-                          type="date"
-                          className="form-control"
-                          placeholder="Date demande max"
-                          name="dateRequestMax"
-                          value={filters.dateRequestMax}
-                          onChange={handleFilterChange}
-                        />
-                      </div>
-                    </div>
-                    <div className="form-group row">
-                      <div className="col-sm-3">
-                        <select
-                          name="wishTypeId"
-                          className="form-control"
-                          value={filters.wishTypeId}
-                          onChange={handleFilterChange}
-                        >
-                          <option value="">Filtrer par type de souhait</option>
-                          {dataWishType?.map((item) => (
-                            <option key={item.wishTypeId} value={item.wishTypeId}>
-                              {item.designation}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-sm-3">
-                        <select
-                          name="positionId"
-                          className="form-control"
-                          value={filters.positionId}
-                          onChange={handleFilterChange}
-                        >
-                          <option value="">Filtrer par poste souhaité</option>
-                          {dataPosition?.map((item) => (
-                            <option key={item.positionId} value={item.positionId}>
-                              {item.positionName}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-sm-3">
-                        <select
-                          name="priority"
-                          className="form-control"
-                          value={filters.priority}
-                          onChange={handleFilterChange}
-                        >
-                          <option value="">Filtrer par priorite</option>
-                          <option value="1">Bas</option>
-                          <option value="5">Moyen</option>
-                          <option value="10">Elevé</option>
-                        </select>
-                      </div>
-                      <div className="col-sm-3">
-                        <select
-                          name="state"
-                          className="form-control"
-                          value={filters.state}
-                          onChange={handleFilterChange}
-                        >
-                          <option value="">Filtrer par status</option>
-                          <option value="1">En attente</option>
-                          <option value="5">En cours</option>
-                          <option value="10">Validé</option>
-                          <option value="0">Refusé</option>
-                        </select>
-                      </div>
-                    </div>
-                  </form>    
-                </div>
-              </div>
-            </div>
+      <div className="list-data-card" style={{ marginTop: '24px' }}>
+        <div className="list-data-card-header">
+          <div className="list-data-card-header-left">
+            <i className="mdi mdi-chart-bar"></i>
+            <span>Analyse des demandes par mois</span>
           </div>
-
-          <div className="row">
-            <div className="col-lg-12 grid-margin stretch-card">
-              <div className="card">
-                <div className="card-header d-flex align-items-center" style={{color: '#B8860B'}}>
-                  <i className="mdi mdi-format-list-bulleted me-2 fs-4" style={{fontSize: '30px', marginRight: '10px'}}></i>
-                  <h3 className="mb-0" style={{color: '#B8860B'}}>Liste des demandes</h3>
-                </div>
-                <div className="card-body">
-                  {!loading && (
-                    <>
-                      <table className="table table-competences">
-                        <thead>
-                          <tr>
-                            <th>Matricule</th>
-                            <th>Employe</th>
-                            <th>Type souhait</th>
-                            <th>Poste souhaite</th>
-                            <th>Priorite</th>
-                            <th>Date de demande</th>
-                            <th>Statut</th>
-                            <th></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {wishesEvolution?.length > 0 ? (
-                            wishesEvolution.map((item) => (
-                              <tr key={item.wishEvolutionCareerId} onClick={() => {handleWishEvolutionDetails(item.wishEvolutionCareerId)}}>
-                                <td>{item.registrationNumber}</td>
-                                <td>{item.firstName} {item.name}</td>
-                                <td>{item.wishTypeName}</td>
-                                <td style={{color: '#B8860B'}}>{item.wishPositionName}</td>
-                                <td>{item.priorityLetter}</td>
-                                <td>{new Date(item.requestDate).toLocaleDateString()}</td>
-                                {item.state === 1 ? (
-                                  <td><label className="badge badge-warning">{item.stateLetter}</label ></td>
-                                ) : item.state === 5 ? (
-                                  <td><label className="badge badge-warning">{item.stateLetter}</label ></td>
-                                ) : item.state === 10 ? (
-                                  <td><label className="badge badge-success">{item.stateLetter}</label ></td>
-                                ) : (
-                                  <td><label className="badge badge-danger">{item.stateLetter}</label ></td>
-                                )}
-                                <td>
-                                  <button className="btn-details text-primary" >
-                                    <Icon path={mdiEyeOutline} size={1} /> Voir demande
-                                  </button>
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan="7" className="text-center">Aucun résultat trouvé.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                      <div className="pagination">
-                        <h4>{paginationResult.totalRecords} resultats aux totals</h4>
-                        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
-                          Précédent
-                        </button>
-                        {Array.from({ length: totalPages }, (_, i) => (
-                          <button
-                            key={i + 1}
-                            className={`pagination-button ${i + 1 === currentPage ? 'active' : ''}`}
-                            onClick={() => handlePageChange(i + 1)}
-                          >
-                            {i + 1}
-                          </button>
-                        ))}
-                        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
-                          Suivant
-                        </button>
-                        <h4>Page {paginationResult.currentPage} sur {paginationResult.totalPages} pour {paginationResult.pageSize} resultats</h4>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <p style={{ color: '#888', fontSize: '14px', marginBottom: '16px' }}>
+            Un aperçu des demandes au cours de l'année
+          </p>
+          <div style={{ maxWidth: '200px', marginBottom: '20px' }}>
+            <FilterField label="Année">
+              <select name="year" value={filters.year} onChange={handleFilterChange}>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
           </div>
-          
-          <div className="row justify-content-center">
-            <div className="col-lg-12 grid-margin stretch-card">
-              <div className="card shadow-sm border-0">
-                <div className="card-header d-flex align-items-center" style={{color: '#B8860B'}}>
-                  <i className="mdi mdi-chart-bar me-2 fs-4" style={{fontSize: '30px', marginRight: '10px'}}></i>
-                  <h3 className="mb-0" style={{color: '#B8860B'}}>Analyse des demandes par mois</h3>
-                </div>
-                <div className="card-body">
-                  <p className="card-description text-left">Un aperçu des demandes au cours de l'année</p>
-                  <div className="form-group row">
-                    <div className="col-sm-3">
-                      <select
-                        name="year"
-                        className="form-control"
-                        value={filters.year}
-                        onChange={handleFilterChange}
-                      >
-                        <option value="2025">2025</option>
-                        <option value="2024">2024</option>
-                        <option value="2023">2023</option>
-                        <option value="2022">2022</option>
-                        <option value="2021">2021</option>
-                        <option value="2020">2020</option>
-                      </select>
-                    </div>
-                  </div>
-                  <ChartLine data={wishesEvolutionGraph} year={filters.year}/>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Template>
-      );
+          <ChartLine data={wishesEvolutionGraph} year={filters.year} />
+        </div>
+      </div>
+    </Template>
+  );
 }
 
 export default FollowedWishEvolution;

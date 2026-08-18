@@ -42,11 +42,16 @@ function arrayMove(list, fromIndex, toIndex) {
     return next;
 }
 
+function toModuleId(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+}
+
 /** Aplatit l'arbre modules → liste { ...mod, depth } */
 function flattenModuleTree(modules, depth = 0) {
     const result = [];
     (modules || []).forEach(m => {
-        result.push({ ...m, depth });
+        result.push({ ...m, moduleId: toModuleId(m.moduleId), depth });
         if (m.childModules?.length) {
             result.push(...flattenModuleTree(m.childModules, depth + 1));
         }
@@ -56,8 +61,31 @@ function flattenModuleTree(modules, depth = 0) {
 
 /** Tous les IDs (parents + enfants) d'un arbre de modules */
 function collectAllModuleIds(modules) {
-    return flattenModuleTree(modules).map(m => m.moduleId);
+    return flattenModuleTree(modules).map(m => toModuleId(m.moduleId)).filter(id => id != null);
 }
+
+function collectDescendantIds(mod) {
+    const ids = [];
+    (mod?.childModules || []).forEach(c => {
+        const id = toModuleId(c.moduleId);
+        if (id != null) ids.push(id);
+        ids.push(...collectDescendantIds(c));
+    });
+    return ids;
+}
+
+function findModuleInTree(modules, id) {
+    const target = toModuleId(id);
+    if (target == null) return null;
+    for (const m of modules || []) {
+        if (toModuleId(m.moduleId) === target) return m;
+        const found = findModuleInTree(m.childModules, target);
+        if (found) return found;
+    }
+    return null;
+}
+
+const RECONNECT_HINT = 'Les utilisateurs concernés doivent se reconnecter pour voir le nouveau menu et les nouvelles permissions.';
 
 /**
  * Groupe les permissions par module racine (Compétences, Carrières…).
@@ -259,6 +287,7 @@ function RolesTab() {
         try {
             await updateRoleModules(selectedRole.roleId, [...selectedModuleIds]);
             toast.success(`${selectedModuleIds.length} module(s) associés au rôle "${selectedRole.title}"`);
+            toast.info(RECONNECT_HINT, { autoClose: 8000 });
         } catch (err) {
             toast.error(err.response?.data?.message || err.message || 'Erreur lors de la sauvegarde des modules');
         } finally { 
@@ -272,6 +301,7 @@ function RolesTab() {
         try {
             await updateRolePermissions(selectedRole.roleId, [...selectedPermissionIds]);
             toast.success(`${selectedPermissionIds.length} permission(s) assignée(s) au rôle "${selectedRole.title}"`);
+            toast.info(RECONNECT_HINT, { autoClose: 8000 });
             if (selectedModuleIds.length === 0) {
                 toast.warning(
                     'Aucune page visible pour ce rôle. Cochez aussi « Modules & Pages Visibles » puis Enregistrer — sinon le menu restera vide.',
@@ -286,11 +316,39 @@ function RolesTab() {
     };
 
     const toggleModule = (id) => {
-        const mid = Number(id);
-        setSelectedModuleIds(prev => prev.includes(mid) ? prev.filter(x => x !== mid) : [...prev, mid]);
+        const mid = toModuleId(id);
+        if (mid == null) return;
+        const mod = findModuleInTree(allModules, mid);
+        const descendantIds = mod ? collectDescendantIds(mod) : [];
+        const parentId = toModuleId(mod?.parentModuleId);
+
+        setSelectedModuleIds(prev => {
+            const selected = new Set((prev || []).map(toModuleId).filter(x => x != null));
+            const turningOff = selected.has(mid);
+
+            if (turningOff) {
+                selected.delete(mid);
+                descendantIds.forEach(did => selected.delete(did));
+                if (parentId != null) selected.delete(parentId);
+            } else {
+                selected.add(mid);
+                descendantIds.forEach(did => selected.add(did));
+                if (parentId != null) {
+                    const parent = findModuleInTree(allModules, parentId);
+                    const siblingIds = (parent?.childModules || [])
+                        .map(c => toModuleId(c.moduleId))
+                        .filter(x => x != null);
+                    if (siblingIds.length > 0 && siblingIds.every(sid => selected.has(sid))) {
+                        selected.add(parentId);
+                    }
+                }
+            }
+            return [...selected];
+        });
     };
     const togglePermission = (id) => {
-        const pid = Number(id);
+        const pid = toModuleId(id);
+        if (pid == null) return;
         setSelectedPermissionIds(prev => prev.includes(pid) ? prev.filter(x => x !== pid) : [...prev, pid]);
     };
 
@@ -298,19 +356,20 @@ function RolesTab() {
     const flatModules = useMemo(() => flattenModuleTree(allModules), [allModules]);
 
     const toggleAllModules = () => {
-        const allSel = allModuleIds.length > 0 && allModuleIds.every(id => selectedModuleIds.includes(id));
-        setSelectedModuleIds(allSel ? [] : [...allModuleIds]);
+        const ids = allModuleIds.map(toModuleId).filter(x => x != null);
+        const allSel = ids.length > 0 && ids.every(id => selectedModuleIds.includes(id));
+        setSelectedModuleIds(allSel ? [] : [...ids]);
     };
 
-    const modulesAllSelected = allModuleIds.length > 0 && allModuleIds.every(id => selectedModuleIds.includes(id));
+    const modulesAllSelected = allModuleIds.length > 0 && allModuleIds.every(id => selectedModuleIds.includes(Number(id)));
 
     const getChildSelectionState = (mod) => {
-        const childIds = (mod.childModules || []).map(c => c.moduleId);
+        const childIds = (mod.childModules || []).map(c => toModuleId(c.moduleId)).filter(x => x != null);
         if (childIds.length === 0) return { some: false, all: false };
         const selectedCount = childIds.filter(id => selectedModuleIds.includes(id)).length;
         return {
             some: selectedCount > 0 && selectedCount < childIds.length,
-            all: selectedCount === childIds.length && childIds.length > 0,
+            all: selectedCount === childIds.length,
         };
     };
 
@@ -508,12 +567,13 @@ function RolesTab() {
                             </div>
                             <div className="admin-card-body">
                                 <p className="text-muted small mb-3">
-                                    Cochez chaque page (module parent ou enfant) à afficher dans le menu pour ce rôle.
-                                    Un parent non coché apparaîtra quand même comme groupe si au moins un enfant est visible.
+                                    Cochez chaque page à afficher dans le menu. Cocher un module parent sélectionne toutes ses pages ;
+                                    décocher une page enfant décoche le parent. Un parent non coché apparaît quand même comme groupe
+                                    si au moins un enfant est visible.
                                 </p>
                                 <div className="admin-module-tree">
                                     {flatModules.map(mod => {
-                                        const checked = selectedModuleIds.includes(mod.moduleId);
+                                        const checked = selectedModuleIds.includes(Number(mod.moduleId));
                                         const isRoot = !mod.parentModuleId;
                                         const childState = isRoot ? getChildSelectionState(mod) : { some: false, all: false };
                                         const indeterminate = isRoot && !checked && childState.some;
