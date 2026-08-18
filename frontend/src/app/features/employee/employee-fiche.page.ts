@@ -7,15 +7,27 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccIdentityCard } from '../../ui/gcc-identity-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
-import { GccSkillGap } from '../../ui/gcc-skill-gap';
 import { EmployeeFicheProfile, EmployeeSkillGapItem, EmployeeTabKey } from '../../core/employee-fiche.models';
 import { EmployeeFicheService } from '../../core/employee-fiche.service';
+import { EmployeeInfosPanelComponent } from './components/employee-infos-panel.component';
+import { EmployeeSkillsPanelComponent } from './components/employee-skills-panel.component';
+import { EmployeeCareerPanelComponent } from './components/employee-career-panel.component';
 
 type JsonObject = Record<string, any>;
 
 @Component({
   selector: 'app-employee-fiche-page',
-  imports: [GccPageHeader, GccIdentityCard, GccEmptyState, GccSkillGap, MatTabsModule, MatButtonModule, MatIconModule],
+  imports: [
+    GccPageHeader,
+    GccIdentityCard,
+    GccEmptyState,
+    MatTabsModule,
+    MatButtonModule,
+    MatIconModule,
+    EmployeeInfosPanelComponent,
+    EmployeeSkillsPanelComponent,
+    EmployeeCareerPanelComponent,
+  ],
   template: `
     <gcc-page-header
       title="Fiche employé"
@@ -65,79 +77,24 @@ type JsonObject = Record<string, any>;
 
       @switch (selectedTab()) {
         @case ('infos') {
-          <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <h2 class="text-lg font-semibold text-navy">Informations principales</h2>
-              <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-accent">
-                {{ profile.positionName || 'Profil RH' }}
-              </span>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2">
-              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Nom</p>
-                <p class="mt-2 text-base font-semibold text-navy">{{ displayName(profile) || '—' }}</p>
-              </div>
-              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Matricule</p>
-                <p class="mt-2 text-base font-semibold text-navy">{{ profile.registrationNumber || '—' }}</p>
-              </div>
-              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Email</p>
-                <p class="mt-2 text-base font-semibold text-navy">{{ profile.email || '—' }}</p>
-              </div>
-              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Département</p>
-                <p class="mt-2 text-base font-semibold text-navy">{{ profile.departmentName || '—' }}</p>
-              </div>
-              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Date d’embauche</p>
-                <p class="mt-2 text-base font-semibold text-navy">{{ formatDate(profile.hiringDate) }}</p>
-              </div>
-              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Salaire net</p>
-                <p class="mt-2 text-base font-semibold text-navy">{{ formatCurrency(profile.netSalary) }}</p>
-              </div>
-            </div>
+          <section class="mt-6">
+            <app-employee-infos-panel [profile]="profile" />
           </section>
         }
         @case ('competences') {
-          <section class="mt-6 space-y-4">
-            @if (skillGaps().length) {
-              @for (item of skillGaps(); track item.label) {
-                <gcc-skill-gap [skill]="item.label" [required]="item.required" [acquired]="item.acquired" />
-              }
-            } @else {
-              <gcc-empty-state
-                title="Aucune compétence renseignée"
-                message="Le référentiel de compétences n’est pas encore disponible pour ce profil."
-              />
-            }
+          <section class="mt-6">
+            <app-employee-skills-panel [skillGaps]="skillGaps()" />
           </section>
         }
         @case ('carrieres') {
-          <section class="mt-6 space-y-4">
-            @if (careerSummary(); as career) {
-              <div class="grid gap-4 md:grid-cols-3">
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Poste</p>
-                  <p class="mt-2 text-lg font-semibold text-navy">{{ career['positionName'] || '—' }}</p>
-                </div>
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Salaire de base</p>
-                  <p class="mt-2 text-lg font-semibold text-navy">{{ formatCurrency(career['baseSalary']) }}</p>
-                </div>
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Dernière mise à jour</p>
-                  <p class="mt-2 text-lg font-semibold text-navy">{{ formatDate(career['updatedDate']) }}</p>
-                </div>
-              </div>
-            } @else {
-              <gcc-empty-state
-                title="Aucun parcours de carrière"
-                message="Les données de carrière ne sont pas disponibles pour cet employé pour le moment."
-              />
-            }
+          <section class="mt-6">
+            <app-employee-career-panel
+              [registrationNumber]="profile.registrationNumber"
+              [careerSummary]="careerSummary()"
+              [advancementRows]="careerAdvancement()"
+              [appointmentRows]="careerAppointments()"
+              [availabilityRows]="careerAvailability()"
+            />
           </section>
         }
       }
@@ -156,6 +113,21 @@ export class EmployeeFichePage {
   readonly careerSummary = signal<JsonObject | null>(null);
   readonly selectedTab = signal<EmployeeTabKey>('infos');
   selectedTabIndex = 0;
+
+  readonly careerAdvancement = computed<JsonObject[]>(() => {
+    const list = this.careerSummary()?.['assignmentAdvancement'];
+    return Array.isArray(list) ? list : [];
+  });
+
+  readonly careerAppointments = computed<JsonObject[]>(() => {
+    const list = this.careerSummary()?.['assignmentAppointment'];
+    return Array.isArray(list) ? list : [];
+  });
+
+  readonly careerAvailability = computed<JsonObject[]>(() => {
+    const list = this.careerSummary()?.['assignmentAvailability'];
+    return Array.isArray(list) ? list : [];
+  });
 
   readonly crumbs = computed(() => [
     { label: 'Accueil' },
@@ -288,20 +260,6 @@ export class EmployeeFichePage {
     const diff = Date.now() - start.getTime();
     const years = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)));
     return years > 0 ? `${years} an${years > 1 ? 's' : ''}` : 'Nouveau';
-  }
-
-  formatDate(value: string | null | undefined): string {
-    if (!value) return '—';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
-    return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
-  }
-
-  formatCurrency(value: number | string | null | undefined): string {
-    if (value == null || value === '') return '—';
-    const amount = Number(value);
-    if (!Number.isFinite(amount)) return String(value);
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
   }
 
   private setTab(nextTab: EmployeeTabKey, shouldNavigate: boolean): void {
