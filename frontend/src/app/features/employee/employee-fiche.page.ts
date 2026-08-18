@@ -8,8 +8,8 @@ import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccIdentityCard } from '../../ui/gcc-identity-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccSkillGap } from '../../ui/gcc-skill-gap';
-import { EmployeeFicheProfile, EmployeeSkillGapItem, EmployeeTabKey } from './employee-fiche.models';
-import { EmployeeFicheService } from './employee-fiche.service';
+import { EmployeeFicheProfile, EmployeeSkillGapItem, EmployeeTabKey } from '../../core/employee-fiche.models';
+import { EmployeeFicheService } from '../../core/employee-fiche.service';
 
 type JsonObject = Record<string, any>;
 
