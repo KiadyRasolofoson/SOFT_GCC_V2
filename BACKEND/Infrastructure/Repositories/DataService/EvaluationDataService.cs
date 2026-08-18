@@ -54,9 +54,14 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
 
         public async Task<Dictionary<int, string>> GetQuestionTextsAsync(List<int> questionIds)
         {
-            return await _context.evaluationQuestions
+            var questions = await _context.evaluationQuestions
                 .Where(q => questionIds.Contains(q.questionId))
-                .ToDictionaryAsync(q => q.questionId, q => q.question);
+                .Select(q => new { q.questionId, q.question })
+                .ToListAsync();
+
+            return questions
+                .GroupBy(q => q.questionId)
+                .ToDictionary(g => g.Key, g => g.First().question ?? string.Empty);
         }
 
         public async Task SaveChangesAsync()
@@ -426,7 +431,7 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
 
                 while (await reader.ReadAsync())
                 {
-                    var row = new Dictionary<string, object>();
+                    var row = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                     for (int i = 0; i < reader.FieldCount; i++)
                     {
                         row[reader.GetName(i)] = reader.GetValue(i);

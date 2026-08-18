@@ -471,92 +471,71 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             await _evaluationRepository.UpdateAsync(evaluation);
 
-            // Récupérer les IDs des réponses existantes
+            // Réponses existantes (une par question). Ne pas écraser QCM/TEXT du salarié.
             var existingRows = await _dataService.ExecuteReaderAsync(
-                "SELECT ResponseId, QuestionId FROM Evaluation_Responses WHERE EvaluationId = @p0", evaluationId);
-            var existingResponseIds = existingRows
-                .Select(r => new { QuestionId = Convert.ToInt32(r["QuestionId"]), ResponseId = Convert.ToInt32(r["ResponseId"]) })
-                .ToDictionary(r => r.QuestionId, r => r.ResponseId);
+                "SELECT ResponseId, QuestionId, ResponseType FROM Evaluation_Responses WHERE EvaluationId = @p0",
+                evaluationId);
+            var existingByQuestion = existingRows
+                .Select(r => new
+                {
+                    QuestionId = Convert.ToInt32(r["QuestionId"]),
+                    ResponseId = Convert.ToInt32(r["ResponseId"]),
+                    ResponseType = (r["ResponseType"]?.ToString() ?? string.Empty).Trim().ToUpperInvariant()
+                })
+                .GroupBy(r => r.QuestionId)
+                .ToDictionary(g => g.Key, g => g.First());
 
-            // Pour chaque note
-            var newResponses = new List<EvaluationResponses>();
+            static bool IsEmployeeAnswer(string responseType) =>
+                responseType is "QCM" or "TEXT";
+
+            // Une seule écriture par question (notes + commentaires). Évite le doublon EF « Key: N ».
+            var writes = new Dictionary<int, (string Value, string Type)>();
             foreach (var rating in ratings)
             {
-                int questionId = rating.Key;
-                int score = rating.Value;
-
-                if (existingResponseIds.TryGetValue(questionId, out var responseId))
-                {
-                    // Mettre à jour la réponse existante
-                    await _dataService.ExecuteNonQueryAsync(@"
-                        UPDATE evaluationResponses 
-                        SET ResponseValue = @p0, EndTime = @p1 
-                        WHERE ResponseId = @p2",
-                        score.ToString(), DateTime.UtcNow, responseId);
-                }
-                else
-                {
-                    // Créer une nouvelle réponse
-                    newResponses.Add(new EvaluationResponses
-                    {
-                        EvaluationId = evaluationId,
-                        QuestionId = questionId,
-                        ResponseValue = score.ToString(),
-                        ResponseType = "SCORE",
-                        CreatedAt = DateTime.UtcNow,
-                        StartTime = DateTime.UtcNow,
-                        EndTime = DateTime.UtcNow,
-                        State = 10 // TERMINEE
-                    });
-                }
+                if (rating.Key <= 0) continue;
+                writes[rating.Key] = (rating.Value.ToString(), "SCORE");
             }
 
-            // Si des ratings détaillés sont fournis (pour les critères multiples)
-            if (detailedRatings != null && detailedRatings.Count > 0)
+            if (detailedRatings != null)
             {
                 foreach (var detailedRating in detailedRatings)
                 {
                     if (detailedRating == null || detailedRating.QuestionId <= 0) continue;
 
-                    int questionId = detailedRating.QuestionId;
-
-                    // Calculer la note globale
                     detailedRating.OverallRating = detailedRating.CalculateOverallRating();
-
-                    // Convertir en JSON
-                    string jsonValue = System.Text.Json.JsonSerializer.Serialize(detailedRating);
-
-                    if (existingResponseIds.TryGetValue(questionId, out var responseId))
-                    {
-                        // Mettre à jour la réponse existante
-                        await _dataService.ExecuteNonQueryAsync(@"
-                            UPDATE evaluationResponses 
-                            SET ResponseValue = @p0, ResponseType = 'MULTI_CRITERIA', EndTime = @p1 
-                            WHERE ResponseId = @p2",
-                            jsonValue, DateTime.UtcNow, responseId);
-                    }
-                    else
-                    {
-                        // Créer une nouvelle réponse
-                        newResponses.Add(new EvaluationResponses
-                        {
-                            EvaluationId = evaluationId,
-                            QuestionId = questionId,
-                            ResponseValue = jsonValue,
-                            ResponseType = "MULTI_CRITERIA",
-                            CreatedAt = DateTime.UtcNow,
-                            StartTime = DateTime.UtcNow,
-                            EndTime = DateTime.UtcNow,
-                            State = 10 // TERMINEE
-                        });
-                    }
+                    writes[detailedRating.QuestionId] = (
+                        System.Text.Json.JsonSerializer.Serialize(detailedRating),
+                        "MULTI_CRITERIA");
                 }
             }
 
-            // Ajouter les nouvelles réponses en une seule fois
-            if (newResponses.Any())
+            var now = DateTime.UtcNow;
+            foreach (var write in writes)
             {
-                await _dataService.AddRangeAsync(newResponses);
+                int questionId = write.Key;
+                var (value, responseType) = write.Value;
+
+                if (existingByQuestion.TryGetValue(questionId, out var existing))
+                {
+                    if (IsEmployeeAnswer(existing.ResponseType))
+                    {
+                        continue;
+                    }
+
+                    await _dataService.ExecuteNonQueryAsync(@"
+                        UPDATE Evaluation_Responses
+                        SET ResponseValue = @p0, ResponseType = @p1, EndTime = @p2
+                        WHERE ResponseId = @p3",
+                        value, responseType, now, existing.ResponseId);
+                }
+                else
+                {
+                    await _dataService.ExecuteNonQueryAsync(@"
+                        INSERT INTO Evaluation_Responses
+                            (EvaluationId, QuestionId, ResponseType, ResponseValue, TimeSpent, StartTime, EndTime, IsCorrect, State, CreatedAt)
+                        VALUES (@p0, @p1, @p2, @p3, 0, @p4, @p5, 0, 10, @p6)",
+                        evaluationId, questionId, responseType, value, now, now, now);
+                }
             }
             
             // Calculer et sauvegarder les résultats par compétence
@@ -1368,8 +1347,16 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     $"SELECT optionId, optionText FROM evaluation_question_options WHERE optionId IN ({optPlaceholders})",
                     optionIds.Cast<object>().ToArray());
                 options = optRows
-                    .GroupBy(r => Convert.ToInt32(r["optionId"]))
-                    .ToDictionary(g => g.Key, g => g.First()["optionText"]?.ToString() ?? "");
+                    .Select(r =>
+                    {
+                        r.TryGetValue("optionId", out var idObj);
+                        r.TryGetValue("optionText", out var textObj);
+                        var id = idObj is null or DBNull ? 0 : Convert.ToInt32(idObj);
+                        return new { Id = id, Text = textObj?.ToString() ?? "" };
+                    })
+                    .Where(o => o.Id > 0)
+                    .GroupBy(o => o.Id)
+                    .ToDictionary(g => g.Key, g => g.First().Text);
             }
 
             var result = new List<object>();
@@ -1567,13 +1554,17 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     $"WHERE cl.CompetenceLineId IN ({clPlaceholders})",
                     competenceLineIds.Cast<object>().ToArray());
 
-                competenceData = clRows.ToDictionary(
-                    r => Convert.ToInt32(r["CompetenceLineId"]),
-                    r => (object)new
-                    {
-                        CompetenceLineId = Convert.ToInt32(r["CompetenceLineId"]),
-                        CompetenceName = r["SkillName"]?.ToString() ?? r["Description"]?.ToString() ?? ""
-                    });
+                competenceData = clRows
+                    .GroupBy(r => Convert.ToInt32(r["CompetenceLineId"]))
+                    .ToDictionary(
+                        g => g.Key,
+                        g => (object)new
+                        {
+                            CompetenceLineId = g.Key,
+                            CompetenceName = g.First()["SkillName"]?.ToString()
+                                ?? g.First()["Description"]?.ToString()
+                                ?? ""
+                        });
             }
 
             var result = new List<object>();
