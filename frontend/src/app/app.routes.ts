@@ -20,6 +20,23 @@ export const routes: Routes = [
         component: DashboardPage,
         canActivate: [moduleGuard],
       },
+      {
+        path: 'soft-gcc/evaluations/liste',
+        loadComponent: () =>
+          import('./features/evaluations/notation-list.page').then((m) => m.NotationListPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/evaluations/notation/evaluation/:evaluationId',
+        redirectTo: 'soft-gcc/evaluations/notation/:evaluationId',
+        pathMatch: 'full',
+      },
+      {
+        path: 'soft-gcc/evaluations/notation/:evaluationId',
+        loadComponent: () =>
+          import('./features/evaluations/notation-wizard.page').then((m) => m.NotationWizardPage),
+        canActivate: [moduleGuard],
+      },
       { path: '**', component: NotFoundPage, canActivate: [moduleGuard] },
     ],
   },
