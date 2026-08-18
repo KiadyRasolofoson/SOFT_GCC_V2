@@ -127,6 +127,11 @@ body {
   outline: none;
 }
 
+.gcc-input::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
 .gcc-input:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgb(99 102 241 / 0.15);
@@ -196,6 +201,10 @@ body {
 
 .gcc-stepper.mat-stepper-horizontal {
   background: transparent;
+}
+
+.gcc-stepper .mat-horizontal-content-container {
+  padding-top: 1.5rem;
 }
 
 .gcc-stepper .mat-step-label,

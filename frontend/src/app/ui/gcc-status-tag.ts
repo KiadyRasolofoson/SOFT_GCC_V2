@@ -17,20 +17,26 @@ export type StatusKind = 'pending' | 'validated' | 'refused' | 'gap' | 'ok' | 'p
 })
 export class GccStatusTag {
   status = input<StatusKind>('pending');
+  label = input('');
 
   readonly token = computed(() => {
+    const custom = this.label().trim();
     switch (this.status()) {
       case 'validated':
       case 'ok':
-        return { label: this.status() === 'ok' ? 'Conforme' : 'Validé', bg: '#D1FAE5', fg: '#047857' };
+        return {
+          label: custom || (this.status() === 'ok' ? 'Conforme' : 'Validé'),
+          bg: '#D1FAE5',
+          fg: '#047857',
+        };
       case 'gap':
-        return { label: 'Écart', bg: '#FEF3C7', fg: '#B45309' };
+        return { label: custom || 'Écart', bg: '#FEF3C7', fg: '#B45309' };
       case 'refused':
-        return { label: 'Refusé', bg: '#FEE2E2', fg: '#B91C1C' };
+        return { label: custom || 'Refusé', bg: '#FEE2E2', fg: '#B91C1C' };
       case 'processed':
-        return { label: 'Traité', bg: '#EDE9FE', fg: '#6D28D9' };
+        return { label: custom || 'Traité', bg: '#EDE9FE', fg: '#6D28D9' };
       default:
-        return { label: 'En attente', bg: '#E0F2FE', fg: '#0369A1' };
+        return { label: custom || 'En attente', bg: '#E0F2FE', fg: '#0369A1' };
     }
   });
 }
