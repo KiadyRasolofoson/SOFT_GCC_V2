@@ -14,57 +14,16 @@ import { MatIconModule } from '@angular/material/icon';
         <div class="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-accent/20 blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none"></div>
 
-        <!-- Brand Header -->
-        <div class="relative z-10">
-          <div class="inline-flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-2 backdrop-blur-md border border-white/10 shadow-lg">
-            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-accent to-indigo-400 font-extrabold text-white text-base shadow-md">
-              G
-            </span>
-            <div>
-              <p class="text-sm font-bold tracking-wider text-white">SOFT GCC</p>
-              <p class="text-[10px] font-medium uppercase tracking-widest text-indigo-200">Gestion de Carrières & Compétences</p>
-            </div>
-          </div>
+        <!-- Brand Header (Centered Vertically, Left Aligned) -->
+        <div class="relative z-10 my-auto flex flex-col items-start text-left">
+          <img src="assets/logo/logo.png" alt="SoftTalent" class="h-24 sm:h-28 xl:h-32 w-auto object-contain" />
 
-          <h2 class="mt-12 max-w-lg text-3xl font-extrabold leading-tight tracking-tight text-white xl:text-4xl">
+          <h2 class="mt-8 max-w-lg text-2xl font-extrabold leading-tight tracking-tight text-white xl:text-3xl">
             Stabilité des données RH, clarté des parcours.
           </h2>
           <p class="mt-4 max-w-lg text-sm leading-relaxed text-slate-300/90 font-normal">
             Un espace unifié et performant pour orchestrer vos référentiels de compétences, piloter les mobilités et réussir les campagnes d’évaluation RH.
           </p>
-
-          <!-- Feature Highlights -->
-          <div class="mt-10 grid gap-4 max-w-md">
-            <div class="flex items-center gap-3.5 rounded-xl bg-white/5 p-3.5 backdrop-blur-xs border border-white/10">
-              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent-violet">
-                <mat-icon class="!h-5 !w-5 !text-[20px]">verified</mat-icon>
-              </div>
-              <div class="text-xs">
-                <p class="font-semibold text-white">Référentiel de Compétences</p>
-                <p class="text-slate-400">Cartographie précise et mise à jour dynamique</p>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-3.5 rounded-xl bg-white/5 p-3.5 backdrop-blur-xs border border-white/10">
-              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
-                <mat-icon class="!h-5 !w-5 !text-[20px]">trending_up</mat-icon>
-              </div>
-              <div class="text-xs">
-                <p class="font-semibold text-white">Plans de Carrière & Évolution</p>
-                <p class="text-slate-400">Analyse des écarts et projection de postes</p>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-3.5 rounded-xl bg-white/5 p-3.5 backdrop-blur-xs border border-white/10">
-              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
-                <mat-icon class="!h-5 !w-5 !text-[20px]">insights</mat-icon>
-              </div>
-              <div class="text-xs">
-                <p class="font-semibold text-white">Indicateurs RH Temps Réel</p>
-                <p class="text-slate-400">Tableaux de bord consolidés pour la direction</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- Footer Info -->

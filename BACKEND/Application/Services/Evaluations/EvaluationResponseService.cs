@@ -334,20 +334,46 @@ namespace soft_carriere_competence.Application.Services.Evaluations
 
             var placeholders = string.Join(",", questionIds.Select((_, i) => $"@p{i}"));
             var optionsRows = await _dataService.ExecuteReaderAsync($@"
-                SELECT * FROM evaluation_question_options 
+                SELECT optionId, questionId, optionText, isCorrect, state
+                FROM evaluation_question_options
                 WHERE questionId IN ({placeholders})", questionIds.Cast<object>().ToArray());
 
             var options = optionsRows.Select(row => new EvaluationQuestionOptions
             {
-                OptionId = Convert.ToInt32(row["optionId"]),
-                QuestionId = Convert.ToInt32(row["questionId"]),
-                OptionText = row["optionText"]?.ToString() ?? string.Empty,
-                IsCorrect = row.ContainsKey("isCorrect") && row["isCorrect"] != DBNull.Value && Convert.ToBoolean(row["isCorrect"]),
-                State = row.ContainsKey("state") && row["state"] != DBNull.Value ? Convert.ToInt32(row["state"]) : 0
+                OptionId = Convert.ToInt32(ReadColumn(row, "optionId")),
+                QuestionId = Convert.ToInt32(ReadColumn(row, "questionId")),
+                OptionText = ReadColumn(row, "optionText")?.ToString() ?? string.Empty,
+                IsCorrect = ToBoolean(ReadColumn(row, "isCorrect")),
+                State = ReadColumn(row, "state") is null or DBNull ? 0 : Convert.ToInt32(ReadColumn(row, "state"))
             }).ToList();
 
             return options.GroupBy(opt => opt.QuestionId)
                 .ToDictionary(g => g.Key, g => g.ToList());
+        }
+
+        private static object? ReadColumn(Dictionary<string, object> row, string name)
+        {
+            if (row.TryGetValue(name, out var value) && value is not DBNull)
+            {
+                return value;
+            }
+
+            return null;
+        }
+
+        private static bool ToBoolean(object? value)
+        {
+            if (value is null or DBNull)
+            {
+                return false;
+            }
+
+            if (value is bool flag)
+            {
+                return flag;
+            }
+
+            return Convert.ToInt32(value) != 0;
         }
     }
 }

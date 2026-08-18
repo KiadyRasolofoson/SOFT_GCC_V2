@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { GccCrumb } from './gcc.types';
@@ -13,7 +13,7 @@ import { GccCrumb } from './gcc.types';
         <nav class="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-slate-400 font-medium" aria-label="Fil d’Ariane">
           <div class="flex items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors">
             <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">home</mat-icon>
-            <span>Soft GCC</span>
+            <span>SoftTalent</span>
           </div>
           @for (crumb of crumbs(); track $index; let last = $last) {
             <span class="select-none text-slate-300">/</span>
@@ -51,13 +51,23 @@ import { GccCrumb } from './gcc.types';
         @if (hasActions()) {
           <div class="flex shrink-0 flex-wrap items-center gap-2.5">
             @if (secondaryLabel()) {
-              <button mat-stroked-button class="gcc-btn-secondary !rounded-xl !px-4" type="button">
+              <button
+                mat-stroked-button
+                class="gcc-btn-secondary !rounded-xl !px-4"
+                type="button"
+                (click)="secondary.emit()"
+              >
                 <mat-icon class="!mr-1.5">{{ secondaryIcon() }}</mat-icon>
                 {{ secondaryLabel() }}
               </button>
             }
             @if (actionLabel()) {
-              <button mat-flat-button class="gcc-btn-primary !rounded-xl !px-4 !shadow-sm hover:!shadow-md transition-shadow" type="button">
+              <button
+                mat-flat-button
+                class="gcc-btn-primary !rounded-xl !px-4 !shadow-sm hover:!shadow-md transition-shadow"
+                type="button"
+                (click)="action.emit()"
+              >
                 <mat-icon class="!mr-1.5">{{ actionIcon() }}</mat-icon>
                 {{ actionLabel() }}
               </button>
@@ -79,6 +89,9 @@ export class GccPageHeader {
   actionIcon = input('add');
   secondaryLabel = input('');
   secondaryIcon = input('download');
+
+  action = output<void>();
+  secondary = output<void>();
 
   readonly hasActions = computed(() => Boolean(this.actionLabel() || this.secondaryLabel()));
 }
