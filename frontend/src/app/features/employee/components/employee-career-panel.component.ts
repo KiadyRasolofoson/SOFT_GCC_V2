@@ -1,12 +1,19 @@
 import { Component, input } from '@angular/core';
 import { MatTabsModule } from '@angular/material/tabs';
 import { GccEmptyState } from '../../../ui/gcc-empty-state';
+import { EmployeeAttestationHistoryComponent } from './employee-attestation-history.component';
+import { EmployeeCertificateGeneratorComponent } from './employee-certificate-generator.component';
 
 type JsonObject = Record<string, any>;
 
 @Component({
   selector: 'app-employee-career-panel',
-  imports: [MatTabsModule, GccEmptyState],
+  imports: [
+    MatTabsModule,
+    GccEmptyState,
+    EmployeeCertificateGeneratorComponent,
+    EmployeeAttestationHistoryComponent,
+  ],
   template: `
     @if (registrationNumber()) {
       <section class="space-y-4">
@@ -91,19 +98,16 @@ type JsonObject = Record<string, any>;
 
               <mat-tab label="Génération d'attestation">
                 <div class="pt-4">
-                  <gcc-empty-state
-                    title="Espace attestation"
-                    message="La génération d'attestation sera connectée sur cette section."
+                  <app-employee-certificate-generator
+                    [registrationNumber]="registrationNumber()"
+                    [careerSummary]="careerSummary()"
                   />
                 </div>
               </mat-tab>
 
               <mat-tab label="Historiques d'attestation">
                 <div class="pt-4">
-                  <gcc-empty-state
-                    title="Historique d'attestation"
-                    message="L'historique sera affiché ici dès disponibilité des données."
-                  />
+                  <app-employee-attestation-history [registrationNumber]="registrationNumber()" />
                 </div>
               </mat-tab>
             </mat-tab-group>
