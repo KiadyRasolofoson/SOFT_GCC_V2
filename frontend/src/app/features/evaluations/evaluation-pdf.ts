@@ -28,7 +28,7 @@ export function buildEvaluationPdf(data: EvaluationPdfData): jsPDF {
 
   doc.setFontSize(10);
   doc.setTextColor(...SLATE);
-  doc.text('SOFT GCC — Compétences & Carrières', margin, y);
+  doc.text('SoftTalent — Compétences & Carrières', margin, y);
   doc.text(`Réf. EVAL-${data.evaluation.evaluationId}`, pageWidth - margin, y, { align: 'right' });
   y += 6;
   doc.text(new Date().toLocaleDateString('fr-FR'), pageWidth - margin, y, { align: 'right' });

@@ -18,14 +18,8 @@ import { GccNotificationBell } from '../ui/gcc-notification-bell';
       <!-- Sidebar Navigation -->
       <aside class="flex w-64 shrink-0 flex-col bg-slate-950 text-slate-300 border-r border-slate-800/80 shadow-xl">
         <!-- Logo & Brand Header -->
-        <div class="flex items-center gap-3 px-6 py-6 border-b border-slate-800/60">
-          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-accent to-indigo-400 font-extrabold text-white text-lg shadow-md shadow-accent/20">
-            G
-          </span>
-          <div>
-            <p class="text-base font-bold tracking-tight text-white leading-none">SOFT GCC</p>
-            <p class="text-[10px] font-semibold uppercase tracking-wider text-indigo-400 mt-1">Compétences & Carrières</p>
-          </div>
+        <div class="flex items-center justify-center px-4 py-3 border-b border-slate-800/60">
+          <img src="assets/logo/logo.png" alt="SoftTalent" class="h-15 w-auto object-contain brightness-0 invert opacity-90" />
         </div>
 
         <!-- Navigation Menu -->
@@ -171,7 +165,7 @@ import { GccNotificationBell } from '../ui/gcc-notification-bell';
           [class.blur-sm]="notifications.panelOpen()"
           [class.opacity-70]="notifications.panelOpen()"
         >
-          <span>© Soft GCC — Plateforme de Gestion des Compétences & Carrières</span>
+          <span>© SoftTalent — Plateforme de Gestion des Compétences & Carrières</span>
           <span class="text-slate-400">Données RH Confidentielles</span>
         </footer>
       </div>

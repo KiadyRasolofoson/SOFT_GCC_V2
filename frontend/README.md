@@ -1,6 +1,6 @@
-# Soft GCC — frontend Angular
+# SoftTalent — frontend Angular
 
-Application Angular 22 (Tailwind + Angular Material) branchée sur l’API Soft GCC.
+Application Angular 22 (Tailwind + Angular Material) branchée sur l’API SoftTalent.
 Le React `front_soft_gcc/` reste en place pendant la migration.
 
 ## Démarrage
