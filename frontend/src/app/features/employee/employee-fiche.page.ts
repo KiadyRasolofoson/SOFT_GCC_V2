@@ -83,7 +83,11 @@ type JsonObject = Record<string, any>;
         }
         @case ('competences') {
           <section class="mt-6">
-            <app-employee-skills-panel [skillGaps]="skillGaps()" />
+            <app-employee-skills-panel
+              [employeeId]="profile.employeeId"
+              [profile]="profile"
+              [skillGaps]="skillGaps()"
+            />
           </section>
         }
         @case ('carrieres') {
