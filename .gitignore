@@ -46,6 +46,10 @@ front_soft_gcc/dist-ssr/
 # === FRONTEND - Dépendances ===
 front_soft_gcc/node_modules/
 
+# === DESIGN SYSTEM (Angular, indépendant) ===
+design-system/node_modules/
+design-system/dist/
+
 # === FRONTEND - Historique des backups ===
 front_soft_gcc/.history/
 
@@ -111,3 +115,5 @@ packages/
 
 apiToProd.sh
 frontToProd.sh
+
+design-system/
