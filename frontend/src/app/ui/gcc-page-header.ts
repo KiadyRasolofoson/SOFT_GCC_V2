@@ -55,19 +55,14 @@ import { GccCrumb } from './gcc.types';
                 mat-stroked-button
                 class="gcc-btn-secondary !rounded-xl !px-4"
                 type="button"
-                (click)="secondary.emit()"
+                (click)="secondaryAction.emit()"
               >
                 <mat-icon class="!mr-1.5">{{ secondaryIcon() }}</mat-icon>
                 {{ secondaryLabel() }}
               </button>
             }
             @if (actionLabel()) {
-              <button
-                mat-flat-button
-                class="gcc-btn-primary !rounded-xl !px-4 !shadow-sm hover:!shadow-md transition-shadow"
-                type="button"
-                (click)="action.emit()"
-              >
+              <button mat-flat-button class="gcc-btn-primary !rounded-xl !px-4 !shadow-sm hover:!shadow-md transition-shadow" type="button">
                 <mat-icon class="!mr-1.5">{{ actionIcon() }}</mat-icon>
                 {{ actionLabel() }}
               </button>
@@ -89,9 +84,8 @@ export class GccPageHeader {
   actionIcon = input('add');
   secondaryLabel = input('');
   secondaryIcon = input('download');
-
   action = output<void>();
-  secondary = output<void>();
+  secondaryAction = output<void>();
 
   readonly hasActions = computed(() => Boolean(this.actionLabel() || this.secondaryLabel()));
 }
