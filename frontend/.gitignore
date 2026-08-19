@@ -26,6 +26,11 @@ yarn-error.log
 !.vscode/extensions.json
 .history/*
 
+# Environment files (local secrets, never commit)
+.env
+.env.local
+.env.*.local
+
 # Miscellaneous
 /.angular/cache
 .sass-cache/

@@ -42,10 +42,9 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                 .Where(ra => idList.Contains(ra.QuestionId) && ra.State == 1)
                 .ToList();
 
-            return referenceAnswers.ToDictionary(
-                ra => ra.QuestionId,
-                ra => MapToDto(ra)
-            );
+            return referenceAnswers
+                .GroupBy(ra => ra.QuestionId)
+                .ToDictionary(g => g.Key, g => MapToDto(g.First()));
         }
 
         /// <summary>

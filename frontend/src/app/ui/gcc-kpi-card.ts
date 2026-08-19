@@ -4,9 +4,10 @@ import { MatIconModule } from '@angular/material/icon';
 @Component({
   selector: 'gcc-kpi-card',
   imports: [MatIconModule],
+  host: { class: 'block h-full' },
   template: `
     <article
-      class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+      class="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md sm:p-5"
     >
       <!-- Top subtle gradient line on hover -->
       <div
@@ -14,10 +15,13 @@ import { MatIconModule } from '@angular/material/icon';
         [class]="topBarClass()"
       ></div>
 
-      <div class="flex items-start justify-between gap-3">
-        <div>
+      <div class="flex min-h-0 flex-1 items-start justify-between gap-3">
+        <div class="min-w-0 flex-1">
           <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">{{ label() }}</p>
-          <p class="tabular mt-1.5 text-2.5xl font-extrabold tracking-tight text-navy sm:text-3xl">
+          <p
+            class="tabular mt-1.5 line-clamp-2 min-h-10 text-xl font-extrabold leading-tight tracking-tight text-navy sm:min-h-12 sm:text-2xl"
+            [title]="value()"
+          >
             {{ value() }}
           </p>
         </div>
@@ -30,7 +34,7 @@ import { MatIconModule } from '@angular/material/icon';
       </div>
 
       @if (hint()) {
-        <div class="mt-3 flex items-center gap-1.5 pt-2.5 border-t border-slate-100 text-xs font-medium" [class]="hintClass()">
+        <div class="mt-auto flex min-h-8 items-center gap-1.5 pt-2.5 border-t border-slate-100 text-xs font-medium" [class]="hintClass()">
           @if (tone() === 'up') {
             <mat-icon class="!h-4 !w-4 !text-[16px]">trending_up</mat-icon>
           } @else if (tone() === 'down') {
@@ -40,7 +44,7 @@ import { MatIconModule } from '@angular/material/icon';
           } @else {
             <mat-icon class="!h-4 !w-4 !text-[16px]">info</mat-icon>
           }
-          <span>{{ hint() }}</span>
+          <span class="line-clamp-1">{{ hint() }}</span>
         </div>
       }
     </article>
