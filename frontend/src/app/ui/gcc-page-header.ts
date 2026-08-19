@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { GccCrumb } from './gcc.types';
@@ -51,13 +51,23 @@ import { GccCrumb } from './gcc.types';
         @if (hasActions()) {
           <div class="flex shrink-0 flex-wrap items-center gap-2.5">
             @if (secondaryLabel()) {
-              <button mat-stroked-button class="gcc-btn-secondary !rounded-xl !px-4" type="button">
+              <button
+                mat-stroked-button
+                class="gcc-btn-secondary !rounded-xl !px-4"
+                type="button"
+                (click)="secondaryAction.emit()"
+              >
                 <mat-icon class="!mr-1.5">{{ secondaryIcon() }}</mat-icon>
                 {{ secondaryLabel() }}
               </button>
             }
             @if (actionLabel()) {
-              <button mat-flat-button class="gcc-btn-primary !rounded-xl !px-4 !shadow-sm hover:!shadow-md transition-shadow" type="button">
+              <button
+                mat-flat-button
+                class="gcc-btn-primary !rounded-xl !px-4 !shadow-sm hover:!shadow-md transition-shadow"
+                type="button"
+                (click)="action.emit()"
+              >
                 <mat-icon class="!mr-1.5">{{ actionIcon() }}</mat-icon>
                 {{ actionLabel() }}
               </button>
@@ -79,6 +89,8 @@ export class GccPageHeader {
   actionIcon = input('add');
   secondaryLabel = input('');
   secondaryIcon = input('download');
+  action = output<void>();
+  secondaryAction = output<void>();
 
   readonly hasActions = computed(() => Boolean(this.actionLabel() || this.secondaryLabel()));
 }
