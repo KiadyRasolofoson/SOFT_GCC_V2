@@ -5,69 +5,65 @@ import { OrgChartService, OrgNode } from '../../../core/org-chart.service';
 @Component({
   selector: 'app-org-node',
   imports: [MatIconModule],
+  host: { class: 'block' },
   template: `
     <div class="flex flex-col items-center">
       <div
-        class="relative w-52 rounded-xl border p-3 text-center shadow-sm transition-shadow hover:shadow-md"
-        [class]="
-          isRoot()
-            ? 'border-indigo-200/40 bg-gradient-to-b from-navy to-indigo-950 text-white'
-            : 'border-slate-200 bg-white'
-        "
+        class="relative w-[200px] rounded-xl border p-4 text-center shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md"
+        [class]="cardClass()"
         (mouseenter)="showDetails.set(true)"
         (mouseleave)="showDetails.set(false)"
       >
-        @if (showDetails()) {
-          <div
-            class="absolute -top-2 left-1/2 z-10 w-48 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-3 text-left text-xs text-slate-700 shadow-lg"
-          >
-            <div class="flex items-center justify-between gap-2">
-              <span class="font-semibold text-slate-500">Civilité :</span>
-              <span class="font-medium text-navy">{{ node().civilite || '—' }}</span>
-            </div>
-            <div class="mt-1 flex items-center justify-between gap-2">
-              <span class="font-semibold text-slate-500">Département :</span>
-              <span class="text-right font-medium text-navy">{{ node().department || '—' }}</span>
-            </div>
-            <div class="mt-1 flex items-center justify-between gap-2">
-              <span class="font-semibold text-slate-500">Poste :</span>
-              <span class="text-right font-medium text-navy">{{ node().position || '—' }}</span>
-            </div>
-          </div>
-        }
-
-        <div class="flex justify-center">
+        <div class="mb-2.5 flex justify-center">
           @if (node().hasPhoto && node().employeeId) {
             <img
               [src]="photoUrl()"
               alt=""
-              class="h-12 w-12 rounded-full border-2 border-white/60 object-cover shadow-sm"
+              class="h-[3.25rem] w-[3.25rem] rounded-full border-2 object-cover shadow-sm"
+              [class]="isRoot() ? 'border-white/40' : 'border-white ring-1 ring-slate-200'"
               loading="lazy"
             />
           } @else {
             <span
-              class="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold"
-              [class]="isRoot() ? 'bg-white/15 text-white' : 'bg-gradient-to-br from-indigo-100 to-slate-200 text-navy'"
+              class="flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-full text-sm font-extrabold"
+              [class]="avatarWrapClass()"
             >
               {{ initials() }}
             </span>
           }
         </div>
-        <p class="mt-2 truncate text-sm font-semibold" [class]="isRoot() ? 'text-white' : 'text-navy'">
+        <p class="truncate text-[0.92rem] font-extrabold leading-snug" [class]="nameClass()">
           {{ fullName() }}
         </p>
-        <p class="truncate text-xs" [class]="isRoot() ? 'text-indigo-200' : 'text-slate-500'">
+        <p class="mt-1 truncate text-xs font-semibold leading-snug" [class]="positionClass()">
           {{ node().position || 'Poste non défini' }}
         </p>
-        <p class="truncate text-xs" [class]="isRoot() ? 'text-indigo-300/80' : 'text-slate-400'">
+        <p class="mt-0.5 truncate text-[11px]" [class]="deptClass()">
           {{ node().department || 'Non assigné' }}
         </p>
+
+        @if (showDetails()) {
+          <div class="mt-2 grid gap-1 border-t border-dashed pt-2 text-left text-[11px]" [class]="detailsClass()">
+            <div class="flex items-center justify-between gap-2">
+              <strong class="font-bold" [class]="detailsStrongClass()">Civilité :</strong>
+              <span>{{ node().civilite || '—' }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <strong class="font-bold" [class]="detailsStrongClass()">Département :</strong>
+              <span>{{ node().department || '—' }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <strong class="font-bold" [class]="detailsStrongClass()">Poste :</strong>
+              <span>{{ node().position || '—' }}</span>
+            </div>
+          </div>
+        }
 
         @if (children().length > 0) {
           <button
             type="button"
-            class="mt-3 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition"
-            [class]="isRoot() ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+            class="mt-2.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition"
+            [class]="toggleClass()"
             (click)="toggle()"
             [attr.aria-expanded]="expanded()"
           >
@@ -78,10 +74,13 @@ import { OrgChartService, OrgNode } from '../../../core/org-chart.service';
       </div>
 
       @if (children().length > 0 && expanded()) {
-        <div class="relative mt-2 flex items-start justify-center gap-5 border-t border-slate-200 pt-4">
+        <div class="relative flex items-start justify-center gap-5">
+          <div class="absolute top-0 left-1/2 h-4 w-0.5 -translate-x-1/2 bg-slate-300"></div>
+          <div class="absolute top-4 left-0 right-0 h-0.5 bg-slate-300"></div>
           @for (child of children(); track trackByNode(child)) {
-            <div class="flex flex-col items-center">
-              <div class="h-3 w-px bg-slate-300"></div>
+            <div class="relative flex flex-col items-center">
+              <div class="absolute top-4 left-1/2 h-4 w-0.5 -translate-x-1/2 bg-slate-300"></div>
+              <div class="h-8"></div>
               <app-org-node [node]="child" [depth]="depth() + 1" />
             </div>
           }
@@ -114,6 +113,40 @@ export class OrgNodeComponent implements OnInit {
 
   ngOnInit(): void {
     this.expanded.set(this.depth() < 2);
+  }
+
+  cardClass(): string {
+    return this.isRoot() ? 'border-navy/30 bg-navy text-white' : 'border-slate-200 bg-white';
+  }
+
+  avatarWrapClass(): string {
+    return this.isRoot() ? 'bg-white/15 text-white' : 'bg-indigo-50 text-accent ring-1 ring-slate-200';
+  }
+
+  nameClass(): string {
+    return this.isRoot() ? 'text-white' : 'text-navy';
+  }
+
+  positionClass(): string {
+    return this.isRoot() ? 'text-indigo-200' : 'text-accent';
+  }
+
+  deptClass(): string {
+    return this.isRoot() ? 'text-indigo-300/80' : 'text-slate-500';
+  }
+
+  detailsClass(): string {
+    return this.isRoot() ? 'border-white/15 text-indigo-100' : 'border-slate-200 text-slate-500';
+  }
+
+  detailsStrongClass(): string {
+    return this.isRoot() ? 'text-white' : 'text-slate-700';
+  }
+
+  toggleClass(): string {
+    return this.isRoot()
+      ? 'border-white/20 bg-white/10 text-indigo-100 hover:bg-white/20'
+      : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-accent/40 hover:bg-indigo-50 hover:text-accent';
   }
 
   toggle(): void {

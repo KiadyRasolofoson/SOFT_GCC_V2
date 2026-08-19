@@ -7,67 +7,12 @@ import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccKpiCard } from '../../ui/gcc-kpi-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccSelect } from '../../ui/gcc-select';
-import { OrgNodeComponent } from './components/org-node.component';
-
-const ALL_DEPARTMENTS = 'all';
-
-function countNodes(node: OrgNode | null): number {
-  if (!node) return 0;
-  return 1 + (node.children || []).reduce((sum, child) => sum + countNodes(child), 0);
-}
-
-function matchesDepartment(node: OrgNode, departmentKey: string): boolean {
-  if (departmentKey === ALL_DEPARTMENTS) return true;
-  if (departmentKey === 'none') return node.departmentId == null;
-  return String(node.departmentId) === String(departmentKey);
-}
-
-function pruneToDepartment(node: OrgNode, departmentKey: string): OrgNode | null {
-  const children = (node.children || [])
-    .map((child) => pruneToDepartment(child, departmentKey))
-    .filter((child): child is OrgNode => Boolean(child));
-
-  if (!matchesDepartment(node, departmentKey)) return null;
-  return { ...node, children };
-}
-
-function getDepartmentBranches(roots: OrgNode[], departmentKey: string): OrgNode[] {
-  if (departmentKey === ALL_DEPARTMENTS) return roots;
-
-  const branches: OrgNode[] = [];
-
-  function visit(node: OrgNode): void {
-    if (matchesDepartment(node, departmentKey)) {
-      const pruned = pruneToDepartment(node, departmentKey);
-      if (pruned) branches.push(pruned);
-      return;
-    }
-    (node.children || []).forEach(visit);
-  }
-
-  roots.forEach(visit);
-  return branches;
-}
-
-function collectDepartments(roots: OrgNode[]): { key: string; label: string }[] {
-  const map = new Map<string, { key: string; label: string }>();
-
-  function visit(node: OrgNode): void {
-    const key = node.departmentId == null ? 'none' : String(node.departmentId);
-    const label = node.department || 'Non assigné';
-    if (!map.has(key)) {
-      map.set(key, { key, label });
-    }
-    (node.children || []).forEach(visit);
-  }
-
-  roots.forEach(visit);
-  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
-}
+import { OrgChartComponent } from './components/org-chart.component';
+import { ALL_DEPARTMENTS, collectDepartments, countNodes, getDepartmentBranches } from './org-chart.util';
 
 @Component({
   selector: 'app-org-chart-page',
-  imports: [GccPageHeader, GccKpiCard, GccEmptyState, GccSelect, OrgNodeComponent, MatButtonModule, MatIconModule],
+  imports: [GccPageHeader, GccKpiCard, GccEmptyState, GccSelect, OrgChartComponent, MatButtonModule, MatIconModule],
   template: `
     <gcc-page-header
       title="Organigramme"
@@ -156,7 +101,15 @@ function collectDepartments(roots: OrgNode[]): { key: string; label: string }[] 
         </div>
       </div>
 
-      <div class="overflow-auto p-6" style="min-height: 320px;">
+      <div
+        class="overflow-auto p-6"
+        style="
+          min-height: 420px;
+          background-color: #f8fafc;
+          background-image: radial-gradient(circle at 1px 1px, #e2e8f0 1px, transparent 0);
+          background-size: 20px 20px;
+        "
+      >
         @if (loading()) {
           <div class="py-16 text-center text-sm text-slate-500">Chargement de l'organigramme…</div>
         } @else if (error()) {
@@ -171,13 +124,7 @@ function collectDepartments(roots: OrgNode[]): { key: string; label: string }[] 
             message="Changez de filtre ou actualisez les données."
           />
         } @else {
-          <div [style.transform]="'scale(' + scale() + ')'" [style.transform-origin]="'top left'">
-            <div class="flex flex-wrap items-start justify-center gap-8">
-              @for (root of filteredRoots(); track trackByRoot(root)) {
-                <app-org-node [node]="root" [isRoot]="true" [depth]="0" />
-              }
-            </div>
-          </div>
+          <app-org-chart [nodes]="filteredRoots()" [scale]="scale()" />
         }
       </div>
     </div>
@@ -229,9 +176,6 @@ export class OrgChartPage {
     try {
       const roots = await this.service.load();
       this.orgRoots.set(roots);
-      if (!roots.length) {
-        this.error.set('Aucune donnée d\'organigramme disponible.');
-      }
     } catch (error) {
       this.orgRoots.set([]);
       this.error.set(
@@ -264,10 +208,6 @@ export class OrgChartPage {
 
   branchesText(): string {
     return String(this.branchCount());
-  }
-
-  trackByRoot(root: OrgNode): string {
-    return root.employeeId != null ? String(root.employeeId) : root.department || 'root';
   }
 
   goEffectifs(): void {
