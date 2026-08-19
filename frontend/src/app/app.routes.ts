@@ -49,6 +49,34 @@ export const routes: Routes = [
           import('./features/evaluations/notation-wizard.page').then((m) => m.NotationWizardPage),
         canActivate: [moduleGuard],
       },
+      {
+        path: 'soft-gcc/evaluations/accueil',
+        loadComponent: () =>
+          import('./features/evaluations/interview-list.page').then((m) => m.InterviewListPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/evaluations/entretiens',
+        pathMatch: 'full',
+        redirectTo: 'soft-gcc/evaluations/accueil',
+      },
+      {
+        path: 'soft-gcc/evaluations/entretiens/:interviewId/validation',
+        loadComponent: () =>
+          import('./features/evaluations/interview-detail.page').then((m) => m.InterviewDetailPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/evaluations/details/:interviewId',
+        redirectTo: 'soft-gcc/evaluations/entretiens/:interviewId/validation',
+        pathMatch: 'full',
+      },
+      {
+        path: 'soft-gcc/evaluations/entretiens/:interviewId',
+        loadComponent: () =>
+          import('./features/evaluations/interview-wizard.page').then((m) => m.InterviewWizardPage),
+        canActivate: [moduleGuard],
+      },
       { path: '**', component: NotFoundPage, canActivate: [moduleGuard] },
     ],
   },

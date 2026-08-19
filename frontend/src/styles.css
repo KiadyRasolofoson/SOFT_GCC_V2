@@ -223,3 +223,14 @@ body {
   border-radius: 999px;
   overflow: hidden;
 }
+
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-shape: 1rem;
+  font-family: var(--font-sans) !important;
+}
+
+.mat-mdc-dialog-title,
+.mat-mdc-dialog-content,
+.mat-mdc-dialog-actions {
+  font-family: var(--font-sans) !important;
+}
