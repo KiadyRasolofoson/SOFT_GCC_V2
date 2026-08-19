@@ -75,10 +75,21 @@ import { OrgChartService, OrgNode } from '../../../core/org-chart.service';
 
       @if (children().length > 0 && expanded()) {
         <div class="relative flex items-start justify-center gap-5">
+          <!-- Ligne verticale depuis le parent -->
           <div class="absolute top-0 left-1/2 h-4 w-0.5 -translate-x-1/2 bg-slate-300"></div>
-          <div class="absolute top-4 left-0 right-0 h-0.5 bg-slate-300"></div>
-          @for (child of children(); track trackByNode(child)) {
+          @for (child of children(); track trackByNode(child); let first = $first; let last = $last; let count = $count) {
             <div class="relative flex flex-col items-center">
+              <!--
+                Segment de rail par enfant (méthode React) : proportionnel à la largeur du
+                sous-arbre, s'arrête aux centres des enfants externes → aucun débordement
+                qui "pointerait vers rien".
+              -->
+              @if (count > 1) {
+                <div
+                  class="absolute top-4 h-0.5 bg-slate-300"
+                  [class]="railClass(first, last)"
+                ></div>
+              }
               <div class="absolute top-4 left-1/2 h-4 w-0.5 -translate-x-1/2 bg-slate-300"></div>
               <div class="h-8"></div>
               <app-org-node [node]="child" [depth]="depth() + 1" />
@@ -147,6 +158,17 @@ export class OrgNodeComponent implements OnInit {
     return this.isRoot()
       ? 'border-white/20 bg-white/10 text-indigo-100 hover:bg-white/20'
       : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-accent/40 hover:bg-indigo-50 hover:text-accent';
+  }
+
+  /**
+   * Segment de rail horizontal pour un enfant (méthode React, robuste aux largeurs variables).
+   * Les segments se chevauchent légèrement (0.75rem ≈ moitié du gap-5 + marge) pour éviter
+   * les lignes coupées entre deux enfants, sans déborder des centres des enfants externes.
+   */
+  railClass(first: boolean, last: boolean): string {
+    if (first) return 'left-1/2 w-[calc(50%+0.75rem)]';
+    if (last) return 'right-1/2 w-[calc(50%+0.75rem)]';
+    return 'left-[-0.75rem] w-[calc(100%+1.5rem)]';
   }
 
   toggle(): void {
