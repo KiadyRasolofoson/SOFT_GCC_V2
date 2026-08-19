@@ -650,6 +650,19 @@ export function hasFunctionalPermission(permissions: string[] | undefined, name:
   return (permissions ?? []).some((item) => String(item).trim().toUpperCase() === needle);
 }
 
+export function hasAnyFunctionalPermission(
+  permissions: string[] | undefined,
+  names: readonly string[],
+): boolean {
+  return names.some((name) => hasFunctionalPermission(permissions, name));
+}
+
+export const EVAL_SETTINGS_PERMISSIONS = [
+  'EVALUATION_SETTINGS',
+  'MANAGE_EVALUATIONS',
+  'EVAL_SETTINGS',
+] as const;
+
 export const EVALUATION_HISTORY_STATUS = {
   planned: 10,
   inProgress: 20,
@@ -952,4 +965,131 @@ export function progressToneClass(rate: number | null | undefined): string {
 
 export function directoryEmployeeName(row: Pick<DirectoryEmployee, 'firstName' | 'lastName'>): string {
   return `${row.firstName ?? ''} ${row.lastName ?? ''}`.trim() || 'Employé';
+}
+
+export interface SettingsQuestion {
+  questionId: number;
+  question: string;
+  evaluationTypeId: number;
+  evaluationTypeName: string;
+  positionId: number;
+  positionName: string;
+  competenceLineId: number | null;
+  competenceName: string | null;
+  responseTypeId: number;
+  responseTypeName: string;
+  state: number;
+}
+
+export interface SettingsQuestionPayload {
+  questionId?: number | null;
+  question: string;
+  evaluationTypeId: number;
+  positionId: number;
+  competenceLineId: number | null;
+  responseTypeId: number;
+  state: number;
+}
+
+export interface ResponseTypeOption {
+  responseTypeId: number;
+  typeName: string;
+  description: string | null;
+}
+
+export interface SettingsCompetenceLine {
+  competenceLineId: number;
+  skillName: string;
+  description: string;
+  positionId: number;
+  positionName: string;
+}
+
+export interface SettingsTraining {
+  trainingSuggestionId: number;
+  training: string;
+  details: string;
+  evaluationTypeId: number;
+  evaluationTypeName: string;
+  questionId: number;
+  questionText: string;
+  scoreThreshold: number;
+  state: number;
+}
+
+export interface SettingsTrainingPayload {
+  evaluationTypeId: number;
+  questionId: number;
+  training: string;
+  details: string;
+  scoreThreshold: number;
+  state: number;
+}
+
+export interface SettingsEvalType {
+  evaluationTypeId: number;
+  designation: string;
+  state: number | null;
+}
+
+export interface EvaluationTemplate {
+  id: number;
+  title: string;
+  description: string;
+  questionCount: number;
+}
+
+export interface TemplateQuestion {
+  questionId: number;
+  text: string;
+  positionId: number | null;
+  competenceLineId: number | null;
+  responseType: string;
+  maxTimeInMinutes: number;
+}
+
+export interface QuestionTimeUpdate {
+  questionId: number;
+  maxTimeInMinutes: number;
+}
+
+export type SettingsSection = 'questionnaires' | 'formations' | 'types' | 'administration';
+
+export const SETTINGS_SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
+  { id: 'questionnaires', label: 'Questionnaires', icon: 'quiz' },
+  { id: 'formations', label: 'Formations', icon: 'school' },
+  { id: 'types', label: 'Types', icon: 'category' },
+  { id: 'administration', label: 'Durées', icon: 'timer' },
+];
+
+export function parseSettingsSection(value: string | null | undefined): SettingsSection {
+  const key = (value || '').trim().toLowerCase();
+  if (key === 'questions' || key === 'questionnaires') return 'questionnaires';
+  if (key === 'formations' || key === 'trainings') return 'formations';
+  if (key === 'types') return 'types';
+  if (key === 'administration' || key === 'admin' || key === 'durees' || key === 'durées') {
+    return 'administration';
+  }
+  return 'questionnaires';
+}
+
+export function responseTypeMeta(name: string | null | undefined): HistoryStatusMeta {
+  const key = (name || '').trim().toUpperCase();
+  if (key === 'QCM') return { kind: 'processed', label: 'QCM' };
+  if (key === 'SCORE') return { kind: 'gap', label: 'Score' };
+  if (key === 'TEXT' || key === 'TEXTE') return { kind: 'pending', label: 'Texte' };
+  return { kind: 'ok', label: name?.trim() || 'Réponse' };
+}
+
+export function formatMinutes(value: number | null | undefined): string {
+  const minutes = Math.max(0, Number(value) || 0);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
+export function durationFillPercent(minutes: number | null | undefined, max = 60): number {
+  const value = Number(minutes) || 0;
+  return Math.max(4, Math.min(100, (value / max) * 100));
 }
