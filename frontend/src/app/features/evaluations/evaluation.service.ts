@@ -10,6 +10,7 @@ import {
   CreateEvaluationsResult,
   CreateEvaluationWithQuestionsPayload,
   DepartmentOption,
+  DirectoryEmployee,
   DurationRecommendation,
   EvaluationDetails,
   EvaluationHistoryDetail,
@@ -26,10 +27,15 @@ import {
   HistoryYearlyPerformance,
   InterviewEmployeeRow,
   InterviewParticipantOption,
+  InterviewProgressEntry,
   InterviewRecord,
+  ObjectiveSummaryRow,
+  ObjectivesListQuery,
+  ObjectivesStatistics,
   PaginatedEmployees,
   PaginatedEvaluationHistory,
   PaginatedInterviewEmployees,
+  PaginatedObjectivesSummary,
   PaginatedPlannedEvaluations,
   PaginatedPlanningEmployees,
   PlanningEmployee,
@@ -43,7 +49,9 @@ import {
   SupervisorOption,
   TrainingSuggestion,
   UpdateInterviewPayload,
+  UpdateObjectiveStatusPayload,
   emptyHistoryStats,
+  emptyObjectivesStats,
 } from './evaluation.models';
 
 export interface EmployeeListQuery {
@@ -371,6 +379,35 @@ export class EvaluationService {
   unwrapHistoryRows(data: PaginatedEvaluationHistory | null | undefined): EvaluationHistoryRow[] {
     const rows = data?.evaluations ?? data?.Evaluations ?? [];
     return rows.filter(Boolean).map((row) => this.normalizeHistoryRow(row));
+  }
+
+  getObjectivesSummary(query: ObjectivesListQuery): Observable<PaginatedObjectivesSummary> {
+    return this.http.get<unknown>(`${this.api}/EvaluationInterview/objectives-summary`, {
+      params: this.objectivesParams(query),
+    }).pipe(map((raw) => this.normalizeObjectivesPage(raw)));
+  }
+
+  updateObjectiveStatus(interviewId: number, payload: UpdateObjectiveStatusPayload): Observable<unknown> {
+    return this.http.put(`${this.api}/EvaluationInterview/objectives/${interviewId}`, payload);
+  }
+
+  getObjectiveProgressHistory(
+    interviewId: number,
+    objectiveIndex: number,
+  ): Observable<InterviewProgressEntry[]> {
+    return this.http
+      .get<unknown>(`${this.api}/EvaluationInterview/objectives/${interviewId}/history/${objectiveIndex}`)
+      .pipe(
+        map((raw) => this.normalizeProgressHistory(raw)),
+        catchError(() => of([])),
+      );
+  }
+
+  getDirectoryEmployees(): Observable<DirectoryEmployee[]> {
+    return this.http.get<unknown>(`${this.api}/Employee`).pipe(
+      map((raw) => this.normalizeDirectoryEmployees(raw)),
+      catchError(() => of([])),
+    );
   }
 
   private normalizePlanningEmployee(row: PlanningEmployee | Record<string, unknown>): PlanningEmployee {
@@ -721,5 +758,100 @@ export class EvaluationService {
         return this.asString(this.pick(row, 'designation', 'Designation', 'name', 'Name', 'label', 'Label'));
       })
       .filter((item): item is string => Boolean(item));
+  }
+
+  private objectivesParams(query: Partial<ObjectivesListQuery>): HttpParams {
+    let params = new HttpParams();
+    if (query.pageNumber) params = params.set('pageNumber', String(query.pageNumber));
+    if (query.pageSize) params = params.set('pageSize', String(query.pageSize));
+    if (query.departmentId) params = params.set('departmentId', String(query.departmentId));
+    if (query.employeeId) params = params.set('employeeId', String(query.employeeId));
+    if (query.statusFilter) params = params.set('statusFilter', query.statusFilter);
+    if (query.searchQuery) params = params.set('searchQuery', query.searchQuery);
+    return params;
+  }
+
+  private normalizeObjectivesPage(raw: unknown): PaginatedObjectivesSummary {
+    const row = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const list = this.pick(row, 'objectives', 'Objectives');
+    const statsRaw = this.pick(row, 'statistics', 'Statistics');
+    return {
+      objectives: Array.isArray(list) ? list.map((item) => this.normalizeObjectiveRow(item)) : [],
+      statistics: this.normalizeObjectivesStats(statsRaw),
+      totalCount: this.asNumber(this.pick(row, 'totalCount', 'TotalCount')) ?? 0,
+    };
+  }
+
+  private normalizeObjectivesStats(raw: unknown): ObjectivesStatistics {
+    const fallback = emptyObjectivesStats();
+    if (!raw || typeof raw !== 'object') return fallback;
+    const row = raw as Record<string, unknown>;
+    return {
+      totalObjectives: this.asNumber(this.pick(row, 'totalObjectives', 'TotalObjectives')) ?? 0,
+      achievedObjectives: this.asNumber(this.pick(row, 'achievedObjectives', 'AchievedObjectives')) ?? 0,
+      inProgressObjectives: this.asNumber(this.pick(row, 'inProgressObjectives', 'InProgressObjectives')) ?? 0,
+      notStartedObjectives: this.asNumber(this.pick(row, 'notStartedObjectives', 'NotStartedObjectives')) ?? 0,
+      notAchievedObjectives: this.asNumber(this.pick(row, 'notAchievedObjectives', 'NotAchievedObjectives')) ?? 0,
+      averageCompletionRate: this.asNumber(this.pick(row, 'averageCompletionRate', 'AverageCompletionRate')) ?? 0,
+      globalAchievementRate: this.asNumber(this.pick(row, 'globalAchievementRate', 'GlobalAchievementRate')) ?? 0,
+    };
+  }
+
+  private normalizeObjectiveRow(raw: unknown): ObjectiveSummaryRow {
+    const row = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    return {
+      interviewId: this.asNumber(this.pick(row, 'interviewId', 'InterviewId')) ?? 0,
+      evaluationId: this.asNumber(this.pick(row, 'evaluationId', 'EvaluationId')) ?? 0,
+      employeeId: this.asNumber(this.pick(row, 'employeeId', 'EmployeeId')) ?? 0,
+      employeeName: this.asString(this.pick(row, 'employeeName', 'EmployeeName')) ?? 'Employé',
+      department: this.asString(this.pick(row, 'department', 'Department')) ?? '',
+      position: this.asString(this.pick(row, 'position', 'Position')) ?? '',
+      description: this.asString(this.pick(row, 'description', 'Description')) ?? '',
+      dueDate: this.asString(this.pick(row, 'dueDate', 'DueDate')),
+      indicator: this.asString(this.pick(row, 'indicator', 'Indicator')),
+      status: this.asString(this.pick(row, 'status', 'Status')) ?? 'Non commencé',
+      completionRate: this.asNumber(this.pick(row, 'completionRate', 'CompletionRate')) ?? 0,
+      objectiveIndex: this.asNumber(this.pick(row, 'objectiveIndex', 'ObjectiveIndex')) ?? 0,
+      lastModified: this.asString(this.pick(row, 'lastModified', 'LastModified')),
+      progressHistoryCount: this.asNumber(this.pick(row, 'progressHistoryCount', 'ProgressHistoryCount')) ?? 0,
+      progressHistory: this.normalizeProgressEntries(
+        this.pick(row, 'progressHistory', 'ProgressHistory'),
+      ),
+    };
+  }
+
+  private normalizeProgressHistory(raw: unknown): InterviewProgressEntry[] {
+    if (!raw || typeof raw !== 'object') return [];
+    const row = raw as Record<string, unknown>;
+    return this.normalizeProgressEntries(this.pick(row, 'progressHistory', 'ProgressHistory'));
+  }
+
+  private normalizeProgressEntries(raw: unknown): InterviewProgressEntry[] {
+    if (!Array.isArray(raw)) return [];
+    return raw.map((item) => {
+      const row = (item ?? {}) as Record<string, unknown>;
+      return {
+        date: this.asString(this.pick(row, 'date', 'Date')) ?? '',
+        oldStatus: this.asString(this.pick(row, 'oldStatus', 'OldStatus')) ?? '',
+        newStatus: this.asString(this.pick(row, 'newStatus', 'NewStatus')) ?? '',
+        oldCompletionRate: this.asNumber(this.pick(row, 'oldCompletionRate', 'OldCompletionRate')) ?? 0,
+        newCompletionRate: this.asNumber(this.pick(row, 'newCompletionRate', 'NewCompletionRate')) ?? 0,
+      };
+    });
+  }
+
+  private normalizeDirectoryEmployees(raw: unknown): DirectoryEmployee[] {
+    const rows = Array.isArray(raw) ? raw : [];
+    return rows
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        return {
+          employeeId: this.asNumber(this.pick(row, 'employeeId', 'EmployeeId')) ?? 0,
+          firstName: this.asString(this.pick(row, 'firstName', 'FirstName')) ?? '',
+          lastName: this.asString(this.pick(row, 'lastName', 'LastName', 'name', 'Name')) ?? '',
+        };
+      })
+      .filter((item) => item.employeeId > 0)
+      .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'fr'));
   }
 }

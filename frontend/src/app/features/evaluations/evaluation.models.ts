@@ -844,3 +844,112 @@ export function emptyHistoryStats(): HistoryGlobalStats {
     scoreDistribution: { low: 0, medium: 0, high: 0, average: 0, min: 0, max: 0 },
   };
 }
+
+export interface DirectoryEmployee {
+  employeeId: number;
+  firstName: string;
+  lastName: string;
+}
+
+export interface ObjectiveSummaryRow {
+  interviewId: number;
+  evaluationId: number;
+  employeeId: number;
+  employeeName: string;
+  department: string;
+  position: string;
+  description: string;
+  dueDate: string | null;
+  indicator: string | null;
+  status: string;
+  completionRate: number;
+  objectiveIndex: number;
+  lastModified: string | null;
+  progressHistoryCount: number;
+  progressHistory: InterviewProgressEntry[];
+}
+
+export interface ObjectivesStatistics {
+  totalObjectives: number;
+  achievedObjectives: number;
+  inProgressObjectives: number;
+  notStartedObjectives: number;
+  notAchievedObjectives: number;
+  averageCompletionRate: number;
+  globalAchievementRate: number;
+}
+
+export interface PaginatedObjectivesSummary {
+  objectives?: ObjectiveSummaryRow[];
+  Objectives?: ObjectiveSummaryRow[];
+  statistics?: ObjectivesStatistics;
+  Statistics?: ObjectivesStatistics;
+  totalCount?: number;
+  TotalCount?: number;
+}
+
+export interface ObjectivesListQuery {
+  pageNumber: number;
+  pageSize: number;
+  departmentId?: number | null;
+  employeeId?: number | null;
+  statusFilter?: string | null;
+  searchQuery?: string | null;
+}
+
+export interface UpdateObjectiveStatusPayload {
+  objectiveIndex: number;
+  status: string;
+  completionRate: number;
+}
+
+export function emptyObjectivesStats(): ObjectivesStatistics {
+  return {
+    totalObjectives: 0,
+    achievedObjectives: 0,
+    inProgressObjectives: 0,
+    notStartedObjectives: 0,
+    notAchievedObjectives: 0,
+    averageCompletionRate: 0,
+    globalAchievementRate: 0,
+  };
+}
+
+export function objectiveRowKey(row: Pick<ObjectiveSummaryRow, 'interviewId' | 'objectiveIndex'>): string {
+  return `${row.interviewId}_${row.objectiveIndex}`;
+}
+
+export function objectiveStatusMeta(status: string | null | undefined): HistoryStatusMeta {
+  switch (status) {
+    case 'Atteint':
+      return { kind: 'validated', label: 'Atteint' };
+    case 'En cours':
+      return { kind: 'processed', label: 'En cours' };
+    case 'Non atteint':
+      return { kind: 'refused', label: 'Non atteint' };
+    default:
+      return { kind: 'pending', label: 'Non commencé' };
+  }
+}
+
+export function isObjectiveOverdue(row: Pick<ObjectiveSummaryRow, 'dueDate' | 'status'>): boolean {
+  if (!row.dueDate || row.status === 'Atteint' || row.status === 'Non atteint') return false;
+  const due = new Date(row.dueDate);
+  if (Number.isNaN(due.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const day = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  return day < today;
+}
+
+export function progressToneClass(rate: number | null | undefined): string {
+  const value = Number(rate) || 0;
+  if (value >= 80) return 'bg-gradient-to-r from-emerald-500 to-teal-500';
+  if (value >= 40) return 'bg-gradient-to-r from-accent to-indigo-500';
+  if (value > 0) return 'bg-gradient-to-r from-amber-500 to-orange-500';
+  return 'bg-slate-300';
+}
+
+export function directoryEmployeeName(row: Pick<DirectoryEmployee, 'firstName' | 'lastName'>): string {
+  return `${row.firstName ?? ''} ${row.lastName ?? ''}`.trim() || 'Employé';
+}

@@ -89,6 +89,12 @@ export const routes: Routes = [
           import('./features/evaluations/history-detail.page').then((m) => m.HistoryDetailPage),
         canActivate: [moduleGuard],
       },
+      {
+        path: 'soft-gcc/evaluations/objectifs',
+        loadComponent: () =>
+          import('./features/evaluations/objectives-list.page').then((m) => m.ObjectivesListPage),
+        canActivate: [moduleGuard],
+      },
       { path: 'history', redirectTo: 'soft-gcc/evaluations/historique', pathMatch: 'full' },
       { path: '**', component: NotFoundPage, canActivate: [moduleGuard] },
     ],
