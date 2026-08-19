@@ -20,12 +20,16 @@ namespace soft_carriere_competence.Controllers.Evaluations
 	{
 		private readonly EvaluationPlanningService _evaluationPlanningService;
 		private readonly EvaluationService _evaluationService;
+		private readonly CompetenceLineService _competenceLineService;
 
-
-		public EvaluationPlanningController(EvaluationPlanningService evaluationPlanningService, EvaluationService evaluationService)
+		public EvaluationPlanningController(
+			EvaluationPlanningService evaluationPlanningService,
+			EvaluationService evaluationService,
+			CompetenceLineService competenceLineService)
 		{
 			_evaluationPlanningService = evaluationPlanningService;
 			_evaluationService = evaluationService;
+			_competenceLineService = competenceLineService;
 		}
 
 		[HttpGet("employees-without-evaluations")]
@@ -106,6 +110,42 @@ namespace soft_carriere_competence.Controllers.Evaluations
 			return Ok(evaluationTypes);
 		}
 
+		[HttpGet("competence-lines")]
+		public async Task<IActionResult> GetCompetenceLines([FromQuery] int positionId)
+		{
+			var competenceLines = await _competenceLineService.GetByPositionIdAsync(positionId);
+			var formatted = competenceLines.Select(cl => new
+			{
+				competenceLineId = cl.CompetenceLineId,
+				skillPositionId = cl.SkillPositionId,
+				description = cl.Description,
+				skillName = cl.SkillPosition?.Skill?.Name ?? "Non défini",
+				positionId = cl.SkillPosition?.Position?.PositionId ?? positionId,
+				positionName = cl.SkillPosition?.Position?.PositionName ?? "Non défini"
+			});
+			return Ok(formatted);
+		}
+
+		[HttpGet("questions")]
+		public async Task<IActionResult> GetPlanningQuestions(
+			[FromQuery] int evaluationTypeId,
+			[FromQuery] int positionId,
+			[FromQuery] int? competenceLineId = null)
+		{
+			var filter = new EvaluationQuestionFilterDto(evaluationTypeId, positionId, competenceLineId);
+			var questions = await _evaluationService.FindQuestionsAsync(filter);
+			return Ok(questions
+				.Where(q => q.state == 1)
+				.Select(q => new
+				{
+					questionId = q.questionId,
+					question = q.question,
+					competenceLineId = q.CompetenceLineId,
+					positionId = q.positionId,
+					evaluationTypeId = q.evaluationTypeId
+				}));
+		}
+
 		[HttpGet("rappel-evaluation")]
 		public async Task<IActionResult> rappelerEvaluation([FromQuery] int idEvaluation)
 		{
@@ -177,7 +217,13 @@ namespace soft_carriere_competence.Controllers.Evaluations
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message });
+				var message = ex.InnerException?.Message ?? ex.Message;
+				if (message.Contains("FOREIGN KEY", StringComparison.OrdinalIgnoreCase)
+					&& message.Contains("Competence", StringComparison.OrdinalIgnoreCase))
+				{
+					message = "Une question sélectionnée n’est pas rattachée à une compétence valide du référentiel. Choisissez des questions liées aux compétences du poste.";
+				}
+				return StatusCode(500, new { error = message });
 			}
 		}
 
@@ -274,41 +320,40 @@ namespace soft_carriere_competence.Controllers.Evaluations
 			}
 		}
 		
-		// Endpoint pour récupérer les évaluations planifiées
-		//[HttpGet("planned-evaluations")]
-		//public async Task<IActionResult> GetPlannedEvaluations(
-		//	int pageNumber = 1,
-		//	int pageSize = 10,
-		//	int? position = null,
-		//	int? department = null,
-		//	string? search = null,
-		//	string? sortBy = null,
-		//	string? sortDirection = null)
-		//{
-		//	try
-		//	{
-		//		var (evaluations, totalPages) = await _evaluationPlanningService.GetPlannedEvaluationsPaginatedAsync(
-		//			pageNumber,
-		//			pageSize,
-		//			position,
-		//			department,
-		//			search,
-		//			sortBy,
-		//			sortDirection);
+		[HttpGet("planned-evaluations")]
+		public async Task<IActionResult> GetPlannedEvaluations(
+			int pageNumber = 1,
+			int pageSize = 10,
+			int? position = null,
+			int? department = null,
+			string? search = null,
+			string? sortBy = null,
+			string? sortDirection = null)
+		{
+			try
+			{
+				var (evaluations, totalPages) = await _evaluationPlanningService.GetPlannedEvaluationsPaginatedAsync(
+					pageNumber,
+					pageSize,
+					position,
+					department,
+					search,
+					sortBy,
+					sortDirection);
 
-		//		return Ok(new
-		//		{
-		//			Evaluations = evaluations,
-		//			TotalPages = totalPages,
-		//			CurrentPage = pageNumber,
-		//			PageSize = pageSize
-		//		});
-		//	}
-		//	catch (Exception ex)
-		//	{
-		//		return StatusCode(500, new { error = ex.Message });
-		//	}
-		//}
+				return Ok(new
+				{
+					Evaluations = evaluations,
+					TotalPages = totalPages,
+					CurrentPage = pageNumber,
+					PageSize = pageSize
+				});
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, new { error = ex.Message });
+			}
+		}
 	}
 
 }
