@@ -92,6 +92,7 @@ export const routes: Routes = [
         component: WishEvolutionEditPage,
         canActivate: [moduleGuard],
       },
+      { 
         path: 'soft-gcc/evaluations/planning',
         loadComponent: () =>
           import('./features/evaluations/planning-list.page').then((m) => m.PlanningListPage),
