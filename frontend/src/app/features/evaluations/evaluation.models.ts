@@ -649,3 +649,198 @@ export function hasFunctionalPermission(permissions: string[] | undefined, name:
   const needle = name.trim().toUpperCase();
   return (permissions ?? []).some((item) => String(item).trim().toUpperCase() === needle);
 }
+
+export const EVALUATION_HISTORY_STATUS = {
+  planned: 10,
+  inProgress: 20,
+  completed: 30,
+  cancelled: 40,
+} as const;
+
+export interface EvaluationHistoryRow {
+  evaluationId: number;
+  firstName: string;
+  lastName: string;
+  position: string | null;
+  evaluationType: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  overallScore: number | null;
+  status: number | null;
+  recommendations: string | null;
+}
+
+export interface PaginatedEvaluationHistory {
+  evaluations?: EvaluationHistoryRow[];
+  Evaluations?: EvaluationHistoryRow[];
+  totalPages?: number;
+  TotalPages?: number;
+  currentPage?: number;
+  CurrentPage?: number;
+  pageSize?: number;
+  PageSize?: number;
+}
+
+export interface HistoryQuestionDetail {
+  questionId: number;
+  question: string;
+  score: number | null;
+}
+
+export interface EvaluationHistoryDetail {
+  evaluationId: number;
+  firstName: string;
+  lastName: string;
+  position: string | null;
+  evaluationType: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  overallScore: number | null;
+  evaluationComments: string | null;
+  strengths: string | null;
+  weaknesses: string | null;
+  department: string | null;
+  interviewDate: string | null;
+  interviewStatus: number | null;
+  recommendations: string | null;
+  participants: string[];
+  questionDetails: HistoryQuestionDetail[];
+}
+
+export interface HistoryDistributionItem {
+  label: string;
+  value: number;
+  averageScore: number;
+}
+
+export interface HistoryScoreDistribution {
+  low: number;
+  medium: number;
+  high: number;
+  average: number;
+  min: number;
+  max: number;
+}
+
+export interface HistoryTrend {
+  isIncreasing: boolean;
+  percentageChange: number;
+  startValue: number;
+  endValue: number;
+  standardDeviation: number;
+}
+
+export interface HistoryGlobalStats {
+  totalEvaluationsCount: number;
+  averageScore: number;
+  participationRate: number;
+  approvalRate: number;
+  departmentDistribution: HistoryDistributionItem[];
+  evaluationTypeDistribution: HistoryDistributionItem[];
+  trendData: HistoryTrend;
+  scoreDistribution: HistoryScoreDistribution;
+}
+
+export interface HistoryYearlyPerformance {
+  year: number;
+  averageScore: number;
+  evaluationCount: number;
+}
+
+export interface HistoryListQuery {
+  pageNumber: number;
+  pageSize: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  evaluationType?: string | null;
+  department?: string | null;
+  employeeName?: string | null;
+}
+
+export interface HistoryStatusMeta {
+  kind: 'pending' | 'validated' | 'refused' | 'gap' | 'ok' | 'processed';
+  label: string;
+}
+
+export function historyEmployeeName(row: Pick<EvaluationHistoryRow, 'firstName' | 'lastName'>): string {
+  return `${row.firstName ?? ''} ${row.lastName ?? ''}`.trim() || 'Employé';
+}
+
+export function historyStatusMeta(status: number | null | undefined): HistoryStatusMeta {
+  switch (status) {
+    case EVALUATION_HISTORY_STATUS.planned:
+      return { kind: 'pending', label: 'Planifiée' };
+    case EVALUATION_HISTORY_STATUS.inProgress:
+      return { kind: 'processed', label: 'En cours' };
+    case EVALUATION_HISTORY_STATUS.completed:
+      return { kind: 'validated', label: 'Terminée' };
+    case EVALUATION_HISTORY_STATUS.cancelled:
+      return { kind: 'refused', label: 'Annulée' };
+    case 50:
+      return { kind: 'processed', label: 'Annulée' };
+    default:
+      return { kind: 'pending', label: 'Non défini' };
+  }
+}
+
+export function historyInterviewStatusMeta(status: number | null | undefined): HistoryStatusMeta {
+  switch (status) {
+    case INTERVIEW_STATUS.planned:
+      return { kind: 'pending', label: 'Planifié' };
+    case INTERVIEW_STATUS.inProgress:
+      return { kind: 'processed', label: 'En cours' };
+    case INTERVIEW_STATUS.pendingValidation:
+      return { kind: 'gap', label: 'En validation' };
+    case INTERVIEW_STATUS.completed:
+      return { kind: 'validated', label: 'Terminé' };
+    case INTERVIEW_STATUS.rejected:
+      return { kind: 'refused', label: 'Refusé' };
+    case INTERVIEW_STATUS.cancelled:
+      return { kind: 'processed', label: 'Annulé' };
+    default:
+      return { kind: 'pending', label: 'Non renseigné' };
+  }
+}
+
+export function formatScore(score: number | null | undefined, digits = 1): string {
+  if (score == null || Number.isNaN(Number(score))) return '—';
+  return Number(score).toFixed(digits);
+}
+
+export function scoreFillPercent(score: number | null | undefined): number {
+  if (score == null || Number.isNaN(Number(score))) return 0;
+  return Math.max(0, Math.min(100, (Number(score) / 5) * 100));
+}
+
+export function scoreToneClass(score: number | null | undefined): string {
+  if (score == null) return 'bg-slate-200';
+  if (score >= 4) return 'bg-gradient-to-r from-emerald-500 to-teal-500';
+  if (score >= 3) return 'bg-gradient-to-r from-accent to-indigo-500';
+  return 'bg-gradient-to-r from-amber-500 to-orange-500';
+}
+
+export function scoreBadgeClass(score: number | null | undefined): string {
+  if (score == null) return 'bg-slate-50 text-slate-500 border border-slate-200/80';
+  if (score >= 4) return 'bg-emerald-50 text-emerald-700 border border-emerald-200/80';
+  if (score >= 3) return 'bg-indigo-50 text-indigo-700 border border-indigo-200/80';
+  return 'bg-amber-50 text-amber-700 border border-amber-200/80';
+}
+
+export function emptyHistoryStats(): HistoryGlobalStats {
+  return {
+    totalEvaluationsCount: 0,
+    averageScore: 0,
+    participationRate: 0,
+    approvalRate: 0,
+    departmentDistribution: [],
+    evaluationTypeDistribution: [],
+    trendData: {
+      isIncreasing: false,
+      percentageChange: 0,
+      startValue: 0,
+      endValue: 0,
+      standardDeviation: 0,
+    },
+    scoreDistribution: { low: 0, medium: 0, high: 0, average: 0, min: 0, max: 0 },
+  };
+}

@@ -77,6 +77,19 @@ export const routes: Routes = [
           import('./features/evaluations/interview-wizard.page').then((m) => m.InterviewWizardPage),
         canActivate: [moduleGuard],
       },
+      {
+        path: 'soft-gcc/evaluations/historique',
+        loadComponent: () =>
+          import('./features/evaluations/history-list.page').then((m) => m.HistoryListPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/evaluations/historique/:evaluationId',
+        loadComponent: () =>
+          import('./features/evaluations/history-detail.page').then((m) => m.HistoryDetailPage),
+        canActivate: [moduleGuard],
+      },
+      { path: 'history', redirectTo: 'soft-gcc/evaluations/historique', pathMatch: 'full' },
       { path: '**', component: NotFoundPage, canActivate: [moduleGuard] },
     ],
   },

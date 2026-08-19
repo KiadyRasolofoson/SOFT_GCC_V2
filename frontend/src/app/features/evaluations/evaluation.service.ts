@@ -12,13 +12,23 @@ import {
   DepartmentOption,
   DurationRecommendation,
   EvaluationDetails,
+  EvaluationHistoryDetail,
+  EvaluationHistoryRow,
   EvaluationResultsPayload,
   EvaluationTypeOption,
   EvaluationValidationPayload,
+  HistoryDistributionItem,
+  HistoryGlobalStats,
+  HistoryListQuery,
+  HistoryQuestionDetail,
+  HistoryScoreDistribution,
+  HistoryTrend,
+  HistoryYearlyPerformance,
   InterviewEmployeeRow,
   InterviewParticipantOption,
   InterviewRecord,
   PaginatedEmployees,
+  PaginatedEvaluationHistory,
   PaginatedInterviewEmployees,
   PaginatedPlannedEvaluations,
   PaginatedPlanningEmployees,
@@ -33,6 +43,7 @@ import {
   SupervisorOption,
   TrainingSuggestion,
   UpdateInterviewPayload,
+  emptyHistoryStats,
 } from './evaluation.models';
 
 export interface EmployeeListQuery {
@@ -299,6 +310,69 @@ export class EvaluationService {
     return data?.evaluations ?? data?.Evaluations ?? [];
   }
 
+  getHistoryPaginated(query: HistoryListQuery): Observable<PaginatedEvaluationHistory> {
+    return this.http.get<PaginatedEvaluationHistory>(
+      `${this.api}/EvaluationHistory/evaluation-history-paginated`,
+      { params: this.historyParams(query) },
+    );
+  }
+
+  getHistoryGlobalStats(query: Omit<HistoryListQuery, 'pageNumber' | 'pageSize'>): Observable<HistoryGlobalStats> {
+    return this.http.get<unknown>(`${this.api}/EvaluationHistory/global-statistics`, {
+      params: this.historyParams(query),
+    }).pipe(
+      map((raw) => this.normalizeGlobalStats(raw)),
+      catchError(() => of(emptyHistoryStats())),
+    );
+  }
+
+  getHistoryYearlyPerformance(
+    query: Omit<HistoryListQuery, 'pageNumber' | 'pageSize'>,
+  ): Observable<HistoryYearlyPerformance[]> {
+    return this.http.get<unknown>(`${this.api}/EvaluationHistory/global-performance`, {
+      params: this.historyParams(query),
+    }).pipe(
+      map((raw) => this.normalizeYearlyPerformance(raw)),
+      catchError(() => of([])),
+    );
+  }
+
+  getHistoryDetail(evaluationId: number): Observable<EvaluationHistoryDetail | null> {
+    return this.http.get<unknown>(`${this.api}/EvaluationHistory/detail/${evaluationId}`).pipe(
+      map((raw) => this.normalizeHistoryDetail(raw)),
+      catchError(() => of(null)),
+    );
+  }
+
+  getHistoryDepartments(): Observable<DepartmentOption[]> {
+    return this.http.get<unknown>(`${this.api}/EvaluationHistory/departments`).pipe(
+      map((raw) => this.normalizeDepartments(raw)),
+      catchError(() => this.getDepartments()),
+    );
+  }
+
+  getHistoryEvaluationTypes(): Observable<string[]> {
+    return this.http.get<unknown>(`${this.api}/EvaluationHistory/evaluation-types`).pipe(
+      map((raw) => this.normalizeHistoryTypes(raw)),
+      catchError(() => of(['Annuelle', 'Trimestrielle', 'Probatoire', 'Promotion'])),
+    );
+  }
+
+  exportHistory(
+    format: 'excel' | 'pdf' | 'csv',
+    query: Omit<HistoryListQuery, 'pageNumber' | 'pageSize'>,
+  ): Observable<Blob> {
+    return this.http.get(`${this.api}/EvaluationHistory/export`, {
+      params: this.historyParams(query).set('format', format),
+      responseType: 'blob',
+    });
+  }
+
+  unwrapHistoryRows(data: PaginatedEvaluationHistory | null | undefined): EvaluationHistoryRow[] {
+    const rows = data?.evaluations ?? data?.Evaluations ?? [];
+    return rows.filter(Boolean).map((row) => this.normalizeHistoryRow(row));
+  }
+
   private normalizePlanningEmployee(row: PlanningEmployee | Record<string, unknown>): PlanningEmployee {
     const raw = row as Record<string, unknown>;
     const pick = (...keys: string[]) => {
@@ -443,5 +517,209 @@ export class EvaluationService {
       if (Number.isFinite(id)) next[id] = value;
     }
     return next;
+  }
+
+  private historyParams(query: Partial<HistoryListQuery>): HttpParams {
+    let params = new HttpParams();
+    if (query.pageNumber) params = params.set('pageNumber', String(query.pageNumber));
+    if (query.pageSize) params = params.set('pageSize', String(query.pageSize));
+    if (query.startDate) params = params.set('startDate', query.startDate);
+    if (query.endDate) params = params.set('endDate', query.endDate);
+    if (query.evaluationType) params = params.set('evaluationType', query.evaluationType);
+    if (query.department) params = params.set('department', query.department);
+    if (query.employeeName) params = params.set('employeeName', query.employeeName);
+    return params;
+  }
+
+  private pick(raw: Record<string, unknown>, ...keys: string[]): unknown {
+    for (const key of keys) {
+      if (raw[key] != null && raw[key] !== '') return raw[key];
+    }
+    return null;
+  }
+
+  private asNumber(value: unknown): number | null {
+    if (value == null || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  private asString(value: unknown): string | null {
+    if (value == null) return null;
+    const text = String(value).trim();
+    return text && text.toLowerCase() !== 'null' ? text : null;
+  }
+
+  private normalizeHistoryRow(row: EvaluationHistoryRow | Record<string, unknown>): EvaluationHistoryRow {
+    const raw = row as Record<string, unknown>;
+    return {
+      evaluationId: this.asNumber(this.pick(raw, 'evaluationId', 'EvaluationId')) ?? 0,
+      firstName: this.asString(this.pick(raw, 'firstName', 'FirstName')) ?? '',
+      lastName: this.asString(this.pick(raw, 'lastName', 'LastName')) ?? '',
+      position: this.asString(this.pick(raw, 'position', 'Position')),
+      evaluationType: this.asString(this.pick(raw, 'evaluationType', 'EvaluationType')) ?? 'Non définie',
+      startDate: this.asString(this.pick(raw, 'startDate', 'StartDate')),
+      endDate: this.asString(this.pick(raw, 'endDate', 'EndDate')),
+      overallScore: this.asNumber(this.pick(raw, 'overallScore', 'OverallScore')),
+      status: this.asNumber(this.pick(raw, 'status', 'Status')) ?? 10,
+      recommendations: this.asString(this.pick(raw, 'recommendations', 'Recommendations')),
+    };
+  }
+
+  private normalizeHistoryDetail(raw: unknown): EvaluationHistoryDetail | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const row = raw as Record<string, unknown>;
+    const evaluationId = this.asNumber(this.pick(row, 'evaluationId', 'EvaluationId')) ?? 0;
+    if (!evaluationId) return null;
+    const participantsRaw = this.pick(row, 'participants', 'Participants');
+    const participants = Array.isArray(participantsRaw)
+      ? participantsRaw.map((item) => String(item).trim()).filter(Boolean)
+      : typeof participantsRaw === 'string'
+        ? participantsRaw.split(',').map((item) => item.trim()).filter(Boolean)
+        : [];
+    return {
+      evaluationId,
+      firstName: this.asString(this.pick(row, 'firstName', 'FirstName')) ?? '',
+      lastName: this.asString(this.pick(row, 'lastName', 'LastName')) ?? '',
+      position: this.asString(this.pick(row, 'position', 'Position')),
+      evaluationType: this.asString(this.pick(row, 'evaluationType', 'EvaluationType')),
+      startDate: this.asString(this.pick(row, 'startDate', 'StartDate')),
+      endDate: this.asString(this.pick(row, 'endDate', 'EndDate')),
+      overallScore: this.asNumber(this.pick(row, 'overallScore', 'OverallScore')),
+      evaluationComments: this.asString(this.pick(row, 'evaluationComments', 'EvaluationComments')),
+      strengths: this.asString(this.pick(row, 'strengths', 'Strengths')),
+      weaknesses: this.asString(this.pick(row, 'weaknesses', 'Weaknesses')),
+      department: this.asString(this.pick(row, 'department', 'Department')),
+      interviewDate: this.asString(this.pick(row, 'interviewDate', 'InterviewDate')),
+      interviewStatus: this.asNumber(this.pick(row, 'interviewStatus', 'InterviewStatus')),
+      recommendations: this.asString(this.pick(row, 'recommendations', 'Recommendations')),
+      participants,
+      questionDetails: this.normalizeQuestionDetails(
+        this.pick(row, 'questionDetails', 'QuestionDetails'),
+      ),
+    };
+  }
+
+  private normalizeQuestionDetails(raw: unknown): HistoryQuestionDetail[] {
+    if (Array.isArray(raw)) {
+      return raw
+        .map((item) => {
+          const row = (item ?? {}) as Record<string, unknown>;
+          return {
+            questionId: this.asNumber(this.pick(row, 'questionId', 'QuestionId')) ?? 0,
+            question: this.asString(this.pick(row, 'question', 'Question', 'questionText', 'QuestionText')) ?? 'Question',
+            score: this.asNumber(this.pick(row, 'score', 'Score')),
+          };
+        })
+        .filter((item) => item.question.trim());
+    }
+    if (typeof raw === 'string' && raw.trim()) {
+      return raw
+        .split(';')
+        .map((chunk) => chunk.trim())
+        .filter(Boolean)
+        .map((chunk) => {
+          const scorePart = chunk.match(/Score\s*:\s*(\d+(\.\d+)?)/i);
+          const questionPart = chunk.match(/Question\s*:\s*(.*?)(?:,|$)/i);
+          return {
+            questionId: 0,
+            question: questionPart?.[1]?.trim() || chunk,
+            score: scorePart ? Number(scorePart[1]) : null,
+          };
+        });
+    }
+    return [];
+  }
+
+  private normalizeGlobalStats(raw: unknown): HistoryGlobalStats {
+    const fallback = emptyHistoryStats();
+    if (!raw || typeof raw !== 'object') return fallback;
+    const row = raw as Record<string, unknown>;
+    const trendRaw = (this.pick(row, 'trendData', 'TrendData') ?? {}) as Record<string, unknown>;
+    const scoreRaw = (this.pick(row, 'scoreDistribution', 'ScoreDistribution') ?? {}) as Record<string, unknown>;
+    return {
+      totalEvaluationsCount: this.asNumber(this.pick(row, 'totalEvaluationsCount', 'TotalEvaluationsCount')) ?? 0,
+      averageScore: this.asNumber(this.pick(row, 'averageScore', 'AverageScore')) ?? 0,
+      participationRate: this.asNumber(this.pick(row, 'participationRate', 'ParticipationRate')) ?? 0,
+      approvalRate: this.asNumber(this.pick(row, 'approvalRate', 'ApprovalRate')) ?? 0,
+      departmentDistribution: this.normalizeDistribution(
+        this.pick(row, 'departmentDistribution', 'DepartmentDistribution'),
+      ),
+      evaluationTypeDistribution: this.normalizeDistribution(
+        this.pick(row, 'evaluationTypeDistribution', 'EvaluationTypeDistribution'),
+      ),
+      trendData: {
+        isIncreasing: Boolean(this.pick(trendRaw, 'isIncreasing', 'IsIncreasing')),
+        percentageChange: this.asNumber(this.pick(trendRaw, 'percentageChange', 'PercentageChange')) ?? 0,
+        startValue: this.asNumber(this.pick(trendRaw, 'startValue', 'StartValue')) ?? 0,
+        endValue: this.asNumber(this.pick(trendRaw, 'endValue', 'EndValue')) ?? 0,
+        standardDeviation: this.asNumber(this.pick(trendRaw, 'standardDeviation', 'StandardDeviation')) ?? 0,
+      } satisfies HistoryTrend,
+      scoreDistribution: {
+        low: this.asNumber(this.pick(scoreRaw, 'low', 'Low')) ?? 0,
+        medium: this.asNumber(this.pick(scoreRaw, 'medium', 'Medium')) ?? 0,
+        high: this.asNumber(this.pick(scoreRaw, 'high', 'High')) ?? 0,
+        average: this.asNumber(this.pick(scoreRaw, 'average', 'Average')) ?? 0,
+        min: this.asNumber(this.pick(scoreRaw, 'min', 'Min')) ?? 0,
+        max: this.asNumber(this.pick(scoreRaw, 'max', 'Max')) ?? 0,
+      } satisfies HistoryScoreDistribution,
+    };
+  }
+
+  private normalizeDistribution(raw: unknown): HistoryDistributionItem[] {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        return {
+          label: this.asString(this.pick(row, 'label', 'Label')) ?? 'Non défini',
+          value: this.asNumber(this.pick(row, 'value', 'Value')) ?? 0,
+          averageScore: this.asNumber(this.pick(row, 'averageScore', 'AverageScore')) ?? 0,
+        };
+      })
+      .filter((item) => item.label);
+  }
+
+  private normalizeYearlyPerformance(raw: unknown): HistoryYearlyPerformance[] {
+    const source = Array.isArray(raw) ? raw : [];
+    return source
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        return {
+          year: this.asNumber(this.pick(row, 'year', 'Year')) ?? 0,
+          averageScore: this.asNumber(this.pick(row, 'averageScore', 'AverageScore')) ?? 0,
+          evaluationCount: this.asNumber(this.pick(row, 'evaluationCount', 'EvaluationCount', 'count', 'Count')) ?? 0,
+        };
+      })
+      .filter((item) => item.year > 0)
+      .sort((a, b) => a.year - b.year);
+  }
+
+  private normalizeDepartments(raw: unknown): DepartmentOption[] {
+    const rows = Array.isArray(raw) ? raw : [];
+    return rows
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        return {
+          departmentId: this.asNumber(this.pick(row, 'departmentId', 'DepartmentId')) ?? 0,
+          name: this.asString(this.pick(row, 'name', 'Name', 'departmentName', 'DepartmentName')) ?? '',
+        };
+      })
+      .filter((item) => item.name);
+  }
+
+  private normalizeHistoryTypes(raw: unknown): string[] {
+    if (!Array.isArray(raw) || !raw.length) {
+      return ['Annuelle', 'Trimestrielle', 'Probatoire', 'Promotion'];
+    }
+    if (typeof raw[0] === 'string') {
+      return (raw as string[]).map((item) => item.trim()).filter(Boolean);
+    }
+    return raw
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        return this.asString(this.pick(row, 'designation', 'Designation', 'name', 'Name', 'label', 'Label'));
+      })
+      .filter((item): item is string => Boolean(item));
   }
 }
