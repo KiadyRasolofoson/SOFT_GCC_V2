@@ -54,9 +54,14 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
 
         public async Task<Dictionary<int, string>> GetQuestionTextsAsync(List<int> questionIds)
         {
-            return await _context.evaluationQuestions
+            var questions = await _context.evaluationQuestions
                 .Where(q => questionIds.Contains(q.questionId))
-                .ToDictionaryAsync(q => q.questionId, q => q.question);
+                .Select(q => new { q.questionId, q.question })
+                .ToListAsync();
+
+            return questions
+                .GroupBy(q => q.questionId)
+                .ToDictionary(g => g.Key, g => g.First().question ?? string.Empty);
         }
 
         public async Task SaveChangesAsync()
@@ -280,7 +285,12 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
 
         public async Task<List<CompetenceLine>> GetAllCompetenceLinesAsync()
         {
-            return await _context.competenceLines.ToListAsync();
+            return await _context.competenceLines
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Skill)
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Position)
+                .ToListAsync();
         }
 
         public async Task<CompetenceLine?> GetCompetenceLineByIdAsync(int id)
@@ -291,7 +301,11 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
         public async Task<List<CompetenceLine>> GetCompetenceLinesByPositionIdAsync(int positionId)
         {
             return await _context.competenceLines
-                .Where(cl => cl.SkillPositionId == positionId)
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Skill)
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Position)
+                .Where(cl => cl.State == 1 && cl.SkillPosition.PositionId == positionId)
                 .ToListAsync();
         }
 
@@ -426,7 +440,7 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
 
                 while (await reader.ReadAsync())
                 {
-                    var row = new Dictionary<string, object>();
+                    var row = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                     for (int i = 0; i < reader.FieldCount; i++)
                     {
                         row[reader.GetName(i)] = reader.GetValue(i);

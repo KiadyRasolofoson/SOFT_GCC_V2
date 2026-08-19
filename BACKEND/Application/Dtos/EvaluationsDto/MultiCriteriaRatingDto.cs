@@ -85,7 +85,7 @@ namespace soft_carriere_competence.Application.Dtos.EvaluationsDto
                 ratings.Add(Clarity.Value);
 
             if (ratings.Count == 0)
-                return 0;
+                return OverallRating;
 
             // Calculer la moyenne arrondie
             return (decimal)Math.Round(ratings.Average());

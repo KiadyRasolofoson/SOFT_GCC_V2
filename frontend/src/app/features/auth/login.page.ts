@@ -15,11 +15,9 @@ import { GccAuthShell } from '../../layouts/gcc-auth-shell';
     <gcc-auth-shell>
       <div class="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white/95 p-8 shadow-xl shadow-slate-200/50 backdrop-blur-sm sm:p-10">
         <!-- Logo & Header for Mobile/Desktop -->
-        <div class="mb-8 text-center sm:text-left">
-          <div class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent to-indigo-500 font-extrabold text-white text-xl shadow-md shadow-indigo-500/20 mb-3">
-            G
-          </div>
-          <h3 class="text-2xl font-bold tracking-tight text-navy">Connexion à Soft GCC</h3>
+        <div class="mb-8 text-center">
+          <img src="assets/logo/logo.png" alt="SoftTalent Logo" class="h-12 w-auto object-contain mb-3 mx-auto" />
+          <h3 class="text-2xl font-bold tracking-tight text-navy">Connexion à SoftTalent</h3>
           <p class="mt-1.5 text-sm text-slate-500">
             Saisissez vos identifiants professionnels pour accéder à l'espace RH.
           </p>

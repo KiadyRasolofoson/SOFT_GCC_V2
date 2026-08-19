@@ -58,33 +58,46 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     return false;
                 }
 
-                // 3. Extraire les IDs de compétence distincts
+                // 3. Extraire les IDs de compétence distincts (ignorer 0 = non renseigné)
                 var distinctCompetences = selectedQuestions
                     .Select(sq => sq.CompetenceLineId)
+                    .Where(id => id > 0)
                     .Distinct()
                     .ToList();
 
                 Console.WriteLine($"Nombre de compétences distinctes: {distinctCompetences.Count}");
 
-                // 4. Créer une entrée de résultat pour chaque compétence distincte avec le score global
-                var competenceResultsList = new List<EvaluationCompetenceResult>();
+                var existingCompetenceRows = await _dataService.ExecuteReaderAsync(
+                    "SELECT ResultId, CompetenceLineId FROM Evaluation_Competence_Results WHERE EvaluationId = @p0",
+                    evaluationId);
+                var existingByCompetence = existingCompetenceRows
+                    .GroupBy(r => Convert.ToInt32(r["CompetenceLineId"]))
+                    .ToDictionary(g => g.Key, g => Convert.ToInt32(g.First()["ResultId"]));
+
+                // 4. Upsert SQL (pas d'AddRange EF : navigations obligatoires → « Key: employeeId »)
+                var now = DateTime.UtcNow;
                 foreach (var competenceId in distinctCompetences)
                 {
-                    Console.WriteLine($"Création du résultat pour la compétence ID: {competenceId}");
-                    
-                    // Créer une nouvelle entrée de résultat avec le score global
-                    competenceResultsList.Add(new EvaluationCompetenceResult
+                    Console.WriteLine($"Enregistrement du résultat pour la compétence ID: {competenceId}");
+
+                    if (existingByCompetence.TryGetValue(competenceId, out var resultId))
                     {
-                        EvaluationId = evaluationId,
-                        EmployeeId = employeeId,
-                        CompetenceLineId = competenceId,
-                        Score = overallScore,
-                        CreatedAt = DateTime.UtcNow,
-                        State = 1 // Actif
-                    });
+                        await _dataService.ExecuteNonQueryAsync(@"
+                            UPDATE Evaluation_Competence_Results
+                            SET Score = @p0, EmployeeId = @p1, State = 1
+                            WHERE ResultId = @p2",
+                            overallScore, employeeId, resultId);
+                    }
+                    else
+                    {
+                        await _dataService.ExecuteNonQueryAsync(@"
+                            INSERT INTO Evaluation_Competence_Results
+                                (EvaluationId, EmployeeId, CompetenceLineId, Score, Comments, CreatedAt, State)
+                            VALUES (@p0, @p1, @p2, @p3, @p4, @p5, 1)",
+                            evaluationId, employeeId, competenceId, overallScore, string.Empty, now);
+                    }
                 }
 
-                await _dataService.AddRangeAsync(competenceResultsList);
                 Console.WriteLine("Calcul et sauvegarde des résultats par compétence terminés avec succès");
 
                 // 5. Mise à jour des compétences des employés
@@ -95,7 +108,7 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             catch (Exception ex)
             {
                 Console.WriteLine($"Erreur dans CalculateAndSaveCompetenceResultsAsync: {ex.Message}");
-                throw;
+                return false;
             }
         }
 

@@ -1,0 +1,360 @@
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { catchError, forkJoin, map, Observable, of } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import {
+  EvaluationTemplate,
+  PositionOption,
+  QuestionTimeUpdate,
+  ResponseTypeOption,
+  SettingsCompetenceLine,
+  SettingsEvalType,
+  SettingsQuestion,
+  SettingsQuestionPayload,
+  SettingsTraining,
+  SettingsTrainingPayload,
+  TemplateQuestion,
+} from './evaluation.models';
+
+@Injectable({ providedIn: 'root' })
+export class EvaluationSettingsService {
+  private readonly http = inject(HttpClient);
+  private readonly api = environment.apiUrl;
+
+  getQuestions(): Observable<SettingsQuestion[]> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/questionsAll`).pipe(
+      map((raw) => this.normalizeQuestions(raw)),
+    );
+  }
+
+  createQuestion(payload: SettingsQuestionPayload): Observable<unknown> {
+    return this.http.post(`${this.api}/Evaluation/questions`, this.toQuestionBody(payload));
+  }
+
+  updateQuestion(id: number, payload: SettingsQuestionPayload): Observable<unknown> {
+    return this.http.put(`${this.api}/Evaluation/questions/${id}`, this.toQuestionBody({ ...payload, questionId: id }));
+  }
+
+  deleteQuestion(id: number): Observable<unknown> {
+    return this.http.delete(`${this.api}/Evaluation/questions/${id}`);
+  }
+
+  deleteQuestions(ids: number[]): Observable<unknown> {
+    if (!ids.length) return of(null);
+    return forkJoin(ids.map((id) => this.deleteQuestion(id).pipe(catchError(() => of(null)))));
+  }
+
+  getTrainings(): Observable<SettingsTraining[]> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/training-suggestions`).pipe(
+      map((raw) => this.normalizeTrainings(raw)),
+    );
+  }
+
+  createTraining(payload: SettingsTrainingPayload): Observable<unknown> {
+    return this.http.post(`${this.api}/Evaluation/create-training-suggestion`, this.toTrainingBody(payload));
+  }
+
+  updateTraining(id: number, payload: SettingsTrainingPayload): Observable<unknown> {
+    return this.http.put(`${this.api}/Evaluation/training-suggestions/${id}`, this.toTrainingBody(payload));
+  }
+
+  deleteTraining(id: number): Observable<unknown> {
+    return this.http.delete(`${this.api}/Evaluation/training-suggestions/${id}`);
+  }
+
+  deleteTrainings(ids: number[]): Observable<unknown> {
+    if (!ids.length) return of(null);
+    return forkJoin(ids.map((id) => this.deleteTraining(id).pipe(catchError(() => of(null)))));
+  }
+
+  getEvaluationTypes(): Observable<SettingsEvalType[]> {
+    return this.http.get<unknown>(`${this.api}/EvaluationType`).pipe(
+      map((raw) => this.normalizeTypes(raw)),
+      catchError(() =>
+        this.http.get<unknown>(`${this.api}/Evaluation/types`).pipe(
+          map((raw) => this.normalizeTypes(raw)),
+          catchError(() => of([])),
+        ),
+      ),
+    );
+  }
+
+  createEvaluationType(designation: string): Observable<unknown> {
+    return this.http.post(`${this.api}/EvaluationType`, { designation: designation.trim(), state: 1 });
+  }
+
+  updateEvaluationType(id: number, designation: string): Observable<unknown> {
+    return this.http.put(`${this.api}/EvaluationType/${id}`, {
+      evaluationTypeId: id,
+      designation: designation.trim(),
+    });
+  }
+
+  deleteEvaluationType(id: number): Observable<unknown> {
+    return this.http.delete(`${this.api}/EvaluationType/${id}`);
+  }
+
+  getPositions(): Observable<PositionOption[]> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/postes`).pipe(
+      map((raw) => this.normalizePositions(raw)),
+      catchError(() => of([])),
+    );
+  }
+
+  getCompetenceLines(): Observable<SettingsCompetenceLine[]> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/competence-lines`).pipe(
+      map((raw) => this.normalizeCompetenceLines(raw)),
+      catchError(() =>
+        this.http.get<unknown>(`${this.api}/CompetenceLine`).pipe(
+          map((raw) => this.normalizeCompetenceLines(raw)),
+          catchError(() => of([])),
+        ),
+      ),
+    );
+  }
+
+  getResponseTypes(): Observable<ResponseTypeOption[]> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/response-types`).pipe(
+      map((raw) => this.normalizeResponseTypes(raw)),
+      catchError(() =>
+        this.http.get<unknown>(`${this.api}/ResponseType`).pipe(
+          map((raw) => this.normalizeResponseTypes(raw)),
+          catchError(() => of([])),
+        ),
+      ),
+    );
+  }
+
+  getTemplates(): Observable<EvaluationTemplate[]> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/templates`).pipe(
+      map((raw) => this.normalizeTemplates(raw)),
+    );
+  }
+
+  getTemplateQuestions(evaluationTypeId: number): Observable<TemplateQuestion[]> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/${evaluationTypeId}/questions`).pipe(
+      map((raw) => this.normalizeTemplateQuestions(raw)),
+    );
+  }
+
+  updateQuestionTimes(payload: QuestionTimeUpdate[]): Observable<unknown> {
+    return this.http.post(`${this.api}/Evaluation/questions/update-time`, payload);
+  }
+
+  private toQuestionBody(payload: SettingsQuestionPayload) {
+    return {
+      QuestionId: payload.questionId ?? null,
+      Question: payload.question.trim(),
+      EvaluationTypeId: payload.evaluationTypeId,
+      PositionId: payload.positionId,
+      CompetenceLineId: payload.competenceLineId,
+      ResponseTypeId: payload.responseTypeId,
+      State: payload.state || 1,
+    };
+  }
+
+  private toTrainingBody(payload: SettingsTrainingPayload) {
+    return {
+      EvaluationTypeId: payload.evaluationTypeId,
+      QuestionId: payload.questionId,
+      Training: payload.training.trim(),
+      Details: payload.details.trim(),
+      ScoreThreshold: payload.scoreThreshold,
+      State: payload.state || 1,
+    };
+  }
+
+  private pick(raw: Record<string, unknown>, ...keys: string[]): unknown {
+    for (const key of keys) {
+      if (raw[key] != null && raw[key] !== '') return raw[key];
+    }
+    return null;
+  }
+
+  private asNumber(value: unknown): number | null {
+    if (value == null || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  private asString(value: unknown): string | null {
+    if (value == null) return null;
+    const text = String(value).trim();
+    return text && text.toLowerCase() !== 'null' ? text : null;
+  }
+
+  private asArray(raw: unknown): unknown[] {
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') {
+      const row = raw as Record<string, unknown>;
+      const nested = row['items'] ?? row['Items'] ?? row['data'] ?? row['Data'];
+      if (Array.isArray(nested)) return nested;
+    }
+    return [];
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  }
+
+  private normalizeQuestions(raw: unknown): SettingsQuestion[] {
+    return this.asArray(raw)
+      .map((item) => {
+        const row = this.asRecord(item);
+        const type = this.asRecord(this.pick(row, 'evaluationType', 'EvaluationType'));
+        const position = this.asRecord(this.pick(row, 'position', 'Position'));
+        const competence = this.asRecord(this.pick(row, 'competenceLine', 'CompetenceLine'));
+        const response = this.asRecord(this.pick(row, 'responseType', 'ResponseType'));
+        return {
+          questionId: this.asNumber(this.pick(row, 'questionId', 'QuestionId', 'id', 'Id')) ?? 0,
+          question: this.asString(this.pick(row, 'question', 'Question')) ?? '',
+          evaluationTypeId: this.asNumber(this.pick(row, 'evaluationTypeId', 'EvaluationTypeId')) ?? 0,
+          evaluationTypeName:
+            this.asString(this.pick(type, 'designation', 'Designation')) ??
+            this.asString(this.pick(row, 'evaluationTypeName', 'EvaluationTypeName')) ??
+            '',
+          positionId: this.asNumber(this.pick(row, 'positionId', 'PositionId')) ?? 0,
+          positionName:
+            this.asString(this.pick(position, 'positionName', 'PositionName')) ??
+            this.asString(this.pick(row, 'positionName', 'PositionName')) ??
+            '',
+          competenceLineId: this.asNumber(this.pick(row, 'competenceLineId', 'CompetenceLineId')),
+          competenceName:
+            this.asString(this.pick(competence, 'skillName', 'SkillName', 'description', 'Description')) ??
+            this.asString(this.pick(row, 'competenceName', 'CompetenceName')),
+          responseTypeId: this.asNumber(this.pick(row, 'responseTypeId', 'ResponseTypeId')) ?? 1,
+          responseTypeName:
+            this.asString(this.pick(response, 'typeName', 'TypeName')) ??
+            this.asString(this.pick(row, 'responseTypeName', 'ResponseTypeName')) ??
+            'TEXT',
+          state: this.asNumber(this.pick(row, 'state', 'State')) ?? 1,
+        };
+      })
+      .filter((item) => item.questionId > 0);
+  }
+
+  private normalizeTrainings(raw: unknown): SettingsTraining[] {
+    return this.asArray(raw)
+      .map((item) => {
+        const row = this.asRecord(item);
+        const type = this.asRecord(this.pick(row, 'evaluationType', 'EvaluationType'));
+        const question = this.asRecord(this.pick(row, 'evaluationQuestion', 'EvaluationQuestion'));
+        return {
+          trainingSuggestionId:
+            this.asNumber(this.pick(row, 'trainingSuggestionId', 'TrainingSuggestionId')) ?? 0,
+          training: this.asString(this.pick(row, 'training', 'Training')) ?? '',
+          details: this.asString(this.pick(row, 'details', 'Details')) ?? '',
+          evaluationTypeId: this.asNumber(this.pick(row, 'evaluationTypeId', 'EvaluationTypeId')) ?? 0,
+          evaluationTypeName:
+            this.asString(this.pick(type, 'designation', 'Designation')) ??
+            this.asString(this.pick(row, 'evaluationTypeName', 'EvaluationTypeName')) ??
+            '',
+          questionId: this.asNumber(this.pick(row, 'questionId', 'QuestionId')) ?? 0,
+          questionText:
+            this.asString(this.pick(question, 'question', 'Question')) ??
+            this.asString(this.pick(row, 'questionText', 'QuestionText')) ??
+            '',
+          scoreThreshold: this.asNumber(this.pick(row, 'scoreThreshold', 'ScoreThreshold')) ?? 0,
+          state: this.asNumber(this.pick(row, 'state', 'State')) ?? 1,
+        };
+      })
+      .filter((item) => item.trainingSuggestionId > 0);
+  }
+
+  private normalizeTypes(raw: unknown): SettingsEvalType[] {
+    return this.asArray(raw)
+      .map((item) => {
+        const row = this.asRecord(item);
+        return {
+          evaluationTypeId: this.asNumber(this.pick(row, 'evaluationTypeId', 'EvaluationTypeId')) ?? 0,
+          designation: this.asString(this.pick(row, 'designation', 'Designation')) ?? '',
+          state: this.asNumber(this.pick(row, 'state', 'State')),
+        };
+      })
+      .filter((item) => item.evaluationTypeId > 0 && item.designation);
+  }
+
+  private normalizePositions(raw: unknown): PositionOption[] {
+    return this.asArray(raw)
+      .map((item) => {
+        const row = this.asRecord(item);
+        return {
+          positionId: this.asNumber(this.pick(row, 'positionId', 'PositionId')) ?? 0,
+          positionName: this.asString(this.pick(row, 'positionName', 'PositionName', 'name', 'Name')) ?? '',
+        };
+      })
+      .filter((item) => item.positionId > 0 && item.positionName);
+  }
+
+  private normalizeCompetenceLines(raw: unknown): SettingsCompetenceLine[] {
+    return this.asArray(raw)
+      .map((item) => {
+        const row = this.asRecord(item);
+        return {
+          competenceLineId: this.asNumber(this.pick(row, 'competenceLineId', 'CompetenceLineId')) ?? 0,
+          skillName:
+            this.asString(this.pick(row, 'skillName', 'SkillName')) ??
+            this.asString(this.pick(row, 'description', 'Description')) ??
+            'Compétence',
+          description: this.asString(this.pick(row, 'description', 'Description')) ?? '',
+          positionId: this.asNumber(this.pick(row, 'positionId', 'PositionId')) ?? 0,
+          positionName: this.asString(this.pick(row, 'positionName', 'PositionName')) ?? '',
+        };
+      })
+      .filter((item) => item.competenceLineId > 0);
+  }
+
+  private normalizeResponseTypes(raw: unknown): ResponseTypeOption[] {
+    return this.asArray(raw)
+      .map((item) => {
+        const row = this.asRecord(item);
+        return {
+          responseTypeId: this.asNumber(this.pick(row, 'responseTypeId', 'ResponseTypeId')) ?? 0,
+          typeName: this.asString(this.pick(row, 'typeName', 'TypeName', 'name', 'Name')) ?? 'TEXT',
+          description: this.asString(this.pick(row, 'description', 'Description')),
+        };
+      })
+      .filter((item) => item.responseTypeId > 0);
+  }
+
+  private normalizeTemplates(raw: unknown): EvaluationTemplate[] {
+    return this.asArray(raw)
+      .map((item) => {
+        const row = this.asRecord(item);
+        return {
+          id: this.asNumber(this.pick(row, 'id', 'Id', 'evaluationTypeId', 'EvaluationTypeId')) ?? 0,
+          title:
+            this.asString(this.pick(row, 'title', 'Title', 'designation', 'Designation', 'name', 'Name')) ??
+            'Type',
+          description: this.asString(this.pick(row, 'description', 'Description')) ?? '',
+          questionCount: this.asNumber(this.pick(row, 'questionCount', 'QuestionCount')) ?? 0,
+        };
+      })
+      .filter((item) => item.id > 0);
+  }
+
+  private normalizeTemplateQuestions(raw: unknown): TemplateQuestion[] {
+    return this.asArray(raw)
+      .map((item) => {
+        const row = this.asRecord(item);
+        const responseType =
+          this.asString(this.pick(row, 'responseType', 'ResponseType')) ??
+          this.responseTypeFromId(this.asNumber(this.pick(row, 'responseTypeId', 'ResponseTypeId')));
+        return {
+          questionId: this.asNumber(this.pick(row, 'questionId', 'QuestionId')) ?? 0,
+          text: this.asString(this.pick(row, 'text', 'Text', 'question', 'Question')) ?? '',
+          positionId: this.asNumber(this.pick(row, 'positionId', 'PositionId')),
+          competenceLineId: this.asNumber(this.pick(row, 'competenceLineId', 'CompetenceLineId')),
+          responseType,
+          maxTimeInMinutes: this.asNumber(this.pick(row, 'maxTimeInMinutes', 'MaxTimeInMinutes')) ?? 15,
+        };
+      })
+      .filter((item) => item.questionId > 0);
+  }
+
+  private responseTypeFromId(id: number | null): string {
+    if (id === 2) return 'QCM';
+    if (id === 3) return 'SCORE';
+    return 'TEXT';
+  }
+}
