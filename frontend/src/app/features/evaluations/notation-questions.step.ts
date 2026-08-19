@@ -299,13 +299,51 @@ export class NotationQuestionsStep {
 
   employeeAnswer(question: SelectedQuestion): string {
     const raw = (question.responseValue ?? '').replace(/^"|"$/g, '').trim();
-    if (question.responseType !== 'QCM') return raw;
-    const optionId = Number(raw);
-    const options = lookupById(this.options(), question.questionId) ?? [];
-    if (Number.isFinite(optionId) && options.length) {
-      const option = options.find((item) => item.optionId === optionId);
-      if (option) return option.optionText;
+    if (!raw) return '';
+
+    // JSON stocké par le portail salarié ou l'évaluation multi-critères
+    if (raw.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+
+        // Réponse texte libre du salarié
+        if (typeof parsed['ResponseValue'] === 'string' && parsed['ResponseValue']) {
+          return parsed['ResponseValue'] as string;
+        }
+        if (typeof parsed['responseValue'] === 'string' && parsed['responseValue']) {
+          return parsed['responseValue'] as string;
+        }
+
+        // Réponse multi-critères (manager) : on affiche la note globale + commentaire
+        const overall = parsed['OverallRating'] ?? parsed['overallRating'];
+        const comment = parsed['Comment'] ?? parsed['comment'];
+        if (overall != null && Number(overall) > 0) {
+          const parts: string[] = [`Note globale : ${overall}/5`];
+          if (comment && String(comment).trim()) parts.push(`Commentaire : ${String(comment).trim()}`);
+          return parts.join('\n');
+        }
+
+        // Fallback : valeur brute la plus informative du JSON
+        const fallback = parsed['ResponseValue'] ?? parsed['responseValue'] ?? parsed['Comment'] ?? parsed['comment'];
+        if (fallback && String(fallback).trim()) return String(fallback).trim();
+
+        return '';
+      } catch {
+        // JSON invalide → afficher tel quel
+        return raw;
+      }
     }
+
+    // Réponse QCM : résoudre l'optionId en libellé
+    if (question.responseType === 'QCM') {
+      const optionId = Number(raw);
+      const opts = lookupById(this.options(), question.questionId) ?? [];
+      if (Number.isFinite(optionId) && opts.length) {
+        const opt = opts.find((o) => o.optionId === optionId);
+        if (opt) return opt.optionText;
+      }
+    }
+
     return raw;
   }
 }
