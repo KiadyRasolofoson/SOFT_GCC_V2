@@ -1023,27 +1023,36 @@ namespace soft_carriere_competence.Application.Services.Evaluations
                     );
 
                     // Ajouter les questions sélectionnées avec leurs compétences
+                    var attachedCount = 0;
                     foreach (var question in employeeQuestion.SelectedQuestions)
                     {
-                        if (!question.CompetenceLineId.HasValue)
+                        var competenceLineId = await ResolveCompetenceLineIdAsync(question.QuestionId, question.CompetenceLineId);
+                        if (competenceLineId <= 0)
                         {
-                            throw new Exception($"La question avec ID {question.QuestionId} n'a pas de ligne de compétence associée");
+                            continue;
                         }
 
                         var selectedQuestion = new EvaluationSelectedQuestions
                         {
                             EvaluationId = evaluationId,
                             QuestionId = question.QuestionId,
-                            CompetenceLineId = question.CompetenceLineId.Value
+                            CompetenceLineId = competenceLineId
                         };
                         await _dataService.AddSelectedQuestionAsync(selectedQuestion);
+                        attachedCount++;
+                    }
+
+                    if (attachedCount == 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Aucune question avec une compétence valide n’a pu être associée à l’évaluation de l’employé {employeeQuestion.EmployeeId}.");
                     }
 
                     // Mettre à jour le nombre total de questions dans la progression
                     var progress = await _dataService.GetProgressByEvaluationIdAsync(evaluationId);
                     if (progress != null)
                     {
-                        progress.totalQuestions = employeeQuestion.SelectedQuestions.Count;
+                        progress.totalQuestions = attachedCount;
                         await _dataService.SaveChangesAsync();
                     }
 
@@ -1062,6 +1071,17 @@ namespace soft_carriere_competence.Application.Services.Evaluations
             if (!question.CompetenceLineId.HasValue)
                 throw new Exception($"La question avec ID {questionId} n'a pas de ligne de compétence associée");
             return question.CompetenceLineId.Value;
+        }
+
+        private async Task<int> ResolveCompetenceLineIdAsync(int questionId, int? requestedCompetenceLineId)
+        {
+            if (requestedCompetenceLineId is > 0)
+            {
+                return requestedCompetenceLineId.Value;
+            }
+
+            var question = await _evaluationQuestion.GetByIdAsync(questionId);
+            return question?.CompetenceLineId is > 0 ? question.CompetenceLineId.Value : 0;
         }
 
         public async Task<IEnumerable<EvaluationSelectedQuestions>> GetSelectedQuestionsAsync(int evaluationId)

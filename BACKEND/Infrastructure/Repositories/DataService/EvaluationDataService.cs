@@ -285,7 +285,12 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
 
         public async Task<List<CompetenceLine>> GetAllCompetenceLinesAsync()
         {
-            return await _context.competenceLines.ToListAsync();
+            return await _context.competenceLines
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Skill)
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Position)
+                .ToListAsync();
         }
 
         public async Task<CompetenceLine?> GetCompetenceLineByIdAsync(int id)
@@ -296,7 +301,11 @@ namespace soft_carriere_competence.Infrastructure.Repositories.DataService
         public async Task<List<CompetenceLine>> GetCompetenceLinesByPositionIdAsync(int positionId)
         {
             return await _context.competenceLines
-                .Where(cl => cl.SkillPositionId == positionId)
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Skill)
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Position)
+                .Where(cl => cl.State == 1 && cl.SkillPosition.PositionId == positionId)
                 .ToListAsync();
         }
 
