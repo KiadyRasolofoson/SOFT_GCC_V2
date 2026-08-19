@@ -21,6 +21,18 @@ export const routes: Routes = [
         canActivate: [moduleGuard],
       },
       {
+        path: 'soft-gcc/evaluations/planning',
+        loadComponent: () =>
+          import('./features/evaluations/planning-list.page').then((m) => m.PlanningListPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/evaluations/planning/campagne',
+        loadComponent: () =>
+          import('./features/evaluations/planning-wizard.page').then((m) => m.PlanningWizardPage),
+        canActivate: [moduleGuard],
+      },
+      {
         path: 'soft-gcc/evaluations/liste',
         loadComponent: () =>
           import('./features/evaluations/notation-list.page').then((m) => m.NotationListPage),
