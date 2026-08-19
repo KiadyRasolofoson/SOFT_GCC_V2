@@ -107,6 +107,36 @@ export const routes: Routes = [
           import('./features/evaluations/settings.page').then((m) => m.SettingsPage),
         canActivate: [moduleGuard],
       },
+      {
+        path: 'soft-gcc/parametres/utilisateurs',
+        loadComponent: () => import('./features/users/users.page').then((m) => m.UsersPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/utilisateurs/liste',
+        redirectTo: 'soft-gcc/parametres/utilisateurs',
+        pathMatch: 'full',
+      },
+      {
+        path: 'soft-gcc/parametres/utilisateurs/roles',
+        redirectTo: 'soft-gcc/parametres/utilisateurs/acces',
+        pathMatch: 'full',
+      },
+      {
+        path: 'soft-gcc/parametres/utilisateurs/permissions',
+        redirectTo: 'soft-gcc/parametres/utilisateurs/acces',
+        pathMatch: 'full',
+      },
+      {
+        path: 'soft-gcc/parametres/utilisateurs/administration',
+        redirectTo: 'soft-gcc/parametres/utilisateurs/acces',
+        pathMatch: 'full',
+      },
+      {
+        path: 'soft-gcc/parametres/utilisateurs/:section',
+        loadComponent: () => import('./features/users/users.page').then((m) => m.UsersPage),
+        canActivate: [moduleGuard],
+      },
       { path: 'history', redirectTo: 'soft-gcc/evaluations/historique', pathMatch: 'full' },
       { path: '**', component: NotFoundPage, canActivate: [moduleGuard] },
     ],
