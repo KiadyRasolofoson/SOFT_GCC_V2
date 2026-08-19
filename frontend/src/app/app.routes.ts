@@ -10,6 +10,7 @@ import { EmployeeFichePage } from './features/employee/employee-fiche.page';
 import { EmployeeSkillListPage } from './features/skills/employee-skill-list.page';
 import { NotFoundPage } from './features/not-found/not-found.page';
 import { OrgChartPage } from './features/organigramme/org-chart.page';
+import { RetirementListPage } from './features/retirement/retirement-list.page';
 import { WishEvolutionAddPage } from './features/wish-evolution/wish-evolution-add.page';
 import { WishEvolutionDetailPage } from './features/wish-evolution/wish-evolution-detail.page';
 import { WishEvolutionListPage } from './features/wish-evolution/wish-evolution-list.page';
@@ -58,6 +59,11 @@ export const routes: Routes = [
       {
         path: 'soft-gcc/organigramme',
         component: OrgChartPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/retraite',
+        component: RetirementListPage,
         canActivate: [moduleGuard],
       },
       {
