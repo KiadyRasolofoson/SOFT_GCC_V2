@@ -11,6 +11,8 @@ import { EmployeeSkillListPage } from './features/skills/employee-skill-list.pag
 import { NotFoundPage } from './features/not-found/not-found.page';
 import { OrgChartPage } from './features/organigramme/org-chart.page';
 import { RetirementListPage } from './features/retirement/retirement-list.page';
+import { ParametresCarrieresPage } from './features/settings/parametres-carrieres.page';
+import { ParametresCompetencesPage } from './features/settings/parametres-competences.page';
 import { WishEvolutionAddPage } from './features/wish-evolution/wish-evolution-add.page';
 import { WishEvolutionDetailPage } from './features/wish-evolution/wish-evolution-detail.page';
 import { WishEvolutionEditPage } from './features/wish-evolution/wish-evolution-edit.page';
@@ -65,6 +67,16 @@ export const routes: Routes = [
       {
         path: 'soft-gcc/retraite',
         component: RetirementListPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/competences',
+        component: ParametresCompetencesPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/carrieres',
+        component: ParametresCarrieresPage,
         canActivate: [moduleGuard],
       },
       {
