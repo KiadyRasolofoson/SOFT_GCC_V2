@@ -13,6 +13,7 @@ import { OrgChartPage } from './features/organigramme/org-chart.page';
 import { RetirementListPage } from './features/retirement/retirement-list.page';
 import { WishEvolutionAddPage } from './features/wish-evolution/wish-evolution-add.page';
 import { WishEvolutionDetailPage } from './features/wish-evolution/wish-evolution-detail.page';
+import { WishEvolutionEditPage } from './features/wish-evolution/wish-evolution-edit.page';
 import { WishEvolutionListPage } from './features/wish-evolution/wish-evolution-list.page';
 import { UnauthorizedPage } from './features/unauthorized/unauthorized.page';
 import { GccAppShell } from './layouts/gcc-app-shell';
@@ -84,6 +85,11 @@ export const routes: Routes = [
       {
         path: 'soft-gcc/souhaits-evolution/details/:wishEvolutionId',
         component: WishEvolutionDetailPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/souhaits-evolution/edit/:wishEvolutionId',
+        component: WishEvolutionEditPage,
         canActivate: [moduleGuard],
       },
       { path: '**', component: NotFoundPage, canActivate: [moduleGuard] },
