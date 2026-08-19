@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard, guestGuard, moduleGuard } from './core/auth.guard';
 import { LoginPage } from './features/auth/login.page';
 import { CareerListPage } from './features/career/career-list.page';
+import { CareerPlanCreatePage } from './features/career/career-plan-create.page';
 import { DashboardPage } from './features/dashboard/dashboard.page';
 import { EmployeeFichePage } from './features/employee/employee-fiche.page';
 import { EmployeeSkillListPage } from './features/skills/employee-skill-list.page';
@@ -34,6 +35,11 @@ export const routes: Routes = [
       {
         path: 'soft-gcc/carrieres',
         component: CareerListPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/carrieres/creation',
+        component: CareerPlanCreatePage,
         canActivate: [moduleGuard],
       },
       {

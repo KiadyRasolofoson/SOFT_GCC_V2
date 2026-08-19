@@ -34,6 +34,7 @@ import { GccSelect } from '../../ui/gcc-select';
       [crumbs]="crumbs"
       actionLabel="Nouveau plan"
       actionIcon="add"
+      (action)="openCreate()"
     />
 
     <gcc-filter-bar class="mb-4" />
@@ -306,5 +307,9 @@ export class CareerListPage {
     void this.router.navigate(['/soft-gcc/employes/fiche', row.registrationNumber], {
       queryParams: { espace: 'carrieres' },
     });
+  }
+
+  openCreate(): void {
+    void this.router.navigate(['/soft-gcc/carrieres/creation']);
   }
 }
