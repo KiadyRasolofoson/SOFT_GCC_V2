@@ -5,11 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatTableModule } from '@angular/material/table';
 import { Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { debounceTime, Subject } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CareerPlanListFilter, CareerPlanListItem, CareerPlanListService } from '../../core/career-plan-list.service';
 import { GccEmptyState } from '../../ui/gcc-empty-state';
-import { GccFilterBar } from '../../ui/gcc-filter-bar';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccSelect } from '../../ui/gcc-select';
 
@@ -18,7 +17,6 @@ import { GccSelect } from '../../ui/gcc-select';
   imports: [
     FormsModule,
     GccPageHeader,
-    GccFilterBar,
     GccEmptyState,
     GccSelect,
     MatTableModule,
@@ -36,8 +34,6 @@ import { GccSelect } from '../../ui/gcc-select';
       actionIcon="add"
       (action)="openCreate()"
     />
-
-    <gcc-filter-bar class="mb-4" />
 
     <div class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div class="mb-3 flex items-center gap-2 text-sm font-semibold text-navy">
@@ -223,7 +219,7 @@ export class CareerListPage {
 
   constructor() {
     this.filterDebouncer
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(debounceTime(300), takeUntilDestroyed())
       .subscribe(() => {
         this.pageIndex.set(0);
         void this.loadPage();

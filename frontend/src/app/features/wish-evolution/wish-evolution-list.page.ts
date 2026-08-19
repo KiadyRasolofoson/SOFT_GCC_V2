@@ -294,14 +294,14 @@ export class WishEvolutionListPage {
 
   constructor() {
     this.filterDebouncer
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(debounceTime(300), takeUntilDestroyed())
       .subscribe(() => {
         this.pageIndex.set(0);
         void this.loadPage();
       });
 
     this.graphDebouncer
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(debounceTime(300), takeUntilDestroyed())
       .subscribe(() => {
         void this.loadGraph();
       });
