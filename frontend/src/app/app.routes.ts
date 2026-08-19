@@ -4,9 +4,12 @@ import { LoginPage } from './features/auth/login.page';
 import { CareerListPage } from './features/career/career-list.page';
 import { CareerPlanCreatePage } from './features/career/career-plan-create.page';
 import { DashboardPage } from './features/dashboard/dashboard.page';
+import { DepartmentDetailPage } from './features/effectif/department-detail.page';
+import { DepartmentEffectivePage } from './features/effectif/department-effective.page';
 import { EmployeeFichePage } from './features/employee/employee-fiche.page';
 import { EmployeeSkillListPage } from './features/skills/employee-skill-list.page';
 import { NotFoundPage } from './features/not-found/not-found.page';
+import { OrgChartPage } from './features/organigramme/org-chart.page';
 import { WishEvolutionAddPage } from './features/wish-evolution/wish-evolution-add.page';
 import { WishEvolutionDetailPage } from './features/wish-evolution/wish-evolution-detail.page';
 import { WishEvolutionListPage } from './features/wish-evolution/wish-evolution-list.page';
@@ -40,6 +43,21 @@ export const routes: Routes = [
       {
         path: 'soft-gcc/carrieres/creation',
         component: CareerPlanCreatePage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/effectifs',
+        component: DepartmentEffectivePage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/effectifs/details/:departmentId',
+        component: DepartmentDetailPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/organigramme',
+        component: OrgChartPage,
         canActivate: [moduleGuard],
       },
       {
