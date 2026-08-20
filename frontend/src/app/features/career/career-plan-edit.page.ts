@@ -2,44 +2,51 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   CareerPlanForm,
   CareerPlanFormErrors,
-  CareerPlanPayload,
   createEmptyForm,
 } from '../../core/career-plan-create.models';
 import { CareerPlanCreateService } from '../../core/career-plan-create.service';
-import { GccSelectOption } from '../../ui/gcc.types';
+import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccSearchableSelect } from '../../ui/gcc-searchable-select';
-import { GccSelect } from '../../ui/gcc-select';
+import { GccSelectOption } from '../../ui/gcc.types';
 import { CareerAdvancementFormComponent } from './components/career-advancement-form.component';
 import { CareerAppointmentFormComponent } from './components/career-appointment-form.component';
 import { CareerLayoffFormComponent } from './components/career-layoff-form.component';
 
+/**
+ * Édition / Détail d'un plan de carrière.
+ * Miroir React : EditAffectation.jsx (mode 'edit') + DetailAssignment.jsx (mode 'detail').
+ * Mode piloté par `data.mode` de la route (detail = lecture clôturée, pas d'enregistrement).
+ */
 @Component({
-  selector: 'app-career-plan-create-page',
+  selector: 'app-career-plan-edit-page',
   imports: [
     FormsModule,
     GccPageHeader,
-    GccSelect,
     GccSearchableSelect,
     CareerAppointmentFormComponent,
     CareerLayoffFormComponent,
     CareerAdvancementFormComponent,
+    GccEmptyState,
     MatButtonModule,
     MatIconModule,
   ],
   template: `
     <gcc-page-header
-      title="Création d'un plan de carrière"
-      subtitle="Enregistrez une nomination, un avancement ou une mise en disponibilité."
-      icon="route"
-      [crumbs]="crumbs"
-      secondaryLabel="Réinitialiser"
-      secondaryIcon="refresh"
-      (secondaryAction)="resetAll()"
+      [title]="title()"
+      [subtitle]="subtitle()"
+      [icon]="icon()"
+      [crumbs]="crumbs()"
+      [secondaryLabel]="secondaryLabel()"
+      [secondaryIcon]="secondaryIcon()"
+      (secondaryAction)="goBack()"
+      [actionLabel]="isDetail() ? '' : 'Enregistrer'"
+      actionIcon="save"
+      (action)="submit()"
     />
 
     @if (loadError(); as err) {
@@ -60,10 +67,24 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
       </div>
     }
 
+    @if (isDetail()) {
+      <div class="mb-6 rounded-xl border border-amber-200/80 bg-amber-50/80 p-4 text-xs text-amber-900 shadow-xs">
+        <div class="flex items-start gap-3">
+          <mat-icon class="!h-5 !w-5 !text-[20px] shrink-0 text-amber-700 mt-0.5">lock</mat-icon>
+          <p class="font-bold">Le plan de carrière est clôturé.</p>
+        </div>
+      </div>
+    }
+
     @if (loading()) {
       <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-        Chargement du formulaire…
+        Chargement du plan de carrière…
       </div>
+    } @else if (notFound()) {
+      <gcc-empty-state
+        title="Plan de carrière introuvable"
+        message="Le plan de carrière demandé n'existe pas ou a été supprimé."
+      />
     } @else {
       <!-- Identification -->
       <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -75,12 +96,18 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
         <div class="grid gap-4 md:grid-cols-2">
           <div>
             <label class="mb-1 block text-sm font-medium text-slate-600">Employé</label>
-            <gcc-searchable-select
-              [options]="employeeOptions()"
-              [value]="form.registrationNumber"
-              (valueChange)="onRegistrationNumberChange($event)"
-              placeholder="Rechercher par matricule ou nom…"
-            />
+            @if (isDetail()) {
+              <div class="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+                {{ form.registrationNumber || '—' }}
+              </div>
+            } @else {
+              <gcc-searchable-select
+                [options]="employeeOptions()"
+                [value]="form.registrationNumber"
+                (valueChange)="onRegistrationNumberChange($event)"
+                placeholder="Rechercher par matricule ou nom…"
+              />
+            }
             @if (formErrors().registrationNumber) {
               <p class="mt-1 flex items-center gap-1 text-xs font-medium text-amber-600">
                 <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">error_outline</mat-icon>
@@ -91,18 +118,9 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
 
           <div>
             <label class="mb-1 block text-sm font-medium text-slate-600">Type d'affectation</label>
-            <gcc-select
-              [options]="assignmentTypeOptions()"
-              [value]="form.assignmentTypeId"
-              (valueChange)="onAssignmentTypeChange($event)"
-              placeholder="Sélectionner une affectation"
-            />
-            @if (formErrors().assignmentTypeId) {
-              <p class="mt-1 flex items-center gap-1 text-xs font-medium text-amber-600">
-                <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">error_outline</mat-icon>
-                {{ formErrors().assignmentTypeId }}
-              </p>
-            }
+            <div class="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+              {{ assignmentTypeName() || '—' }}
+            </div>
           </div>
 
           <div>
@@ -195,44 +213,27 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
           [legalClassOptions]="legalClassOptions()"
         />
       }
-
-      <!-- Actions -->
-      <div class="mt-6 flex flex-wrap justify-end gap-2">
-        <button mat-stroked-button type="button" class="gcc-btn-secondary" (click)="goBack()">
-          <mat-icon>close</mat-icon>
-          Annuler
-        </button>
-        <button mat-flat-button type="button" class="gcc-btn-primary" [disabled]="submitting()" (click)="submit()">
-          @if (submitting()) {
-            <span class="flex items-center gap-2">
-              <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-              Enregistrement…
-            </span>
-          } @else {
-            <span class="flex items-center gap-2">
-              <mat-icon>save</mat-icon>
-              Enregistrer
-            </span>
-          }
-        </button>
-      </div>
     }
   `,
 })
-export class CareerPlanCreatePage {
+export class CareerPlanEditPage {
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(CareerPlanCreateService);
 
-  readonly crumbs = [{ label: 'Accueil' }, { label: 'Plan de carrière' }, { label: 'Création' }];
-
   readonly loading = signal(false);
   readonly submitting = signal(false);
+  readonly notFound = signal(false);
   readonly loadError = signal<string | null>(null);
   readonly submitError = signal<string | null>(null);
   readonly formErrors = signal<CareerPlanFormErrors>({});
 
+  readonly careerPlanId = signal<number | null>(null);
+  readonly isDetail = signal(false);
+  readonly assignmentTypeName = signal('');
+  readonly selectedType = signal<string>('1');
+
   readonly employeeOptions = signal<GccSelectOption[]>([]);
-  readonly assignmentTypeOptions = signal<GccSelectOption[]>([]);
   readonly establishmentOptions = signal<GccSelectOption[]>([]);
   readonly departmentOptions = signal<GccSelectOption[]>([]);
   readonly positionOptions = signal<GccSelectOption[]>([]);
@@ -246,20 +247,50 @@ export class CareerPlanCreatePage {
 
   readonly form: CareerPlanForm = createEmptyForm();
 
-  readonly selectedType = computed(() => this.form.assignmentTypeId ?? '1');
+  readonly title = computed(() =>
+    this.isDetail() ? "Détails du plan de carrière" : "Modification du plan de carrière",
+  );
+  readonly subtitle = computed(() =>
+    this.isDetail()
+      ? 'Consultez les informations du plan de carrière.'
+      : 'Modifiez les informations du plan de carrière.',
+  );
+  readonly icon = computed(() => (this.isDetail() ? 'visibility' : 'edit'));
+  readonly crumbs = computed(() => [
+    { label: 'Accueil' },
+    { label: 'Plan de carrière' },
+    { label: this.isDetail() ? 'Détails' : 'Modification' },
+  ]);
+  readonly secondaryLabel = computed(() => (this.isDetail() ? 'Retour' : 'Annuler'));
+  readonly secondaryIcon = computed(() => (this.isDetail() ? 'arrow_back' : 'close'));
 
   constructor() {
-    void this.initLookups();
+    const raw = this.route.snapshot.paramMap.get('careerPlanId');
+    const id = Number(raw);
+    this.careerPlanId.set(Number.isFinite(id) ? id : null);
+    this.isDetail.set(this.route.snapshot.data['mode'] === 'detail');
+    void this.init();
   }
 
-  async initLookups(): Promise<void> {
+  async init(): Promise<void> {
+    const id = this.careerPlanId();
+    if (!id) {
+      this.notFound.set(true);
+      return;
+    }
+
     this.loading.set(true);
     this.loadError.set(null);
-
     try {
+      const assignment = await this.service.getById(id);
+      if (!assignment) {
+        this.notFound.set(true);
+        return;
+      }
+      this.prefill(assignment);
+
       const [
         employees,
-        assignmentTypes,
         establishments,
         departments,
         positions,
@@ -270,9 +301,9 @@ export class CareerPlanCreatePage {
         newsletterTemplates,
         paymentMethods,
         echelons,
+        assignmentTypes,
       ] = await Promise.all([
         this.service.loadEmployees(),
-        this.service.loadAssignmentTypes(),
         this.service.loadEstablishments(),
         this.service.loadDepartments(),
         this.service.loadPositions(),
@@ -283,6 +314,7 @@ export class CareerPlanCreatePage {
         this.service.loadNewsletterTemplates(),
         this.service.loadPaymentMethods(),
         this.service.loadEchelons(),
+        this.service.loadAssignmentTypes(),
       ]);
 
       this.employeeOptions.set(
@@ -293,11 +325,6 @@ export class CareerPlanCreatePage {
           value: String(item.registrationNumber ?? item.employeeId),
         })),
       );
-
-      this.assignmentTypeOptions.set([
-        { label: 'Sélectionner une affectation', value: '' },
-        ...assignmentTypes.map((item) => ({ label: item.assignmentTypeName, value: String(item.assignmentTypeId) })),
-      ]);
       this.establishmentOptions.set(
         establishments.map((item) => ({ label: item.establishmentName, value: String(item.establishmentId) })),
       );
@@ -331,23 +358,53 @@ export class CareerPlanCreatePage {
       this.paymentMethodOptions.set(
         paymentMethods.map((item) => ({ label: item.paymentMethodName, value: String(item.paymentMethodId) })),
       );
-      this.echelonOptions.set(echelons.map((item) => ({ label: item.echelonName, value: String(item.echelonId) })));
+      this.echelonOptions.set(
+        echelons.map((item) => ({ label: item.echelonName, value: String(item.echelonId) })),
+      );
+
+      const type = assignmentTypes.find(
+        (item) => String(item.assignmentTypeId) === String(assignment['assignmentTypeId']),
+      );
+      this.assignmentTypeName.set(type?.assignmentTypeName ?? '');
     } catch {
-      this.loadError.set('Erreur lors du chargement des données du formulaire.');
+      this.loadError.set('Erreur lors du chargement du plan de carrière.');
     } finally {
       this.loading.set(false);
     }
   }
 
+  private prefill(assignment: Record<string, any>): void {
+    this.selectedType.set(String(assignment['assignmentTypeId'] ?? '1'));
+    this.form.assignmentTypeId = String(assignment['assignmentTypeId'] ?? '1');
+    this.form.registrationNumber = assignment['registrationNumber'] ?? null;
+    this.form.decisionNumber = assignment['decisionNumber'] ?? null;
+    this.form.decisionDate = this.toInputDate(assignment['decisionDate']);
+    this.form.assignmentDate = this.toInputDate(assignment['assignmentDate']);
+    this.form.description = assignment['description'] ?? null;
+    this.form.establishmentId = this.toStrId(assignment['establishmentId']);
+    this.form.departmentId = this.toStrId(assignment['departmentId']);
+    this.form.positionId = this.toStrId(assignment['positionId']);
+    this.form.employeeTypeId = this.toStrId(assignment['employeeTypeId']);
+    this.form.socioCategoryProfessionalId = this.toStrId(assignment['socioCategoryProfessionalId']);
+    this.form.indicationId = this.toStrId(assignment['indicationId']);
+    this.form.baseSalary = this.toStrId(assignment['baseSalary']);
+    this.form.netSalary = this.toStrId(assignment['netSalary']);
+    this.form.professionalCategoryId = this.toStrId(assignment['professionalCategoryId']);
+    this.form.legalClassId = this.toStrId(assignment['legalClassId']);
+    this.form.newsletterTemplateId = this.toStrId(assignment['newsletterTemplateId']);
+    this.form.paymentMethodId = this.toStrId(assignment['paymentMethodId']);
+    this.form.endingContract = this.toInputDate(assignment['endingContract']);
+    this.form.reason = assignment['reason'] ?? null;
+    this.form.assigningInstitution = assignment['assigningInstitution'] ?? null;
+    this.form.startDate = this.toInputDate(assignment['startDate']);
+    this.form.endDate = this.toInputDate(assignment['endDate']);
+    this.form.echelonId = this.toStrId(assignment['echelonId']);
+    this.form.state = assignment['state'] ?? 1;
+  }
+
   onRegistrationNumberChange(value: string | null): void {
     this.form.registrationNumber = value;
     this.revalidateField('registrationNumber', value);
-  }
-
-  onAssignmentTypeChange(value: string | null): void {
-    this.form.assignmentTypeId = value ?? '1';
-    this.resetSubFormFields();
-    this.revalidateField('assignmentTypeId', this.form.assignmentTypeId);
   }
 
   onDecisionNumberChange(value: string): void {
@@ -366,53 +423,34 @@ export class CareerPlanCreatePage {
   }
 
   async submit(): Promise<void> {
-    if (this.submitting()) return;
+    if (this.submitting() || this.isDetail()) return;
+    const id = this.careerPlanId();
+    if (!id) return;
     if (!this.validateForm()) return;
 
     this.submitError.set(null);
     this.submitting.set(true);
     try {
-      await this.service.create(this.buildPayload());
-      void this.router.navigate(['/soft-gcc/carrieres']);
+      await this.service.update(id, this.buildUpdatePayload());
+      this.goBack();
     } catch (error) {
       this.submitError.set(
-        `Erreur lors de l'insertion : ${error instanceof Error ? error.message : 'erreur inconnue'}`,
+        `Erreur lors de la modification : ${error instanceof Error ? error.message : 'erreur inconnue'}`,
       );
     } finally {
       this.submitting.set(false);
     }
   }
 
-  resetAll(): void {
-    Object.assign(this.form, createEmptyForm());
-    this.formErrors.set({});
-    this.submitError.set(null);
-    this.loadError.set(null);
-  }
-
   goBack(): void {
-    void this.router.navigate(['/soft-gcc/carrieres']);
-  }
-
-  private resetSubFormFields(): void {
-    this.form.establishmentId = null;
-    this.form.departmentId = null;
-    this.form.positionId = null;
-    this.form.employeeTypeId = null;
-    this.form.socioCategoryProfessionalId = null;
-    this.form.indicationId = null;
-    this.form.baseSalary = null;
-    this.form.netSalary = null;
-    this.form.professionalCategoryId = null;
-    this.form.legalClassId = null;
-    this.form.newsletterTemplateId = null;
-    this.form.paymentMethodId = null;
-    this.form.endingContract = null;
-    this.form.reason = null;
-    this.form.assigningInstitution = null;
-    this.form.startDate = null;
-    this.form.endDate = null;
-    this.form.echelonId = null;
+    const registrationNumber = this.form.registrationNumber;
+    if (registrationNumber) {
+      void this.router.navigate(['/soft-gcc/employes/fiche', registrationNumber], {
+        queryParams: { espace: 'carrieres' },
+      });
+    } else {
+      void this.router.navigate(['/soft-gcc/carrieres']);
+    }
   }
 
   private revalidateField(field: keyof CareerPlanFormErrors, value: string | null | undefined): void {
@@ -437,8 +475,6 @@ export class CareerPlanCreatePage {
     switch (field) {
       case 'registrationNumber':
         return value ? undefined : 'La matricule est obligatoire.';
-      case 'assignmentTypeId':
-        return value ? undefined : 'Le type d’affectation est obligatoire.';
       case 'decisionNumber':
         return value?.trim() ? undefined : 'Le numéro de décision est obligatoire.';
       case 'decisionDate':
@@ -452,17 +488,17 @@ export class CareerPlanCreatePage {
   private validateForm(): boolean {
     const next: CareerPlanFormErrors = {};
     if (!this.form.registrationNumber) next.registrationNumber = 'La matricule est obligatoire.';
-    if (!this.form.assignmentTypeId) next.assignmentTypeId = 'Le type d’affectation est obligatoire.';
     if (!this.form.decisionNumber?.trim()) next.decisionNumber = 'Le numéro de décision est obligatoire.';
     if (!this.form.decisionDate) next.decisionDate = 'La date de décision est obligatoire.';
-    if (!this.form.assignmentDate) next.assignmentDate = 'La date d’affectation est obligatoire.';
+    if (!this.form.assignmentDate) next.assignmentDate = "La date d'affectation est obligatoire.";
     this.formErrors.set(next);
     return Object.keys(next).length === 0;
   }
 
-  private buildPayload(): CareerPlanPayload {
+  private buildUpdatePayload(): Record<string, any> {
     const f = this.form;
     return {
+      careerPlanId: this.careerPlanId(),
       assignmentTypeId: this.toNum(f.assignmentTypeId) ?? 0,
       registrationNumber: f.registrationNumber?.trim() || null,
       decisionNumber: f.decisionNumber?.trim() || null,
@@ -488,14 +524,28 @@ export class CareerPlanCreatePage {
       endDate: f.endDate || null,
       echelonId: this.toNum(f.echelonId),
       state: f.state,
-      creationDate: new Date().toISOString(),
       updatedDate: new Date().toISOString(),
     };
   }
 
+  private toStrId(value: unknown): string | null {
+    if (value === null || value === undefined || value === '') return null;
+    return String(value);
+  }
+
+  private toInputDate(value: unknown): string | null {
+    if (!value) return null;
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return null;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   private toNum(value: string | null | undefined): number | null {
     if (value === null || value === undefined || value === '') return null;
-    const number = Number(value);
-    return Number.isFinite(number) ? number : null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 }

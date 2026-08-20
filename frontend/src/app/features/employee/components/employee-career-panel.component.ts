@@ -1,5 +1,8 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
+import { Router } from '@angular/router';
 import { GccEmptyState } from '../../../ui/gcc-empty-state';
 import { EmployeeAttestationHistoryComponent } from './employee-attestation-history.component';
 import { EmployeeCertificateGeneratorComponent } from './employee-certificate-generator.component';
@@ -10,6 +13,8 @@ type JsonObject = Record<string, any>;
   selector: 'app-employee-career-panel',
   imports: [
     MatTabsModule,
+    MatIconModule,
+    MatButtonModule,
     GccEmptyState,
     EmployeeCertificateGeneratorComponent,
     EmployeeAttestationHistoryComponent,
@@ -45,8 +50,22 @@ type JsonObject = Record<string, any>;
                           <ul class="space-y-2 text-sm text-slate-700">
                             @for (row of advancementRows(); track $index) {
                               <li class="rounded-lg bg-slate-50 p-2">
-                                <p class="font-medium text-navy">{{ row['positionName'] || row['title'] || 'Affectation' }}</p>
-                                <p class="text-xs text-slate-500">{{ formatDate(row['assignmentDate'] || row['date']) }}</p>
+                                <div class="flex items-start justify-between gap-2">
+                                  <div class="min-w-0">
+                                    <p class="truncate font-medium text-navy">{{ row['positionName'] || row['title'] || 'Affectation' }}</p>
+                                    <p class="text-xs text-slate-500">{{ formatDate(row['assignmentDate'] || row['date']) }}</p>
+                                  </div>
+                                  @if (hasCareerPlanId(row)) {
+                                    <div class="flex shrink-0 items-center gap-0.5">
+                                      <button mat-icon-button type="button" class="!h-7 !w-7" title="Modifier" (click)="openEdit(row)">
+                                        <mat-icon class="!h-4 !w-4 !text-[16px] text-accent">edit</mat-icon>
+                                      </button>
+                                      <button mat-icon-button type="button" class="!h-7 !w-7" title="Voir le détail" (click)="openDetail(row)">
+                                        <mat-icon class="!h-4 !w-4 !text-[16px] text-slate-500">visibility</mat-icon>
+                                      </button>
+                                    </div>
+                                  }
+                                </div>
                               </li>
                             }
                           </ul>
@@ -61,8 +80,22 @@ type JsonObject = Record<string, any>;
                           <ul class="space-y-2 text-sm text-slate-700">
                             @for (row of appointmentRows(); track $index) {
                               <li class="rounded-lg bg-slate-50 p-2">
-                                <p class="font-medium text-navy">{{ row['positionName'] || row['title'] || 'Nomination' }}</p>
-                                <p class="text-xs text-slate-500">{{ formatDate(row['assignmentDate'] || row['date']) }}</p>
+                                <div class="flex items-start justify-between gap-2">
+                                  <div class="min-w-0">
+                                    <p class="truncate font-medium text-navy">{{ row['positionName'] || row['title'] || 'Nomination' }}</p>
+                                    <p class="text-xs text-slate-500">{{ formatDate(row['assignmentDate'] || row['date']) }}</p>
+                                  </div>
+                                  @if (hasCareerPlanId(row)) {
+                                    <div class="flex shrink-0 items-center gap-0.5">
+                                      <button mat-icon-button type="button" class="!h-7 !w-7" title="Modifier" (click)="openEdit(row)">
+                                        <mat-icon class="!h-4 !w-4 !text-[16px] text-accent">edit</mat-icon>
+                                      </button>
+                                      <button mat-icon-button type="button" class="!h-7 !w-7" title="Voir le détail" (click)="openDetail(row)">
+                                        <mat-icon class="!h-4 !w-4 !text-[16px] text-slate-500">visibility</mat-icon>
+                                      </button>
+                                    </div>
+                                  }
+                                </div>
                               </li>
                             }
                           </ul>
@@ -77,8 +110,22 @@ type JsonObject = Record<string, any>;
                           <ul class="space-y-2 text-sm text-slate-700">
                             @for (row of availabilityRows(); track $index) {
                               <li class="rounded-lg bg-slate-50 p-2">
-                                <p class="font-medium text-navy">{{ row['reason'] || row['status'] || 'Disponibilité' }}</p>
-                                <p class="text-xs text-slate-500">{{ formatDate(row['assignmentDate'] || row['date']) }}</p>
+                                <div class="flex items-start justify-between gap-2">
+                                  <div class="min-w-0">
+                                    <p class="truncate font-medium text-navy">{{ row['reason'] || row['status'] || 'Disponibilité' }}</p>
+                                    <p class="text-xs text-slate-500">{{ formatDate(row['assignmentDate'] || row['date']) }}</p>
+                                  </div>
+                                  @if (hasCareerPlanId(row)) {
+                                    <div class="flex shrink-0 items-center gap-0.5">
+                                      <button mat-icon-button type="button" class="!h-7 !w-7" title="Modifier" (click)="openEdit(row)">
+                                        <mat-icon class="!h-4 !w-4 !text-[16px] text-accent">edit</mat-icon>
+                                      </button>
+                                      <button mat-icon-button type="button" class="!h-7 !w-7" title="Voir le détail" (click)="openDetail(row)">
+                                        <mat-icon class="!h-4 !w-4 !text-[16px] text-slate-500">visibility</mat-icon>
+                                      </button>
+                                    </div>
+                                  }
+                                </div>
                               </li>
                             }
                           </ul>
@@ -128,11 +175,29 @@ type JsonObject = Record<string, any>;
   `,
 })
 export class EmployeeCareerPanelComponent {
+  private readonly router = inject(Router);
+
   readonly registrationNumber = input<string | null>(null);
   readonly careerSummary = input<JsonObject | null>(null);
   readonly advancementRows = input<JsonObject[]>([]);
   readonly appointmentRows = input<JsonObject[]>([]);
   readonly availabilityRows = input<JsonObject[]>([]);
+
+  hasCareerPlanId(row: JsonObject): boolean {
+    return Number(row['careerPlanId']) > 0;
+  }
+
+  openEdit(row: JsonObject): void {
+    const id = Number(row['careerPlanId']);
+    if (!id) return;
+    void this.router.navigate(['/soft-gcc/carrieres/fiche/modifier', id]);
+  }
+
+  openDetail(row: JsonObject): void {
+    const id = Number(row['careerPlanId']);
+    if (!id) return;
+    void this.router.navigate(['/soft-gcc/carrieres/fiche/detail', id]);
+  }
 
   formatDate(value: string | null | undefined): string {
     if (!value) return '—';

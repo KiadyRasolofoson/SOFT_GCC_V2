@@ -74,6 +74,23 @@ export class CareerPlanCreateService {
     await firstValueFrom(this.http.post(`${environment.apiUrl}/CareerPlan`, payload));
   }
 
+  /** GET /CareerPlan/{id} → entité unique (null si introuvable). */
+  async getById(id: number): Promise<Record<string, any> | null> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<Record<string, any>>(`${environment.apiUrl}/CareerPlan/${id}`),
+      );
+      return response ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** PUT /CareerPlan/{id} → NoContent (204). */
+  async update(id: number, payload: Record<string, any>): Promise<void> {
+    await firstValueFrom(this.http.put(`${environment.apiUrl}/CareerPlan/${id}`, payload));
+  }
+
   private async getList<T>(endpoint: string): Promise<T[]> {
     try {
       const response = await firstValueFrom(this.http.get<T[]>(`${environment.apiUrl}${endpoint}`));

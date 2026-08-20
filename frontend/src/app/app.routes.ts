@@ -3,6 +3,7 @@ import { authGuard, guestGuard, moduleGuard } from './core/auth.guard';
 import { LoginPage } from './features/auth/login.page';
 import { CareerListPage } from './features/career/career-list.page';
 import { CareerPlanCreatePage } from './features/career/career-plan-create.page';
+import { CareerPlanEditPage } from './features/career/career-plan-edit.page';
 import { DashboardPage } from './features/dashboard/dashboard.page';
 import { DepartmentDetailPage } from './features/effectif/department-detail.page';
 import { DepartmentEffectivePage } from './features/effectif/department-effective.page';
@@ -52,8 +53,26 @@ export const routes: Routes = [
         canActivate: [moduleGuard],
       },
       {
+        path: 'soft-gcc/carrieres/fiche/modifier/:careerPlanId',
+        component: CareerPlanEditPage,
+        data: { mode: 'edit' },
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/carrieres/fiche/detail/:careerPlanId',
+        component: CareerPlanEditPage,
+        data: { mode: 'detail' },
+        canActivate: [moduleGuard],
+      },
+      {
         path: 'soft-gcc/effectifs',
         component: DepartmentEffectivePage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/effectifs/importer',
+        loadComponent: () =>
+          import('./features/effectif/csv-import.page').then((m) => m.CsvImportPage),
         canActivate: [moduleGuard],
       },
       {
@@ -189,6 +208,12 @@ export const routes: Routes = [
         path: 'soft-gcc/evaluations/objectifs',
         loadComponent: () =>
           import('./features/evaluations/objectives-list.page').then((m) => m.ObjectivesListPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/evaluations/bulletin',
+        loadComponent: () =>
+          import('./features/evaluations/bulletin-competence.page').then((m) => m.BulletinCompetencePage),
         canActivate: [moduleGuard],
       },
       {
