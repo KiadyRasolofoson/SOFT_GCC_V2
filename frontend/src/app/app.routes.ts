@@ -6,7 +6,9 @@ import { CareerPlanCreatePage } from './features/career/career-plan-create.page'
 import { DashboardPage } from './features/dashboard/dashboard.page';
 import { DepartmentDetailPage } from './features/effectif/department-detail.page';
 import { DepartmentEffectivePage } from './features/effectif/department-effective.page';
+import { EmployeeCreatePage } from './features/employee/employee-create.page';
 import { EmployeeFichePage } from './features/employee/employee-fiche.page';
+import { EmployeeListPage } from './features/employee/employee-list.page';
 import { EmployeeSkillListPage } from './features/skills/employee-skill-list.page';
 import { NotFoundPage } from './features/not-found/not-found.page';
 import { OrgChartPage } from './features/organigramme/org-chart.page';
@@ -77,6 +79,16 @@ export const routes: Routes = [
       {
         path: 'soft-gcc/parametres/carrieres',
         component: ParametresCarrieresPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/employes/liste',
+        component: EmployeeListPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/employes/creer',
+        component: EmployeeCreatePage,
         canActivate: [moduleGuard],
       },
       {
