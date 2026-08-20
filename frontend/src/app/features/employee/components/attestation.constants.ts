@@ -22,12 +22,12 @@ export const ATTESTATION_VARIABLES = ['Nom', 'Prenom', 'Date_embauche', 'Poste',
 export const FALLBACK_EMAIL = 'chalmaninssa1962002@gmail.com';
 
 export const EMPTY_COMPANY: CompanyInfo = {
-  nom: '',
-  adresse: '',
-  telephone: '',
-  email: '',
-  site: '',
-  reseaux: '',
+  nom: 'SOFTWELL',
+  adresse: 'Lot II H 31 Ter Ankadindramamy -Antananarivo MADAGASCAR',
+  telephone: '(+261) 34 49 107 00',
+  email: 'office@softwell.mg',
+  site: 'www.softwell.mg',
+  reseaux: 'Softwell Madagascar',
 };
 
 /** Modèle mutable du document d'attestation, partagé entre le formulaire et l'aperçu. */

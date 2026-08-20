@@ -1,4 +1,7 @@
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { EmployeeFicheProfile, EmployeeSkillGapItem } from '../../../core/employee-fiche.models';
@@ -10,6 +13,7 @@ import { GccEmptyState } from '../../../ui/gcc-empty-state';
 import { GccSelect } from '../../../ui/gcc-select';
 import { GccSkillGap } from '../../../ui/gcc-skill-gap';
 import { GccStatusTag } from '../../../ui/gcc-status-tag';
+import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-crud-dialog.component';
 
 @Component({
   selector: 'app-employee-skills-panel',
@@ -20,6 +24,10 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
     MatProgressBarModule,
     GccSelect,
     GccStatusTag,
+    FormsModule,
+    MatButtonModule,
+    MatIconModule,
+    EmployeeSkillsCrudDialogComponent,
   ],
   template: `
     @if (!employeeId()) {
@@ -32,10 +40,20 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
         <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div class="mb-4 flex items-center justify-between gap-3">
             <h2 class="text-base font-semibold text-navy">Compétences détaillées</h2>
-            <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-accent">
-              {{ totalItems() }} élément(s)
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-accent">
+                {{ totalItems() }} élément(s)
+              </span>
+              <button mat-flat-button type="button" class="gcc-btn-primary !h-9 !px-3 !text-xs" (click)="openAdd()">
+                <mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>
+                Ajouter
+              </button>
+            </div>
           </div>
+
+          @if (actionError()) {
+            <p class="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{{ actionError() }}</p>
+          }
 
           @if (loading()) {
             <div class="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
@@ -44,7 +62,7 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
           } @else if (error()) {
             <gcc-empty-state variant="error" title="Erreur de chargement" [message]="error() ?? ''" />
           } @else {
-            <mat-tab-group>
+            <mat-tab-group (selectedIndexChange)="onTabChange($event)">
               <mat-tab [label]="'Compétences (' + data().skills.length + ')'">
                 <div class="pt-4">
                   @if (data().skills.length) {
@@ -56,6 +74,7 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
                             <th class="px-2 py-2 font-semibold">Compétence</th>
                             <th class="px-2 py-2 font-semibold">Niveau</th>
                             <th class="px-2 py-2 font-semibold">État</th>
+                            <th class="px-2 py-2 font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -65,6 +84,16 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
                               <td class="px-2 py-2 font-medium text-navy">{{ row['skillName'] || '—' }}</td>
                               <td class="px-2 py-2">{{ formatLevel(row['level']) }}</td>
                               <td class="px-2 py-2"><gcc-status-tag [status]="mapStatus(row['state'])" /></td>
+                              <td class="px-2 py-2">
+                                <div class="flex items-center gap-1">
+                                  <button mat-icon-button type="button" class="!h-8 !w-8" (click)="openEditSkill(row)" title="Modifier">
+                                    <mat-icon class="!h-4 !w-4 !text-[16px] text-accent">edit</mat-icon>
+                                  </button>
+                                  <button mat-icon-button type="button" class="!h-8 !w-8" (click)="deleteSkill(row)" title="Supprimer">
+                                    <mat-icon class="!h-4 !w-4 !text-[16px] text-red-500">delete</mat-icon>
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           }
                         </tbody>
@@ -88,6 +117,7 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
                             <th class="px-2 py-2 font-semibold">École</th>
                             <th class="px-2 py-2 font-semibold">Début</th>
                             <th class="px-2 py-2 font-semibold">Fin</th>
+                            <th class="px-2 py-2 font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -98,6 +128,16 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
                               <td class="px-2 py-2">{{ row['schoolName'] || '—' }}</td>
                               <td class="px-2 py-2">{{ formatDate(row['startDate']) }}</td>
                               <td class="px-2 py-2">{{ formatDate(row['endingDate']) }}</td>
+                              <td class="px-2 py-2">
+                                <div class="flex items-center gap-1">
+                                  <button mat-icon-button type="button" class="!h-8 !w-8" (click)="openEditEducation(row)" title="Modifier">
+                                    <mat-icon class="!h-4 !w-4 !text-[16px] text-accent">edit</mat-icon>
+                                  </button>
+                                  <button mat-icon-button type="button" class="!h-8 !w-8" (click)="deleteEducation(row)" title="Supprimer">
+                                    <mat-icon class="!h-4 !w-4 !text-[16px] text-red-500">delete</mat-icon>
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           }
                         </tbody>
@@ -119,6 +159,7 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
                             <th class="px-2 py-2 font-semibold">Langue</th>
                             <th class="px-2 py-2 font-semibold">Niveau</th>
                             <th class="px-2 py-2 font-semibold">État</th>
+                            <th class="px-2 py-2 font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -127,6 +168,16 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
                               <td class="px-2 py-2">{{ row['languageName'] || '—' }}</td>
                               <td class="px-2 py-2">{{ formatLevel(row['level']) }}</td>
                               <td class="px-2 py-2"><gcc-status-tag [status]="mapStatus(row['state'])" /></td>
+                              <td class="px-2 py-2">
+                                <div class="flex items-center gap-1">
+                                  <button mat-icon-button type="button" class="!h-8 !w-8" (click)="openEditLanguage(row)" title="Modifier">
+                                    <mat-icon class="!h-4 !w-4 !text-[16px] text-accent">edit</mat-icon>
+                                  </button>
+                                  <button mat-icon-button type="button" class="!h-8 !w-8" (click)="deleteLanguage(row)" title="Supprimer">
+                                    <mat-icon class="!h-4 !w-4 !text-[16px] text-red-500">delete</mat-icon>
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           }
                         </tbody>
@@ -149,6 +200,7 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
                             <th class="px-2 py-2 font-semibold">Début</th>
                             <th class="px-2 py-2 font-semibold">Fin</th>
                             <th class="px-2 py-2 font-semibold">Commentaire</th>
+                            <th class="px-2 py-2 font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -158,6 +210,16 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
                               <td class="px-2 py-2">{{ formatDate(row['startDate']) }}</td>
                               <td class="px-2 py-2">{{ formatDate(row['endDate']) }}</td>
                               <td class="px-2 py-2">{{ row['comment'] || '—' }}</td>
+                              <td class="px-2 py-2">
+                                <div class="flex items-center gap-1">
+                                  <button mat-icon-button type="button" class="!h-8 !w-8" (click)="openEditOther(row)" title="Modifier">
+                                    <mat-icon class="!h-4 !w-4 !text-[16px] text-accent">edit</mat-icon>
+                                  </button>
+                                  <button mat-icon-button type="button" class="!h-8 !w-8" (click)="deleteOther(row)" title="Supprimer">
+                                    <mat-icon class="!h-4 !w-4 !text-[16px] text-red-500">delete</mat-icon>
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           }
                         </tbody>
@@ -219,6 +281,16 @@ import { GccStatusTag } from '../../../ui/gcc-status-tag';
           }
         </aside>
       </section>
+
+      <!-- Dialog CRUD compétences / diplômes / langues / autres -->
+      <app-employee-skills-crud-dialog
+        [kind]="dialogKind()"
+        [employeeId]="employeeId()"
+        [item]="dialogItem()"
+        [open]="dialogOpen()"
+        (saved)="onDialogSaved()"
+        (closed)="dialogOpen.set(false)"
+      />
     }
   `,
 })
@@ -247,6 +319,12 @@ export class EmployeeSkillsPanelComponent {
     { label: 'Non validé', value: '1' },
     { label: 'Validé par évaluation', value: '5' },
   ];
+
+  readonly activeTab = signal(0);
+  readonly dialogKind = signal<CrudKind>('skill');
+  readonly dialogOpen = signal(false);
+  readonly dialogItem = signal<Record<string, any> | null>(null);
+  readonly actionError = signal<string | null>(null);
 
   readonly totalItems = computed(
     () =>
@@ -310,6 +388,117 @@ export class EmployeeSkillsPanelComponent {
       month: '2-digit',
       year: 'numeric',
     }).format(date);
+  }
+
+  openAdd(): void {
+    const kinds: CrudKind[] = ['skill', 'education', 'language', 'other'];
+    this.dialogKind.set(kinds[this.activeTab()] ?? 'skill');
+    this.dialogItem.set(null);
+    this.actionError.set(null);
+    this.dialogOpen.set(true);
+  }
+
+  onTabChange(index: number): void {
+    this.activeTab.set(index);
+  }
+
+  openEditSkill(row: Record<string, any>): void {
+    this.dialogKind.set('skill');
+    this.dialogItem.set(row);
+    this.dialogOpen.set(true);
+  }
+
+  openEditEducation(row: Record<string, any>): void {
+    this.dialogKind.set('education');
+    this.dialogItem.set(row);
+    this.dialogOpen.set(true);
+  }
+
+  openEditLanguage(row: Record<string, any>): void {
+    this.dialogKind.set('language');
+    this.dialogItem.set(row);
+    this.dialogOpen.set(true);
+  }
+
+  openEditOther(row: Record<string, any>): void {
+    this.dialogKind.set('other');
+    this.dialogItem.set(row);
+    this.dialogOpen.set(true);
+  }
+
+  onDialogSaved(): void {
+    this.dialogOpen.set(false);
+    this.dialogItem.set(null);
+    const employeeId = this.employeeId();
+    if (employeeId) {
+      void this.loadData(employeeId);
+    }
+  }
+
+  async deleteSkill(row: Record<string, any>): Promise<void> {
+    await this.deleteRow(
+      Number(row['employeeSkillId']),
+      `la compétence ${row['skillName'] ?? ''}`,
+      (id) => this.service.deleteSkill(id),
+    );
+  }
+
+  async deleteEducation(row: Record<string, any>): Promise<void> {
+    await this.deleteRow(
+      Number(row['employeeEducationId']),
+      `le diplôme & formation ${row['studyPathName'] ?? ''}`,
+      (id) => this.service.deleteEducation(id),
+    );
+  }
+
+  async deleteLanguage(row: Record<string, any>): Promise<void> {
+    await this.deleteRow(
+      Number(row['employeeLanguageId']),
+      `la compétence linguistique ${row['languageName'] ?? ''}`,
+      (id) => this.service.deleteLanguage(id),
+    );
+  }
+
+  async deleteOther(row: Record<string, any>): Promise<void> {
+    await this.deleteRow(
+      Number(row['employeeOtherFormationId']),
+      `la formation ${row['description'] ?? ''}`,
+      (id) => this.service.deleteOtherSkill(id),
+    );
+  }
+
+  private async deleteRow(
+    id: number,
+    label: string,
+    remove: (id: number) => Promise<void>,
+  ): Promise<void> {
+    const employeeId = this.employeeId();
+    if (!employeeId || !id) return;
+
+    const confirmed = confirm(`Voulez-vous vraiment supprimer ${label} ?`);
+    if (!confirmed) return;
+
+    this.actionError.set(null);
+    try {
+      await remove(id);
+      await this.loadData(employeeId);
+    } catch (err: any) {
+      this.actionError.set(this.crudErrorMessage(err));
+    }
+  }
+
+  private crudErrorMessage(err: any): string {
+    const status = err?.status;
+    if (status === 401 || status === 403) {
+      return 'Action non autorisée. Vérifiez vos permissions.';
+    }
+    const body = err?.error;
+    if (typeof body === 'string' && body.trim()) return body.trim();
+    if (body && typeof body === 'object') {
+      const msg = body.message ?? body.Message ?? body.title ?? body.detail;
+      if (typeof msg === 'string' && msg.trim()) return msg.trim();
+    }
+    return "Erreur lors de l'opération.";
   }
 
   private async loadData(employeeId: number): Promise<void> {
