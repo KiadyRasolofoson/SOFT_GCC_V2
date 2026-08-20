@@ -1,0 +1,60 @@
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using SoftGcc.Application.Services.salary_skills;
+using SoftGcc.Domain.Entities.salary_skills;
+using SoftGcc.Application.Common.Interfaces;
+
+using SoftGcc.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
+namespace SoftGcc.Api.Controllers.salary_skills
+{
+	[Route("api/[controller]")]
+	[ApiController]
+	[RequirePermission("VIEW_SKILL_SETTINGS","MANAGE_SKILL_SETTINGS")]
+	public class StudyPathController : ControllerBase
+	{
+		private readonly IStudyPathService _studyPathService;
+
+		public StudyPathController(IStudyPathService service)
+		{
+			_studyPathService = service;
+		}
+
+		[HttpGet]
+		public async Task<IActionResult> GetAll()
+		{
+			var studyPaths = await _studyPathService.GetAll();
+			return Ok(studyPaths);
+		}
+
+		[HttpGet("{id}")]
+		public async Task<IActionResult> Get(int id)
+		{
+			var studyPath = await _studyPathService.GetById(id);
+			if (studyPath == null) return NotFound();
+			return Ok(studyPath);
+		}
+
+		[HttpPost]
+		public async Task<IActionResult> Create(StudyPath studyPath)
+		{
+			await _studyPathService.Add(studyPath);
+			return CreatedAtAction(nameof(Get), new { id = studyPath.StudyPathId }, studyPath);
+		}
+
+		[HttpPut("{id}")]
+		public async Task<IActionResult> Update(int id, StudyPath studyPath)
+		{
+			if (id != studyPath.StudyPathId) return BadRequest();
+			await _studyPathService.Update(studyPath);
+			return NoContent();
+		}
+
+		[HttpDelete("{id}")]
+		public async Task<IActionResult> Delete(int id)
+		{
+			await _studyPathService.Delete(id);
+			return NoContent();
+		}
+	}
+}

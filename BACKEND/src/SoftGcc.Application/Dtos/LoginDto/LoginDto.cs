@@ -1,0 +1,9 @@
+﻿namespace SoftGcc.Application.Dtos.LoginDto
+{
+    public class LoginDto
+    {
+        // Le champ identifier peut être soit un nom d'utilisateur soit un email
+        public string Identifier { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

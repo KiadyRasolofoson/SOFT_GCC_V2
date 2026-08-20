@@ -1,0 +1,68 @@
+using System.Security.Cryptography;
+using SoftGcc.Application.Common.Interfaces;
+
+namespace SoftGcc.Infrastructure.Identity
+{
+    public class RsaPublicKeyProvider : IRsaPublicKeyProvider, IDisposable
+    {
+        // =========================================================================
+        //  CLÉ PUBLIQUE EMBARQUÉE
+        //  Générée avec : openssl pkey -in private.key -out public.key -pubout
+        //  Pour régénérer : voir generate-keys.sh à la racine du projet
+        // =========================================================================
+        private const string PublicKeyPem = @"-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAoCxszkF5+kYJX8+g5cyM
+I8rEdw9rxvl8eQbZLvq0O8WZEmvZYvAIvgJvGIgOfmyuw2q/1+NzViNj8J00dYg5
+Fs5ndC+xoQullHAUkgTAq4t1CQdD43mXIRaMluuXwdRDSlE5HseX2t6TMYtlzsP5
+byQFjwdAPlfi6AcXm6+w2dxVimIG6xzou3MBU+O18BhCvx8hjh+e4HUF2Kkjio74
+htVhl8g3gbKuszBGrmE6KFBPCWfB4BQ/GWlblLhsRYu7oCEsEQRFz9sUiMNS7Xdr
+R/c3TsYIhEDl5iSXN1oU5TEi2xjZwdiGtWXiIb1MxZxbpN8tR+5v7yoWlTaR9hZx
+VKZmIdraFv3/zkXDjrYsuFm8SkwD1GJ+72lLVbriMmvnKJqN0pbomTsZq3fbuFYV
+KyXss+mRc3UEjxou9NSp6THj7qGPFq1iO14UnwjJKm49d7z51m3yJkec9e26FJmX
+r8RnnsK3/00e7ogzfNE/QlJPKMTLrNS3SzblkYoKrRQTvH3hdmnLc3lhwElC9d2v
+DkoOHgyVKxmn1xXuJuKJ9HUtR8/5egOfzUhzo+tz0QNkRnnVuCDwItTFcKb2xBjC
+sexPxRxFH19bsQ/PahPDenFqBUVDYPZAhcklqvFXaDt0BMjaBP38uenvy629qs9R
+SLNYH/K0AVG6xQziqdlBP/cCAwEAAQ==
+-----END PUBLIC KEY-----
+";
+
+        private readonly RSA _rsa;
+        private readonly object _lock = new();
+
+        /// <summary>
+        /// La clé publique au format PEM.
+        /// </summary>
+        public string PublicKey => PublicKeyPem;
+
+        /// <summary>
+        /// Initialise le provider et importe la clé publique RSA.
+        /// </summary>
+        public RsaPublicKeyProvider()
+        {
+            _rsa = RSA.Create();
+            try
+            {
+                _rsa.ImportFromPem(PublicKeyPem.ToCharArray());
+            }
+            catch
+            {
+                _rsa.Dispose();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Retourne l'instance RSA pour la vérification de signature.
+        /// Thread-safe : retourne la même instance (RSA est thread-safe pour les opérations de vérification).
+        /// </summary>
+        public RSA GetRsa()
+        {
+            return _rsa;
+        }
+
+        public void Dispose()
+        {
+            _rsa?.Dispose();
+        }
+    }
+}
