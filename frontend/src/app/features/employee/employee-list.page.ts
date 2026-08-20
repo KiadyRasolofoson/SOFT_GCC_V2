@@ -61,7 +61,7 @@ interface EmployeeRow {
         </label>
 
         <div class="min-w-0">
-          <gcc-select [options]="departmentOptions()" [(value)]="filters.departmentId" placeholder="Département" />
+          <gcc-select [options]="departmentOptions()" [value]="filters.departmentId" (valueChange)="onSelectFilterChange('departmentId', $event)" placeholder="Département" />
         </div>
 
         <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm text-navy">
@@ -345,6 +345,11 @@ export class EmployeeListPage {
 
   onFilterChange(): void {
     this.filterDebouncer.next();
+  }
+
+  onSelectFilterChange(field: string, value: string | null): void {
+    (this.filters as Record<string, any>)[field] = value ?? '';
+    this.onFilterChange();
   }
 
   onPageChange(event: PageEvent): void {

@@ -55,7 +55,8 @@ import { GccSelect } from '../../ui/gcc-select';
         <div class="min-w-0">
           <gcc-select
             [options]="departmentOptions()"
-            [(value)]="filters.departmentId"
+            [value]="filters.departmentId"
+            (valueChange)="onSelectFilterChange('departmentId', $event)"
             placeholder="Département"
           />
         </div>
@@ -63,7 +64,8 @@ import { GccSelect } from '../../ui/gcc-select';
         <div class="min-w-0">
           <gcc-select
             [options]="positionOptions()"
-            [(value)]="filters.positionId"
+            [value]="filters.positionId"
+            (valueChange)="onSelectFilterChange('positionId', $event)"
             placeholder="Poste"
           />
         </div>
@@ -256,6 +258,11 @@ export class CareerListPage {
 
   onFilterChange(): void {
     this.filterDebouncer.next();
+  }
+
+  onSelectFilterChange(field: string, value: string | null): void {
+    (this.filters as Record<string, any>)[field] = value ?? '';
+    this.onFilterChange();
   }
 
   onPageChange(event: PageEvent): void {

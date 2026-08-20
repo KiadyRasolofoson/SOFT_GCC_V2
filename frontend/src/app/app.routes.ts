@@ -217,6 +217,18 @@ export const routes: Routes = [
         canActivate: [moduleGuard],
       },
       {
+        path: 'soft-gcc/attestations',
+        loadComponent: () =>
+          import('./features/attestation/attestation-model-list.page').then((m) => m.AttestationModelListPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/synchronisation',
+        loadComponent: () =>
+          import('./features/settings/employee-sync.page').then((m) => m.EmployeeSyncPage),
+        canActivate: [moduleGuard],
+      },
+      {
         path: 'soft-gcc/evaluations/parametres',
         loadComponent: () =>
           import('./features/evaluations/settings.page').then((m) => m.SettingsPage),
