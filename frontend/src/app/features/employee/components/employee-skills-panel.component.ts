@@ -12,7 +12,7 @@ import {
 import { GccEmptyState } from '../../../ui/gcc-empty-state';
 import { GccSelect } from '../../../ui/gcc-select';
 import { GccSkillGap } from '../../../ui/gcc-skill-gap';
-import { GccStatusTag } from '../../../ui/gcc-status-tag';
+import { GccStatusTag, StatusKind } from '../../../ui/gcc-status-tag';
 import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-crud-dialog.component';
 
 @Component({
@@ -83,7 +83,8 @@ import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-c
                               <td class="px-2 py-2">{{ row['domainSkillName'] || '—' }}</td>
                               <td class="px-2 py-2 font-medium text-navy">{{ row['skillName'] || '—' }}</td>
                               <td class="px-2 py-2">{{ formatLevel(row['level']) }}</td>
-                              <td class="px-2 py-2"><gcc-status-tag [status]="mapStatus(row['state'])" /></td>
+                              @let skillTag = skillStatus(row['state']);
+                              <td class="px-2 py-2"><gcc-status-tag [status]="skillTag.status" [label]="skillTag.label" /></td>
                               <td class="px-2 py-2">
                                 <div class="flex items-center gap-1">
                                   <button mat-icon-button type="button" class="!h-8 !w-8" (click)="openEditSkill(row)" title="Modifier">
@@ -167,7 +168,8 @@ import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-c
                             <tr class="border-b border-slate-100 text-sm text-slate-700">
                               <td class="px-2 py-2">{{ row['languageName'] || '—' }}</td>
                               <td class="px-2 py-2">{{ formatLevel(row['level']) }}</td>
-                              <td class="px-2 py-2"><gcc-status-tag [status]="mapStatus(row['state'])" /></td>
+                              @let langTag = skillStatus(row['state']);
+                              <td class="px-2 py-2"><gcc-status-tag [status]="langTag.status" [label]="langTag.label" /></td>
                               <td class="px-2 py-2">
                                 <div class="flex items-center gap-1">
                                   <button mat-icon-button type="button" class="!h-8 !w-8" (click)="openEditLanguage(row)" title="Modifier">
@@ -367,11 +369,11 @@ export class EmployeeSkillsPanelComponent {
     void this.loadChart(id, Number(next));
   }
 
-  mapStatus(state: unknown): 'pending' | 'gap' | 'ok' {
+  skillStatus(state: unknown): { status: StatusKind; label: string } {
     const value = Number(state);
-    if (value >= 10) return 'ok';
-    if (value >= 5) return 'pending';
-    return 'gap';
+    if (value >= 10) return { status: 'ok', label: 'Confirmé' };
+    if (value >= 5) return { status: 'gap', label: 'Validé par évaluation' };
+    return { status: 'refused', label: 'Non validé' };
   }
 
   formatLevel(level: unknown): string {
