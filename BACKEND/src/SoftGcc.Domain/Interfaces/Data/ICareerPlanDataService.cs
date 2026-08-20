@@ -1,0 +1,38 @@
+using SoftGcc.Domain.Entities.career_plan;
+
+namespace SoftGcc.Domain.Interfaces.Data
+{
+    public interface ICareerPlanDataService
+    {
+        // Career Plan
+        Task<List<VAssignmentAppointment>> GetAssignmentAppointment(string registrationNumber);
+        Task<List<VAssignmentAdvancement>> GetAssignmentAdvancement(string registrationNumber);
+        Task<List<VAssignmentAvailability>> GetAssignmentAvailability(string registrationNumber);
+        Task<CareerPlan?> GetLastCareerPlanByEmployee(string registrationNumber);
+        Task<List<History>> GetHistory(string registrationNumber);
+        Task<VEmployeeCareer?> GetCareerByEmployee(string registrationNumber);
+        Task<object> GetAllCareers(int pageNumber = 1, int pageSize = 10);
+        Task<(List<VEmployeeCareer> Data, int TotalCount)> GetAllCareersFilter(
+            string? keyWord = null,
+            string? departmentId = null,
+            string? positionId = null,
+            string? dateAssignmentMin = null,
+            string? dateAssignmentMax = null,
+            int page = 1,
+            int pageSize = 10);
+        Task<object> GetAllCareersFilter(string keyWord, int pageNumber = 1, int pageSize = 10);
+        Task<bool> DeleteCareerPlan(int careerPlanId);
+        Task<bool> RestoreCareerPlan(int careerPlanId);
+        Task<bool> DeleteDefinitivelyCareerPlan(int careerPlanId);
+        Task<bool> DeleteHistory(int historyId);
+        Task<CareerPlan?> GetByEmployeeAndContractType(string? registrationNumber);
+
+        // Certificate History
+        Task<List<CertificateHistory>> GetCertificateByEmployee(string registrationNumber);
+        Task<bool> ExistsCertificateByReferenceAsync(string reference);
+
+        // Work Certificates
+        Task<WorkCertificates?> GetValidCertificateByToken(string token);
+        Task<bool> IsWorkCertificateExist(string token);
+    }
+}
