@@ -11,10 +11,6 @@ test/
 # === BACKEND - Build artifacts ===
 BACKEND/bin/
 BACKEND/obj/
-BACKEND/src/**/bin/
-BACKEND/src/**/obj/
-BACKEND/tests/**/bin/
-BACKEND/tests/**/obj/
 
 # === License / configuration files ===
 LicenseGenerator/bin/
@@ -30,8 +26,6 @@ LicenseGenerator.UI/obj/
 LicenseGenerator.UI/settings.json
 
 # === Tests - Build artifacts ===
-BACKEND/tests/SoftGcc.Tests/bin/
-BACKEND/tests/SoftGcc.Tests/obj/
 soft_carriere_competence.Tests/bin/
 soft_carriere_competence.Tests/obj/
 
@@ -113,10 +107,6 @@ lerna-debug.log*
 BACKEND/appsettings.json
 BACKEND/appsettings.*.json
 !BACKEND/appsettings.example.json
-BACKEND/src/SoftGcc.Api/appsettings.json
-BACKEND/src/SoftGcc.Api/appsettings.*.json
-!BACKEND/src/SoftGcc.Api/appsettings.example.json
-BACKEND/src/SoftGcc.Api/keys/private.key
 
 # === Node (root) ===
 node_modules/

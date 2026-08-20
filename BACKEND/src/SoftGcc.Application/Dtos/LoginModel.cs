@@ -1,9 +1,0 @@
-﻿namespace SoftGcc.Application.Dtos
-{
-    public class LoginModel
-    {
-        public int id { get; set; }
-        public string email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-    }
-}

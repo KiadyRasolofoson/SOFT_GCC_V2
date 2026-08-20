@@ -15,9 +15,6 @@ obj/
 appsettings.json
 appsettings.*.json
 !appsettings.example.json
-src/SoftGcc.Api/appsettings.json
-src/SoftGcc.Api/appsettings.*.json
-!src/SoftGcc.Api/appsettings.example.json
 
 # Dossiers de packages
 packages/
