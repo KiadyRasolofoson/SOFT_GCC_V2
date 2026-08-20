@@ -47,7 +47,7 @@ export class CareerPlanListService {
   async list(filters: Partial<CareerPlanListFilter>, pageNumber = 1, pageSize = 10): Promise<CareerPlanListPageResult> {
     const params = new HttpParams();
 
-    const requestParams = params
+    let requestParams = params
       .set('pageNumber', String(pageNumber))
       .set('pageSize', String(pageSize));
 
@@ -61,7 +61,7 @@ export class CareerPlanListService {
 
     for (const [key, value] of Object.entries(cleaned)) {
       if (value) {
-        requestParams.set(key, value);
+        requestParams = requestParams.set(key, value);
       }
     }
 

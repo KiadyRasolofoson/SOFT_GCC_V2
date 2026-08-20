@@ -6,7 +6,7 @@ export type StatusKind = 'pending' | 'validated' | 'refused' | 'gap' | 'ok' | 'p
   selector: 'gcc-status-tag',
   template: `
     <span
-      class="inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-semibold leading-none"
+      class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold"
       [style.background]="token().bg"
       [style.color]="token().fg"
     >

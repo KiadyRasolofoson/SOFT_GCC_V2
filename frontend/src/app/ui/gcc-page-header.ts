@@ -62,7 +62,12 @@ import { GccCrumb } from './gcc.types';
               </button>
             }
             @if (actionLabel()) {
-              <button mat-flat-button class="gcc-btn-primary !rounded-xl !px-4 !shadow-sm hover:!shadow-md transition-shadow" type="button">
+              <button
+                mat-flat-button
+                class="gcc-btn-primary !rounded-xl !px-4 !shadow-sm hover:!shadow-md transition-shadow"
+                type="button"
+                (click)="action.emit()"
+              >
                 <mat-icon class="!mr-1.5">{{ actionIcon() }}</mat-icon>
                 {{ actionLabel() }}
               </button>

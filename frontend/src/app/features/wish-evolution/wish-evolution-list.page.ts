@@ -78,20 +78,20 @@ const MONTH_LETTERS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû
         </label>
 
         <div class="min-w-0">
-          <gcc-select [options]="wishTypeOptions()" [(value)]="filters.wishTypeId" placeholder="Type de souhait" />
+          <gcc-select [options]="wishTypeOptions()" [value]="filters.wishTypeId" (valueChange)="onSelectFilterChange('wishTypeId', $event)" placeholder="Type de souhait" />
         </div>
 
         <div class="min-w-0">
-          <gcc-select [options]="positionOptions()" [(value)]="filters.positionId" placeholder="Poste souhaité" />
+          <gcc-select [options]="positionOptions()" [value]="filters.positionId" (valueChange)="onSelectFilterChange('positionId', $event)" placeholder="Poste souhaité" />
         </div>
       </div>
 
       <div class="mt-3 grid gap-3 lg:grid-cols-2">
         <div class="min-w-0">
-          <gcc-select [options]="priorityOptions" [(value)]="filters.priority" placeholder="Priorité" />
+          <gcc-select [options]="priorityOptions" [value]="filters.priority" (valueChange)="onSelectFilterChange('priority', $event)" placeholder="Priorité" />
         </div>
         <div class="min-w-0">
-          <gcc-select [options]="stateOptions" [(value)]="filters.state" placeholder="Statut" />
+          <gcc-select [options]="stateOptions" [value]="filters.state" (valueChange)="onSelectFilterChange('state', $event)" placeholder="Statut" />
         </div>
       </div>
     </div>
@@ -294,14 +294,14 @@ export class WishEvolutionListPage {
 
   constructor() {
     this.filterDebouncer
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(debounceTime(300), takeUntilDestroyed())
       .subscribe(() => {
         this.pageIndex.set(0);
         void this.loadPage();
       });
 
     this.graphDebouncer
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(debounceTime(300), takeUntilDestroyed())
       .subscribe(() => {
         void this.loadGraph();
       });
@@ -338,6 +338,11 @@ export class WishEvolutionListPage {
 
   onFilterChange(): void {
     this.filterDebouncer.next();
+  }
+
+  onSelectFilterChange(field: string, value: string | null): void {
+    (this.filters as Record<string, any>)[field] = value ?? '';
+    this.onFilterChange();
   }
 
   onPageChange(event: PageEvent): void {
