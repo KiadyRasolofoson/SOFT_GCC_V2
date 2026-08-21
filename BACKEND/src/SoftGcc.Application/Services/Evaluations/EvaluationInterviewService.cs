@@ -6,6 +6,7 @@ using SoftGcc.Application.Common.Interfaces;
 using SoftGcc.Domain.Interfaces.Data;
 using SoftGcc.Application.Dtos.EvaluationsDto;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 
 namespace SoftGcc.Application.Services.Evaluations
 {
@@ -168,9 +169,9 @@ namespace SoftGcc.Application.Services.Evaluations
                     (e.FirstName ?? "").Contains(search) ||
                     (e.LastName ?? "").Contains(search));
 
-            var rows = query
+            var rows = await query
                 .Select(e => new { e.InterviewStatus, e.InterviewDate })
-                .ToList();
+                .ToListAsync();
 
             var today = DateTime.Today;
 
