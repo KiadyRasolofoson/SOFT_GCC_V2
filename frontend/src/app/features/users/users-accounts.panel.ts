@@ -40,8 +40,8 @@ import {
     <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <gcc-kpi-card
         label="Comptes"
-        [value]="rows().length.toString()"
-        [hint]="'Page ' + (pageIndex() + 1) + ' / ' + totalPages()"
+        [value]="totalCount().toString()"
+        hint="Comptes correspondant à la recherche"
         tone="neutral"
         icon="group"
       />
@@ -61,8 +61,8 @@ import {
       />
       <gcc-kpi-card
         label="Sans e-mail"
-        [value]="missingEmailCount().toString()"
-        hint="Comptes de la page courante"
+        [value]="missingEmailTotal().toString()"
+        hint="Comptes sans e-mail (total)"
         tone="down"
         icon="mail"
       />
@@ -203,6 +203,8 @@ export class UsersAccountsPanel implements OnInit {
   readonly error = signal<string | null>(null);
   readonly rows = signal<AdminUser[]>([]);
   readonly roles = signal<AdminRole[]>([]);
+  readonly totalCount = signal(0);
+  readonly missingEmailTotal = signal(0);
   readonly initials = userInitials;
   readonly displayName = userDisplayName;
 
@@ -217,7 +219,11 @@ export class UsersAccountsPanel implements OnInit {
     return this.rows().filter((row) => row.roleId === Number(role));
   });
 
-  readonly totalLength = computed(() => Math.max(this.totalPages() * this.pageSize(), this.rows().length));
+  readonly totalLength = computed(() => {
+    const count = this.totalCount();
+    if (count > 0) return count;
+    return Math.max(this.totalPages() * this.pageSize(), this.rows().length);
+  });
 
   private searchPrimed = false;
 
@@ -244,10 +250,6 @@ export class UsersAccountsPanel implements OnInit {
 
   activeRoleCount(): number {
     return this.roles().filter((role) => role.state === 1).length;
-  }
-
-  missingEmailCount(): number {
-    return this.rows().filter((row) => !row.email).length;
   }
 
   roleTitle(row: AdminUser): string {
@@ -305,6 +307,8 @@ export class UsersAccountsPanel implements OnInit {
       next: ({ page, roles }) => {
         this.rows.set(page.users);
         this.totalPages.set(Math.max(1, page.totalPages));
+        this.totalCount.set(page.totalCount ?? 0);
+        this.missingEmailTotal.set(page.missingEmailCount ?? 0);
         this.roles.set(roles);
         this.loading.set(false);
       },
@@ -322,6 +326,8 @@ export class UsersAccountsPanel implements OnInit {
       next: (page) => {
         this.rows.set(page.users);
         this.totalPages.set(Math.max(1, page.totalPages));
+        this.totalCount.set(page.totalCount ?? 0);
+        this.missingEmailTotal.set(page.missingEmailCount ?? 0);
         this.loading.set(false);
       },
       error: (err) => {

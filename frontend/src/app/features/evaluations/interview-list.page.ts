@@ -27,6 +27,7 @@ import {
   InterviewEmployeeRow,
   InterviewParticipantOption,
   interviewStatusMeta,
+  InterviewStatistics,
   InterviewStatusKey,
   isValidInterviewDate,
   toLocalDateTimeInput,
@@ -311,6 +312,7 @@ export class InterviewListPage implements OnInit {
   readonly departmentOptions = signal<GccSelectOption[]>([{ label: 'Tous les départements', value: 'all' }]);
   readonly busyId = signal<number | null>(null);
   readonly cancelTarget = signal<InterviewEmployeeRow | null>(null);
+  readonly stats = signal<InterviewStatistics>({ totalCount: 0, noneCount: 0, todayCount: 0, pendingCount: 0 });
 
   readonly employeeFullName = employeeFullName;
   readonly initialsOf = initialsOf;
@@ -323,11 +325,13 @@ export class InterviewListPage implements OnInit {
     return this.allRows().filter((row) => interviewStatusMeta(row).key === key);
   });
 
-  readonly statsNone = computed(() => this.allRows().filter((row) => interviewStatusMeta(row).key === 'none').length);
-  readonly statsToday = computed(() => this.allRows().filter((row) => interviewStatusMeta(row).key === 'today').length);
-  readonly statsPending = computed(() => this.allRows().filter((row) => interviewStatusMeta(row).key === 'pending').length);
+  readonly statsNone = computed(() => this.stats().noneCount);
+  readonly statsToday = computed(() => this.stats().todayCount);
+  readonly statsPending = computed(() => this.stats().pendingCount);
 
   readonly totalItems = computed(() => {
+    const fromStats = this.stats().totalCount;
+    if (fromStats > 0) return fromStats;
     const pages = this.totalPages();
     const size = this.pageSize();
     const index = this.pageIndex();
@@ -418,6 +422,7 @@ export class InterviewListPage implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set(null);
+    this.loadStats();
     const position = this.position();
     const department = this.department();
 
@@ -441,6 +446,21 @@ export class InterviewListPage implements OnInit {
           this.error.set('Vérifiez vos droits d’accès aux entretiens, ou réessayez.');
           this.loading.set(false);
         },
+      });
+  }
+
+  private loadStats(): void {
+    const position = this.position();
+    const department = this.department();
+    this.evaluations
+      .getInterviewStatistics({
+        search: this.search().trim() || undefined,
+        position: position && position !== 'all' ? Number(position) : null,
+        department: department && department !== 'all' ? Number(department) : null,
+      })
+      .subscribe({
+        next: (stats) => this.stats.set(stats),
+        error: () => undefined,
       });
   }
 

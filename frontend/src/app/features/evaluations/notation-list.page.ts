@@ -20,6 +20,7 @@ import {
   employeeFullName,
   initialsOf,
   notationStatus,
+  NotationStatistics,
   NotationStatusKey,
 } from './evaluation.models';
 import { EvaluationService } from './evaluation.service';
@@ -277,6 +278,7 @@ export class NotationListPage implements OnInit {
   readonly allRows = signal<EmployeeNotationRow[]>([]);
   readonly positionOptions = signal<GccSelectOption[]>([{ label: 'Tous les postes', value: 'all' }]);
   readonly departmentOptions = signal<GccSelectOption[]>([{ label: 'Tous les départements', value: 'all' }]);
+  readonly stats = signal<NotationStatistics>({ totalCount: 0, noneCount: 0, toGradeCount: 0, expertCount: 0, validatedCount: 0 });
 
   readonly rows = computed(() => {
     const key = (this.status() ?? 'all') as NotationStatusKey | 'all';
@@ -284,11 +286,13 @@ export class NotationListPage implements OnInit {
     return this.allRows().filter((row) => notationStatus(row).key === key);
   });
 
-  readonly statsToGrade = computed(() => this.allRows().filter((r) => notationStatus(r).key === 'toGrade').length);
-  readonly statsExpert = computed(() => this.allRows().filter((r) => notationStatus(r).key === 'expert').length);
-  readonly statsValidated = computed(() => this.allRows().filter((r) => notationStatus(r).key === 'validated').length);
+  readonly statsToGrade = computed(() => this.stats().toGradeCount);
+  readonly statsExpert = computed(() => this.stats().expertCount);
+  readonly statsValidated = computed(() => this.stats().validatedCount);
 
   readonly totalItems = computed(() => {
+    const fromStats = this.stats().totalCount;
+    if (fromStats > 0) return fromStats;
     const pages = this.totalPages();
     const size = this.pageSize();
     const index = this.pageIndex();
@@ -376,6 +380,7 @@ export class NotationListPage implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set(null);
+    this.loadStats();
     const position = this.position();
     const department = this.department();
 
@@ -399,6 +404,21 @@ export class NotationListPage implements OnInit {
           this.error.set('Vérifiez vos droits (liste employés / évaluations) ou réessayez.');
           this.loading.set(false);
         },
+      });
+  }
+
+  private loadStats(): void {
+    const position = this.position();
+    const department = this.department();
+    this.evaluations
+      .getNotationStatistics({
+        search: this.search().trim() || undefined,
+        position: position && position !== 'all' ? Number(position) : null,
+        department: department && department !== 'all' ? Number(department) : null,
+      })
+      .subscribe({
+        next: (stats) => this.stats.set(stats),
+        error: () => undefined,
       });
   }
 

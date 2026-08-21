@@ -582,7 +582,7 @@ export class PlanningListPage implements OnInit {
         next: (data) => {
           const planned = this.evaluations.unwrapPlannedEvaluations(data);
           this.plannedRows.set(planned);
-          this.plannedTotal.set(this.estimateTotal(data.totalPages ?? data.TotalPages ?? 0, planned.length));
+          this.plannedTotal.set(data.totalCount ?? data.TotalCount ?? planned.length);
           this.loading.set(false);
         },
         error: () => {
@@ -597,7 +597,7 @@ export class PlanningListPage implements OnInit {
       next: (data) => {
         const employees = this.evaluations.unwrapPlanningEmployees(data);
         this.rows.set(employees);
-        this.eligibleTotal.set(this.estimateTotal(data.totalPages ?? data.TotalPages ?? 0, employees.length));
+        this.eligibleTotal.set(data.totalCount ?? data.TotalCount ?? employees.length);
         this.loading.set(false);
       },
       error: () => {
@@ -612,20 +612,12 @@ export class PlanningListPage implements OnInit {
       .getPlannedEvaluations({ pageNumber: 1, pageSize: 1 })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (data) => this.plannedTotal.set(data.totalPages ?? data.TotalPages ?? 0),
+        next: (data) => this.plannedTotal.set(data.totalCount ?? data.TotalCount ?? 0),
         error: () => undefined,
       });
   }
 
   private numericFilter(value: string | null): number | null {
     return value && value !== 'all' ? Number(value) : null;
-  }
-
-  private estimateTotal(pages: number, count: number): number {
-    const size = this.pageSize();
-    const index = this.pageIndex();
-    if (pages <= 0) return count;
-    if (index >= pages - 1) return Math.max((pages - 1) * size + count, count);
-    return pages * size;
   }
 }

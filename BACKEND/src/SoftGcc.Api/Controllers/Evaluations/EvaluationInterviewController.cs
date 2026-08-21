@@ -48,7 +48,7 @@ namespace SoftGcc.Api.Controllers.Evaluations
 	string? sortBy = null,
 	string? sortDirection = null)
 		{
-			var (employees, totalPages) = await _evaluationInterviewService.GetEmployeesWithFinishedEvalPaginatedAsync(
+			var (employees, totalPages, totalCount) = await _evaluationInterviewService.GetEmployeesWithFinishedEvalPaginatedAsync(
 				pageNumber,
 				pageSize,
 				position,
@@ -61,11 +61,30 @@ namespace SoftGcc.Api.Controllers.Evaluations
 			{
 				Employees = employees,
 				TotalPages = totalPages,
+				TotalCount = totalCount,
 				CurrentPage = pageNumber,
 				PageSize = pageSize
 			});
 		}
 
+
+		[HttpGet("interview-statistics")]
+		public async Task<IActionResult> GetInterviewStatistics(
+			[FromQuery] int? position,
+			[FromQuery] int? department,
+			[FromQuery] string? search)
+		{
+			var (totalCount, noneCount, todayCount, pendingCount) =
+				await _evaluationInterviewService.GetInterviewStatisticsAsync(position, department, search);
+
+			return Ok(new
+			{
+				totalCount,
+				noneCount,
+				todayCount,
+				pendingCount
+			});
+		}
 
 		[HttpGet("positions")]
 		public async Task<IActionResult> GetAllPostes()

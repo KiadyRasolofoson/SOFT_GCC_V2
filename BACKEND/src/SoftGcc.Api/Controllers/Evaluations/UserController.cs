@@ -56,12 +56,14 @@ public class UserController : ControllerBase
 		// Afficher les paramètres reçus pour le débogage
 		Console.WriteLine($"Récupération des utilisateurs paginés: Page {pageNumber}, Taille {pageSize}, Recherche '{search}'");
 		
-		var (users, totalPages) = await _employeeService.GetPaginatedUsersAsync(pageNumber, pageSize, search);
+		var (users, totalPages, totalCount, missingEmailCount) = await _employeeService.GetPaginatedUsersAsync(pageNumber, pageSize, search);
 
 		return Ok(new
 		{
 			Users = users,
 			TotalPages = totalPages,
+			TotalCount = totalCount,
+			MissingEmailCount = missingEmailCount,
 			CurrentPage = pageNumber,
 			PageSize = pageSize
 		});
@@ -77,7 +79,7 @@ public class UserController : ControllerBase
 		string? sortBy = null,
 		string? sortDirection = null)
 	{
-		var (employees, totalPages) = await _employeeService.GetVEmployeeDetailsPaginatedAsync(
+		var (employees, totalPages, totalCount) = await _employeeService.GetVEmployeeDetailsPaginatedAsync(
 			pageNumber, 
 			pageSize, 
 			search,
@@ -90,8 +92,28 @@ public class UserController : ControllerBase
 		{
 			Employees = employees,
 			TotalPages = totalPages,
+			TotalCount = totalCount,
 			CurrentPage = pageNumber,
 			PageSize = pageSize
+		});
+	}
+
+	[HttpGet("employee-notation-statistics")]
+	public async Task<IActionResult> GetEmployeeNotationStatistics(
+		[FromQuery] int? position,
+		[FromQuery] int? department,
+		[FromQuery] string? search)
+	{
+		var (totalCount, noneCount, toGradeCount, expertCount, validatedCount) =
+			await _employeeService.GetEmployeeNotationStatisticsAsync(search, position, department);
+
+		return Ok(new
+		{
+			totalCount,
+			noneCount,
+			toGradeCount,
+			expertCount,
+			validatedCount
 		});
 	}
 
