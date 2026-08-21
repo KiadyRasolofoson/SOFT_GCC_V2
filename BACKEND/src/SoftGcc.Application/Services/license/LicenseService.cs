@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SoftGcc.Application.Dtos.LicenseDto;
 using SoftGcc.Application.Common.Interfaces;
-using SoftGcc.Application.Common.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 using System.Runtime.InteropServices;

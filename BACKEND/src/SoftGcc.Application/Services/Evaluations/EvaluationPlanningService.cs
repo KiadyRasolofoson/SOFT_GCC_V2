@@ -73,7 +73,7 @@ namespace SoftGcc.Application.Services.Evaluations
         }
 
 
-        public async Task<(IEnumerable<VEmployeeWithoutEvaluation> Employees, int TotalPages)> GetEmployeesWithoutEvaluationsPaginatedAsync(
+        public async Task<(IEnumerable<VEmployeeWithoutEvaluation> Employees, int TotalPages, int TotalCount)> GetEmployeesWithoutEvaluationsPaginatedAsync(
     int pageNumber = 1,
     int pageSize = 10,
     int? position = null,
@@ -160,11 +160,11 @@ namespace SoftGcc.Application.Services.Evaluations
                 .Take(pageSize)
                 .ToList();
 
-            return (employees, totalPages);
+            return (employees, totalPages, totalItems);
         }
 
         // Méthode pour récupérer les évaluations planifiées avec pagination
-        public async Task<(IEnumerable<PlannedEvaluationDto>, int)> GetPlannedEvaluationsPaginatedAsync(
+        public async Task<(IEnumerable<PlannedEvaluationDto>, int TotalPages, int TotalCount)> GetPlannedEvaluationsPaginatedAsync(
             int pageNumber,
             int pageSize,
             int? position = null,
@@ -285,7 +285,7 @@ namespace SoftGcc.Application.Services.Evaluations
                 .Take(pageSize)
                 .ToList();
 
-            return (result, totalPages);
+            return (result, totalPages, totalItems);
         }
     }
 }

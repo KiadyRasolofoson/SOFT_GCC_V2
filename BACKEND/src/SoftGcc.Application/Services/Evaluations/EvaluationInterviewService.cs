@@ -6,6 +6,7 @@ using SoftGcc.Application.Common.Interfaces;
 using SoftGcc.Domain.Interfaces.Data;
 using SoftGcc.Application.Dtos.EvaluationsDto;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 
 namespace SoftGcc.Application.Services.Evaluations
 {
@@ -69,7 +70,7 @@ namespace SoftGcc.Application.Services.Evaluations
         }
 
         //pagination
-        public async Task<(IEnumerable<VEmployeesFinishedEvaluation> Employees, int TotalPages)> GetEmployeesWithFinishedEvalPaginatedAsync(
+        public async Task<(IEnumerable<VEmployeesFinishedEvaluation> Employees, int TotalPages, int TotalCount)> GetEmployeesWithFinishedEvalPaginatedAsync(
     int pageNumber = 1,
     int pageSize = 10,
     int? position = null,
@@ -145,7 +146,59 @@ namespace SoftGcc.Application.Services.Evaluations
                 .Take(pageSize)
                 .ToList();
 
-            return (employees, totalPages);
+            return (employees, totalPages, totalItems);
+        }
+
+        // Statistiques des entretiens (totaux par statut) — mêmes filtres que GetEmployeesWithFinishedEvalPaginatedAsync
+        public async Task<(int TotalCount, int NoneCount, int TodayCount, int PendingCount)> GetInterviewStatisticsAsync(
+            int? position = null,
+            int? department = null,
+            string? search = null)
+        {
+            var query = _dataService.GetEmployeesFinishedEvalQuery();
+
+            if (position.HasValue)
+                query = query.Where(e => e.positionId == position);
+
+            if (department.HasValue)
+                query = query.Where(e => e.DepartmentId == department);
+
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(e =>
+                    ((e.FirstName ?? "") + " " + (e.LastName ?? "")).Contains(search) ||
+                    (e.FirstName ?? "").Contains(search) ||
+                    (e.LastName ?? "").Contains(search));
+
+            var rows = await query
+                .Select(e => new { e.InterviewStatus, e.InterviewDate })
+                .ToListAsync();
+
+            var today = DateTime.Today;
+
+            var totalCount = rows.Count;
+            var noneCount = rows.Count(e => IsNoneInterview(e.InterviewStatus, e.InterviewDate));
+            var todayCount = rows.Count(e => IsTodayInterview(e.InterviewStatus, e.InterviewDate, today));
+            var pendingCount = rows.Count(e => e.InterviewStatus == 25);
+
+            return (totalCount, noneCount, todayCount, pendingCount);
+        }
+
+        private static bool IsValidInterviewDate(DateTime? date)
+        {
+            return date.HasValue && date.Value.Year >= 2000;
+        }
+
+        private static bool IsNoneInterview(int? status, DateTime? date)
+        {
+            return status == null && !IsValidInterviewDate(date);
+        }
+
+        private static bool IsTodayInterview(int? status, DateTime? date, DateTime today)
+        {
+            // Statuts déjà traités avant la branche "planifié / date" côté front
+            if (status == 50 || status == 40 || status == 30 || status == 25 || status == 20) return false;
+            if (!IsValidInterviewDate(date)) return false;
+            return date!.Value.Date == today.Date;
         }
 
         public async Task<VEmployeesFinishedEvaluation?> GetEmployeeAsync(int employeeId)

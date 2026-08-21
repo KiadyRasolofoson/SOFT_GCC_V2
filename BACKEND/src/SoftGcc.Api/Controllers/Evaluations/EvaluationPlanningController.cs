@@ -169,7 +169,7 @@ namespace SoftGcc.Api.Controllers.Evaluations
 	string? sortBy = null,
 	string? sortDirection = null)
 		{
-			var (employees, totalPages) = await _evaluationPlanningService.GetEmployeesWithoutEvaluationsPaginatedAsync(
+			var (employees, totalPages, totalCount) = await _evaluationPlanningService.GetEmployeesWithoutEvaluationsPaginatedAsync(
 				pageNumber,
 				pageSize,
 				position,
@@ -182,6 +182,7 @@ namespace SoftGcc.Api.Controllers.Evaluations
 			{
 				Employees = employees,
 				TotalPages = totalPages,
+				TotalCount = totalCount,
 				CurrentPage = pageNumber,
 				PageSize = pageSize
 			});
@@ -332,7 +333,7 @@ namespace SoftGcc.Api.Controllers.Evaluations
 		{
 			try
 			{
-				var (evaluations, totalPages) = await _evaluationPlanningService.GetPlannedEvaluationsPaginatedAsync(
+				var (evaluations, totalPages, totalCount) = await _evaluationPlanningService.GetPlannedEvaluationsPaginatedAsync(
 					pageNumber,
 					pageSize,
 					position,
@@ -345,6 +346,7 @@ namespace SoftGcc.Api.Controllers.Evaluations
 				{
 					Evaluations = evaluations,
 					TotalPages = totalPages,
+					TotalCount = totalCount,
 					CurrentPage = pageNumber,
 					PageSize = pageSize
 				});

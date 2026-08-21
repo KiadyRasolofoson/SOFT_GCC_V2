@@ -29,6 +29,8 @@ import {
   InterviewParticipantOption,
   InterviewProgressEntry,
   InterviewRecord,
+  InterviewStatistics,
+  NotationStatistics,
   ObjectiveSummaryRow,
   ObjectivesListQuery,
   ObjectivesStatistics,
@@ -163,6 +165,30 @@ export class EvaluationService {
     return this.http.get<PaginatedPlannedEvaluations>(`${this.api}/EvaluationPlanning/planned-evaluations`, {
       params,
     });
+  }
+
+  getNotationStatistics(
+    query: Pick<EmployeeListQuery, 'search' | 'position' | 'department'>,
+  ): Observable<NotationStatistics> {
+    return this.http.get<NotationStatistics>(`${this.api}/User/employee-notation-statistics`, {
+      params: this.statsParams(query),
+    });
+  }
+
+  getInterviewStatistics(
+    query: Pick<EmployeeListQuery, 'search' | 'position' | 'department'>,
+  ): Observable<InterviewStatistics> {
+    return this.http.get<InterviewStatistics>(`${this.api}/EvaluationInterview/interview-statistics`, {
+      params: this.statsParams(query),
+    });
+  }
+
+  private statsParams(query: Pick<EmployeeListQuery, 'search' | 'position' | 'department'>): HttpParams {
+    let params = new HttpParams();
+    if (query.search) params = params.set('search', query.search);
+    if (query.position) params = params.set('position', String(query.position));
+    if (query.department) params = params.set('department', String(query.department));
+    return params;
   }
 
   getEvaluationTypes(): Observable<EvaluationTypeOption[]> {

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SoftGcc.Domain.Enums;
 using SoftGcc.Application.Common.Interfaces;
-using SoftGcc.Application.Common.Interfaces;
 
 namespace SoftGcc.Application.Authorization.Handlers
 {

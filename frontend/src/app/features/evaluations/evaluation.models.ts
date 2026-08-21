@@ -22,6 +22,16 @@ export interface PaginatedEmployees {
   totalPages: number;
   currentPage: number;
   pageSize: number;
+  totalCount?: number;
+  TotalCount?: number;
+}
+
+export interface NotationStatistics {
+  totalCount: number;
+  noneCount: number;
+  toGradeCount: number;
+  expertCount: number;
+  validatedCount: number;
 }
 
 export interface PositionOption {
@@ -192,6 +202,8 @@ export interface PaginatedPlanningEmployees {
   Employees?: PlanningEmployee[];
   totalPages?: number;
   TotalPages?: number;
+  totalCount?: number;
+  TotalCount?: number;
   currentPage?: number;
   pageSize?: number;
 }
@@ -215,6 +227,8 @@ export interface PaginatedPlannedEvaluations {
   Evaluations?: PlannedEvaluation[];
   totalPages?: number;
   TotalPages?: number;
+  totalCount?: number;
+  TotalCount?: number;
 }
 
 export interface EvaluationTypeOption {
@@ -385,10 +399,19 @@ export interface PaginatedInterviewEmployees {
   Employees?: InterviewEmployeeRow[];
   totalPages?: number;
   TotalPages?: number;
+  totalCount?: number;
+  TotalCount?: number;
   currentPage?: number;
   CurrentPage?: number;
   pageSize?: number;
   PageSize?: number;
+}
+
+export interface InterviewStatistics {
+  totalCount: number;
+  noneCount: number;
+  todayCount: number;
+  pendingCount: number;
 }
 
 export interface InterviewParticipantOption {

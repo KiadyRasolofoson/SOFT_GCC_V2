@@ -194,6 +194,8 @@ export class UserAdminService {
       totalPages: this.asNumber(this.pick(row, 'totalPages', 'TotalPages')) || 1,
       currentPage: this.asNumber(this.pick(row, 'currentPage', 'CurrentPage')) || pageNumber,
       pageSize: this.asNumber(this.pick(row, 'pageSize', 'PageSize')) || pageSize,
+      totalCount: this.asNumber(this.pick(row, 'totalCount', 'TotalCount')) || 0,
+      missingEmailCount: this.asNumber(this.pick(row, 'missingEmailCount', 'MissingEmailCount')) || 0,
     };
   }
 
