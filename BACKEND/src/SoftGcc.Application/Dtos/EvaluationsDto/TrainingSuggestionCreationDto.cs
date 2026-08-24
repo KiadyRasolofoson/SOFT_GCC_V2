@@ -1,0 +1,12 @@
+﻿namespace SoftGcc.Application.Dtos.EvaluationsDto
+{
+    public class TrainingSuggestionCreationDto
+    {
+        public int EvaluationTypeId { get; set; } // Optionnel si lié à un type d'évaluation
+        public int QuestionId { get; set; } // Optionnel si lié à une question
+        public string Training { get; set; } = string.Empty;
+        public string Details { get; set; } = string.Empty;
+        public int ScoreThreshold { get; set; }
+        public int State { get; set; }
+    }
+}

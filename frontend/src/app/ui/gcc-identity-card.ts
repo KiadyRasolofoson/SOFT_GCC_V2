@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 
 @Component({
   selector: 'gcc-identity-card',
@@ -11,15 +11,21 @@ import { Component, input } from '@angular/core';
         <p class="text-xs font-semibold uppercase tracking-wider text-accent">Profil employé</p>
         <h2 class="mt-0.5 truncate text-xl font-semibold text-navy">{{ name() }}</h2>
         <p class="mt-1 text-sm text-slate-500">
-          {{ role() }} · {{ department() }}
+          {{ role() }}@if (department()) { · {{ department() }} }
         </p>
       </div>
-      <dl class="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:text-right">
-        <dt class="text-slate-500">Matricule</dt>
-        <dd class="tabular font-medium text-navy">{{ matricule() }}</dd>
-        <dt class="text-slate-500">Ancienneté</dt>
-        <dd class="tabular font-medium text-navy">{{ seniority() }}</dd>
-      </dl>
+      @if (hasMeta()) {
+        <dl class="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:text-right">
+          @if (matricule()) {
+            <dt class="text-slate-500">Matricule</dt>
+            <dd class="tabular font-medium text-navy">{{ matricule() }}</dd>
+          }
+          @if (seniority()) {
+            <dt class="text-slate-500">Ancienneté</dt>
+            <dd class="tabular font-medium text-navy">{{ seniority() }}</dd>
+          }
+        </dl>
+      }
     </article>
   `,
 })
@@ -30,4 +36,6 @@ export class GccIdentityCard {
   matricule = input('EMP-1042');
   seniority = input('6 ans');
   initials = input('MR');
+
+  readonly hasMeta = computed(() => Boolean(this.matricule() || this.seniority()));
 }

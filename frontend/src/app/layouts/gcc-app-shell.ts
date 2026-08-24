@@ -1,29 +1,26 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../core/auth.service';
+import { NotificationService } from '../core/notification.service';
 import { toMaterialIcon } from '../core/icon-map';
 import { AppModule } from '../core/models';
+import { GccNotificationBell } from '../ui/gcc-notification-bell';
+import { GccAiChatWidget } from '../features/ai-chat/gcc-ai-chat-widget';
 
 @Component({
   selector: 'gcc-app-shell',
-  imports: [MatIconModule, MatButtonModule, RouterLink, RouterOutlet],
+  imports: [MatIconModule, MatButtonModule, RouterLink, RouterOutlet, GccNotificationBell, GccAiChatWidget],
   template: `
     <div class="flex h-screen overflow-hidden bg-canvas font-sans">
       <!-- Sidebar Navigation -->
       <aside class="flex w-64 shrink-0 flex-col bg-slate-950 text-slate-300 border-r border-slate-800/80 shadow-xl">
         <!-- Logo & Brand Header -->
-        <div class="flex items-center gap-3 px-6 py-6 border-b border-slate-800/60">
-          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-accent to-indigo-400 font-extrabold text-white text-lg shadow-md shadow-accent/20">
-            G
-          </span>
-          <div>
-            <p class="text-base font-bold tracking-tight text-white leading-none">SOFT GCC</p>
-            <p class="text-[10px] font-semibold uppercase tracking-wider text-indigo-400 mt-1">Compétences & Carrières</p>
-          </div>
+        <div class="flex items-center justify-center px-4 py-3 border-b border-slate-800/60">
+          <img src="assets/logo/logo.png" alt="SoftTalent" class="h-15 w-auto object-contain brightness-0 invert opacity-90" />
         </div>
 
         <!-- Navigation Menu -->
@@ -87,76 +84,111 @@ import { AppModule } from '../core/models';
           }
         </nav>
 
-        <!-- Sidebar Footer -->
-        <div class="p-4 border-t border-slate-800/80 bg-slate-950/60">
-          <div class="flex items-center gap-3 rounded-xl bg-slate-900/80 p-2.5 border border-slate-800">
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 font-bold text-xs">
-              {{ auth.initials() }}
-            </span>
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-xs font-semibold text-white">{{ auth.displayName() }}</p>
-              <p class="truncate text-[10px] text-slate-400">{{ auth.user()?.roleTitle || 'Utilisateur' }}</p>
-            </div>
-          </div>
-        </div>
       </aside>
 
       <!-- Main Layout Content -->
-      <div class="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
         <!-- Topbar Header -->
-        <header class="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/80 bg-white/90 px-6 py-3.5 backdrop-blur-md shadow-2xs">
-          <!-- Left Status & Section Indicator -->
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 rounded-full bg-slate-100/80 px-3 py-1 text-xs font-medium text-slate-600 border border-slate-200/60">
-              <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Espace Ressources Humaines</span>
-            </div>
-          </div>
-
+        <header class="sticky top-0 z-20 flex items-center justify-end border-b border-slate-200/80 bg-white/90 px-6 py-3.5 backdrop-blur-md shadow-2xs">
           <!-- Right Actions & User Profile -->
           <div class="flex items-center gap-4">
-            <div class="hidden sm:flex items-center gap-3 border-r border-slate-200/80 pr-4">
-              <div class="text-right">
-                <p class="text-xs font-bold text-navy">{{ auth.displayName() }}</p>
-                <p class="text-[11px] text-slate-500 font-medium">{{ auth.user()?.departmentName || auth.user()?.roleTitle || 'RH' }}</p>
-              </div>
-              <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-accent to-indigo-500 text-xs font-extrabold text-white shadow-sm">
-                {{ auth.initials() }}
-              </span>
-            </div>
+            <!-- Notification Bell -->
+            <gcc-notification-bell />
 
-            <button
-              mat-stroked-button
-              class="gcc-btn-secondary !rounded-xl !text-xs !py-1.5"
-              type="button"
-              (click)="logout()"
-            >
-              <mat-icon class="!mr-1.5 !text-[18px]">logout</mat-icon>
-              Déconnexion
-            </button>
+            <div class="relative">
+              <button
+                type="button"
+                class="flex h-9 items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-1.5 pr-2 text-left shadow-2xs transition-all hover:border-slate-300 hover:bg-slate-50"
+                (click)="toggleUserMenu()"
+              >
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-accent to-indigo-500 text-[10px] font-extrabold text-white">
+                  {{ auth.initials() }}
+                </span>
+                <span class="hidden min-w-0 leading-none sm:block">
+                  <span class="block truncate text-[11px] font-bold text-navy">{{ auth.displayName() }}</span>
+                  <span class="mt-0.5 block truncate text-[10px] text-slate-500">{{ auth.user()?.roleTitle || 'Utilisateur' }}</span>
+                </span>
+                <mat-icon class="hidden !h-4 !w-4 !text-[16px] text-slate-400 sm:block">
+                  expand_more
+                </mat-icon>
+              </button>
+
+              @if (userMenuOpen()) {
+                <button
+                  type="button"
+                  class="fixed inset-0 z-20 cursor-default"
+                  aria-label="Fermer le menu utilisateur"
+                  (click)="closeUserMenu()"
+                ></button>
+
+                <div class="absolute right-0 top-[calc(100%+0.75rem)] z-30 w-56 rounded-2xl border border-slate-200/80 bg-white p-2 shadow-2xl">
+                  <div class="mb-2 flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-accent to-indigo-500 text-xs font-extrabold text-white shadow-sm">
+                      {{ auth.initials() }}
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-xs font-bold text-navy">{{ auth.displayName() }}</p>
+                      <p class="truncate text-[11px] text-slate-500">{{ auth.user()?.roleTitle || 'Utilisateur' }}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    mat-stroked-button
+                    class="gcc-btn-secondary !flex !w-full !justify-start !rounded-xl !text-xs !py-2"
+                    type="button"
+                    (click)="logout()"
+                  >
+                    <mat-icon class="!mr-2 !text-[18px]">logout</mat-icon>
+                    Déconnexion
+                  </button>
+                </div>
+              }
+            </div>
           </div>
         </header>
 
         <!-- Main Workspace -->
-        <main class="flex-1 p-6 lg:p-8">
+        <main
+          class="flex min-w-0 flex-1 flex-col transition duration-200"
+          [class.overflow-y-auto]="!canvasMain()"
+          [class.overflow-hidden]="canvasMain()"
+          [class.p-6]="!canvasMain()"
+          [class.lg:p-8]="!canvasMain()"
+          [class.p-0]="canvasMain()"
+          [class.pointer-events-none]="notifications.panelOpen()"
+          [class.select-none]="notifications.panelOpen()"
+          [class.blur-sm]="notifications.panelOpen()"
+          [class.opacity-70]="notifications.panelOpen()"
+        >
           <router-outlet />
         </main>
 
-        <!-- Page Footer -->
-        <footer class="border-t border-slate-200/80 bg-white/50 px-6 py-3.5 text-xs text-slate-400 flex flex-wrap items-center justify-between gap-2">
-          <span>© Soft GCC — Plateforme de Gestion des Compétences & Carrières</span>
-          <span class="text-slate-400">Données RH Confidentielles</span>
-        </footer>
+        @if (!canvasMain()) {
+          <footer
+            class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 bg-white/50 px-6 py-3.5 text-xs text-slate-400 transition duration-200"
+            [class.pointer-events-none]="notifications.panelOpen()"
+            [class.select-none]="notifications.panelOpen()"
+            [class.blur-sm]="notifications.panelOpen()"
+            [class.opacity-70]="notifications.panelOpen()"
+          >
+            <span>© SoftTalent — Plateforme de Gestion des Compétences & Carrières</span>
+            <span class="text-slate-400">Données RH Confidentielles</span>
+          </footer>
+        }
       </div>
     </div>
+    <gcc-ai-chat-widget />
   `,
 })
 export class GccAppShell {
   readonly auth = inject(AuthService);
+  readonly notifications = inject(NotificationService);
   private readonly router = inject(Router);
 
   readonly openMenu = signal<string | null>(null);
+  readonly userMenuOpen = signal(false);
   currentPath = signal(this.router.url.split('?')[0]);
+  readonly canvasMain = computed(() => this.currentPath().startsWith('/soft-gcc/assistant'));
 
   constructor() {
     this.syncOpenMenu(this.currentPath());
@@ -196,7 +228,16 @@ export class GccAppShell {
     this.openMenu.update((current) => (current === name ? null : name));
   }
 
+  toggleUserMenu(): void {
+    this.userMenuOpen.update((current) => !current);
+  }
+
+  closeUserMenu(): void {
+    this.userMenuOpen.set(false);
+  }
+
   logout(): void {
+    this.closeUserMenu();
     this.auth.logout();
     void this.router.navigateByUrl('/login');
   }

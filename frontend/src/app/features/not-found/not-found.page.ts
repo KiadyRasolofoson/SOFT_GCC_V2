@@ -17,7 +17,7 @@ import { GccPageHeader } from '../../ui/gcc-page-header';
       <gcc-empty-state
         variant="error"
         title="Module non encore disponible"
-        message="Cette section de Soft GCC est en cours de refonte. Utilisez le menu latéral pour accéder aux fonctionnalités actives, comme le Tableau de bord."
+        message="Cette section de SoftTalent est en cours de refonte. Utilisez le menu latéral pour accéder aux fonctionnalités actives, comme le Tableau de bord."
         actionLabel="Retour au tableau de bord"
         actionIcon="dashboard"
         (action)="goDashboard()"

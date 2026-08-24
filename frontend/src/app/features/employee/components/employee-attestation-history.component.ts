@@ -1,6 +1,7 @@
 import { Component, effect, inject, input, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import {
   CertificateHistoryItem,
   EmployeeAttestationService,
@@ -95,6 +96,7 @@ import { GccEmptyState } from '../../../ui/gcc-empty-state';
 })
 export class EmployeeAttestationHistoryComponent {
   private readonly service = inject(EmployeeAttestationService);
+  private readonly sanitizer = inject(DomSanitizer);
 
   readonly registrationNumber = input<string | null>(null);
 
@@ -102,7 +104,9 @@ export class EmployeeAttestationHistoryComponent {
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly rows = signal<CertificateHistoryItem[]>([]);
-  readonly pdfUrl = signal<string | null>(null);
+  readonly pdfUrl = signal<SafeResourceUrl | null>(null);
+
+  private rawPdfUrl: string | null = null;
 
   constructor() {
     effect(() => {
@@ -147,7 +151,8 @@ export class EmployeeAttestationHistoryComponent {
 
     this.closePdf();
     const url = URL.createObjectURL(blob);
-    this.pdfUrl.set(url);
+    this.rawPdfUrl = url;
+    this.pdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
   }
 
   async deleteRow(row: CertificateHistoryItem): Promise<void> {
@@ -169,8 +174,10 @@ export class EmployeeAttestationHistoryComponent {
   }
 
   closePdf(): void {
-    const current = this.pdfUrl();
-    if (current) URL.revokeObjectURL(current);
+    if (this.rawPdfUrl) {
+      URL.revokeObjectURL(this.rawPdfUrl);
+    }
+    this.rawPdfUrl = null;
     this.pdfUrl.set(null);
   }
 

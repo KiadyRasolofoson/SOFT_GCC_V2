@@ -13,7 +13,7 @@ import { GccCrumb } from './gcc.types';
         <nav class="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-slate-400 font-medium" aria-label="Fil d’Ariane">
           <div class="flex items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors">
             <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">home</mat-icon>
-            <span>Soft GCC</span>
+            <span>SoftTalent</span>
           </div>
           @for (crumb of crumbs(); track $index; let last = $last) {
             <span class="select-none text-slate-300">/</span>
