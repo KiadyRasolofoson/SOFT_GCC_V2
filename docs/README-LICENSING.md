@@ -1,5 +1,7 @@
 # Système de Licensing on-premise (RSA 4096)
 
+Les chemins de ce document sont relatifs à la racine du dépôt.
+
 ## Architecture
 
 ```
@@ -49,7 +51,7 @@ Génère `keys/private.key` et `keys/public.key`.
 
 ### 2. Embarquement de la clé publique
 
-1. Ouvrez `Application/Services/license/RsaPublicKeyProvider.cs`
+1. Ouvrez `BACKEND/src/SoftGcc.Infrastructure/Identity/RsaPublicKeyProvider.cs`
 2. Remplacez la constante `PublicKeyPem` par le contenu de `keys/public.key`
 3. Recompilez l'application
 
@@ -188,19 +190,19 @@ Format final : **base64(payload_json | signature_base64)**
 
 | Fichier | Rôle |
 |---|---|
-| `Core/Entities/license/License.cs` | Entité EF Core |
-| `Application/Dtos/LicenseDto/LicenseActivateDto.cs` | DTO d'activation |
-| `Application/Dtos/LicenseDto/LicenseValidationResult.cs` | Résultat de validation + enum ErrorReason |
-| `Application/Services/license/LicenseValidator.cs` | Validateur statique (partagé) |
-| `Application/Services/license/RsaPublicKeyProvider.cs` | Cache singleton de la clé publique |
-| `Application/Services/license/LicenseService.cs` | Service DI (Scoped) |
-| `Controllers/license/LicenseController.cs` | API endpoints |
-| `Middleware/LicenseCheckMiddleware.cs` | Middleware de vérification |
-| `generate-keys.sh` | Script de génération des clés |
-| `bdd/01_CREATE_LICENSE_TABLE.sql` | Script SQL de création de la table |
+| `BACKEND/src/SoftGcc.Domain/Entities/license/License.cs` | Entité EF Core |
+| `BACKEND/src/SoftGcc.Application/Dtos/LicenseDto/LicenseActivateDto.cs` | DTO d'activation |
+| `BACKEND/src/SoftGcc.Application/Dtos/LicenseDto/LicenseValidationResult.cs` | Résultat de validation + enum ErrorReason |
+| `BACKEND/src/SoftGcc.Application/Services/license/LicenseValidator.cs` | Validateur statique (partagé) |
+| `BACKEND/src/SoftGcc.Infrastructure/Identity/RsaPublicKeyProvider.cs` | Cache singleton de la clé publique |
+| `BACKEND/src/SoftGcc.Application/Services/license/LicenseService.cs` | Service DI (Scoped) |
+| `BACKEND/src/SoftGcc.Api/Controllers/license/LicenseController.cs` | API endpoints |
+| `BACKEND/src/SoftGcc.Api/Middlewares/LicenseCheckMiddleware.cs` | Middleware de vérification |
+| `BACKEND/generate-keys.sh` | Script de génération des clés |
+| `BACKEND/src/SoftGcc.Api/bdd/Licence/01_CREATE_LICENSE_TABLE.sql` | Script SQL de création de la table |
 | `LicenseGenerator/Program.cs` | Outil CLI de génération de licence |
 | `LicenseGenerator.UI/` | Interface graphique Avalonia (Linux/macOS/Windows) |
-| `SoftGcc.Tests/LicenseValidatorTests.cs` | Tests unitaires |
+| `BACKEND/tests/SoftGcc.Tests/LicenseValidatorTests.cs` | Tests unitaires |
 
 ## Recommandations
 
