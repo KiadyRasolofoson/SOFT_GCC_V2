@@ -11,10 +11,12 @@ using SoftGcc.Infrastructure.Persistence;
 using SoftGcc.Infrastructure.Persistence.Repositories;
 using SoftGcc.Infrastructure.Persistence.Repositories.Data;
 using SoftGcc.Infrastructure.Persistence.Repositories.Evaluations;
+using SoftGcc.Infrastructure.Services.AiAgent;
 using SoftGcc.Infrastructure.Services.Background;
 using SoftGcc.Infrastructure.Services.Email;
 using SoftGcc.Infrastructure.Services.Files;
 using SoftGcc.Infrastructure.Services.Pdf;
+using SoftGcc.Application.Common.Interfaces.AiAgent;
 
 namespace SoftGcc.Infrastructure;
 
@@ -55,6 +57,13 @@ public static class DependencyInjection
         services.AddScoped<PdfExtractionService>();
         services.AddSingleton<IRsaPublicKeyProvider, RsaPublicKeyProvider>();
         services.AddMemoryCache();
+
+        services.AddSingleton<ISecretProtector, AesSecretProtector>();
+        services.AddHttpClient("AiLlm", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(120);
+        });
+        services.AddSingleton<ILlmProviderFactory, LlmProviderFactory>();
 
         services.Configure<ReminderSettings>(configuration.GetSection("ReminderSettings"));
         services.AddScoped<ReminderBackgroundService>();

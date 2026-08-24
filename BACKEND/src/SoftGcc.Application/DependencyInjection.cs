@@ -7,8 +7,11 @@ using SoftGcc.Application.Authorization;
 using SoftGcc.Application.Authorization.Handlers;
 using SoftGcc.Application.Common.Behaviours;
 using SoftGcc.Application.Common.Interfaces;
+using SoftGcc.Application.Common.Interfaces.AiAgent;
 using SoftGcc.Application.Interfaces;
 using SoftGcc.Application.Services;
+using SoftGcc.Application.Services.AiAgent;
+using SoftGcc.Application.Services.AiAgent.Tools;
 using SoftGcc.Application.Services.career_plan;
 using SoftGcc.Application.Services.crud_career;
 using SoftGcc.Application.Services.dashboard;
@@ -104,6 +107,24 @@ public static class DependencyInjection
         services.AddScoped<IManagerHierarchyService, ManagerHierarchyService>();
         services.AddScoped<ISensitiveDataFilterService, SensitiveDataFilterService>();
         services.AddScoped<IUserProfileService, UserProfileService>();
+
+        services.AddScoped<IAiTool, SearchEmployeesTool>();
+        services.AddScoped<IAiTool, GetEmployeeTool>();
+        services.AddScoped<IAiTool, GetEmployeeSkillsTool>();
+        services.AddScoped<IAiTool, GetEmployeeEducationTool>();
+        services.AddScoped<IAiTool, GetEmployeeLanguagesTool>();
+        services.AddScoped<IAiTool, GetEmployeeCareerTool>();
+        services.AddScoped<IAiTool, SearchPositionsTool>();
+        services.AddScoped<IAiTool, GetOrgChartTool>();
+        services.AddScoped<IAiTool, GetDepartmentHeadcountTool>();
+        services.AddScoped<IAiTool, SearchEvaluationsTool>();
+        services.AddScoped<IAiTool, GetEvaluationTool>();
+        services.AddScoped<IAiTool, SearchRetirementsTool>();
+        services.AddScoped<IAiTool, SearchWishEvolutionsTool>();
+        services.AddScoped<IAiTool, GetDashboardKpisTool>();
+        services.AddScoped<IAiToolPermissionResolver, AiToolPermissionResolver>();
+        services.AddScoped<IAiToolRegistry, AiToolRegistry>();
+        services.AddScoped<IAiAgentService, AiAgentService>();
 
         services.AddScoped<IAuthorizationHandler, CanViewEvaluationHandler>();
         services.AddScoped<IAuthorizationHandler, CanEditEvaluationHandler>();
