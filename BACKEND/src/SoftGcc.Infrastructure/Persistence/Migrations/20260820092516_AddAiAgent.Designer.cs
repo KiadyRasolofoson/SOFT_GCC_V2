@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SoftGcc.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using SoftGcc.Infrastructure.Persistence;
 namespace SoftGcc.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260820092516_AddAiAgent")]
+    partial class AddAiAgent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -51,10 +54,6 @@ namespace SoftGcc.Infrastructure.Persistence.Migrations
                         .HasColumnType("int")
                         .HasColumnName("max_tokens");
 
-                    b.Property<int>("MaxToolRounds")
-                        .HasColumnType("int")
-                        .HasColumnName("max_tool_rounds");
-
                     b.Property<double>("Temperature")
                         .HasColumnType("float")
                         .HasColumnName("temperature");
@@ -75,7 +74,6 @@ namespace SoftGcc.Infrastructure.Persistence.Migrations
                             ActiveProvider = "Deepseek",
                             IsEnabled = false,
                             MaxTokens = 2048,
-                            MaxToolRounds = 15,
                             Temperature = 0.29999999999999999,
                             UpdatedAt = new DateTime(2026, 8, 20, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });

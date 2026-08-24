@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SoftGcc.Application.Common.Interfaces;
+using SoftGcc.Domain.Entities.AiAgent;
 using SoftGcc.Domain.Entities.career_plan;
 using SoftGcc.Domain.Entities.crud_career;
 using SoftGcc.Domain.Entities.dashboard;
@@ -141,6 +142,13 @@ namespace SoftGcc.Infrastructure.Persistence
 		// Notifications
 		public DbSet<Notification> Notifications { get; set; }
 
+		// Agent IA
+		public DbSet<AiAgentSetting> AiAgentSettings { get; set; }
+		public DbSet<AiProviderConfig> AiProviderConfigs { get; set; }
+		public DbSet<AiConversation> AiConversations { get; set; }
+		public DbSet<AiMessage> AiMessages { get; set; }
+		public DbSet<AiToolPermission> AiToolPermissions { get; set; }
+
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 		// Notification → User relationship
@@ -277,6 +285,74 @@ namespace SoftGcc.Infrastructure.Persistence
 			// Configuration de la clé composite pour EvaluationSupervisors
 			modelBuilder.Entity<EvaluationSupervisors>()
 				.HasKey(es => new { es.EvaluationId, es.SupervisorId });
+
+			ConfigureAiAgent(modelBuilder);
+		}
+
+		private static void ConfigureAiAgent(ModelBuilder modelBuilder)
+		{
+			modelBuilder.Entity<AiProviderConfig>()
+				.HasIndex(p => p.Provider)
+				.IsUnique();
+
+			modelBuilder.Entity<AiConversation>()
+				.HasOne(c => c.User)
+				.WithMany()
+				.HasForeignKey(c => c.UserId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<AiConversation>()
+				.HasIndex(c => c.UserId);
+
+			modelBuilder.Entity<AiMessage>()
+				.HasOne(m => m.Conversation)
+				.WithMany(c => c.Messages)
+				.HasForeignKey(m => m.ConversationId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<AiToolPermission>()
+				.HasOne(p => p.Role)
+				.WithMany()
+				.HasForeignKey(p => p.RoleId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<AiToolPermission>()
+				.HasOne(p => p.User)
+				.WithMany()
+				.HasForeignKey(p => p.UserId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<AiToolPermission>()
+				.HasIndex(p => new { p.RoleId, p.ToolKey })
+				.IsUnique()
+				.HasFilter("[role_id] IS NOT NULL AND [user_id] IS NULL");
+
+			modelBuilder.Entity<AiToolPermission>()
+				.HasIndex(p => new { p.UserId, p.ToolKey })
+				.IsUnique()
+				.HasFilter("[user_id] IS NOT NULL AND [role_id] IS NULL");
+
+			var seedAt = new DateTime(2026, 8, 20, 0, 0, 0, DateTimeKind.Unspecified);
+
+			modelBuilder.Entity<AiAgentSetting>().HasData(new AiAgentSetting
+			{
+				Id = 1,
+				ActiveProvider = "Deepseek",
+				ActiveModel = "deepseek-chat",
+				IsEnabled = false,
+				MaxTokens = 2048,
+				MaxToolRounds = 15,
+				Temperature = 0.3,
+				UpdatedAt = seedAt
+			});
+
+			modelBuilder.Entity<AiProviderConfig>().HasData(
+				new AiProviderConfig { Id = 1, Provider = "Deepseek", BaseUrl = "https://api.deepseek.com", DefaultModel = "deepseek-chat", UpdatedAt = seedAt },
+				new AiProviderConfig { Id = 2, Provider = "OpenAI", BaseUrl = "https://api.openai.com/v1", DefaultModel = "gpt-4o-mini", UpdatedAt = seedAt },
+				new AiProviderConfig { Id = 3, Provider = "Ollama", BaseUrl = "http://localhost:11434/v1", DefaultModel = "llama3.1", UpdatedAt = seedAt },
+				new AiProviderConfig { Id = 4, Provider = "Gemini", BaseUrl = "https://generativelanguage.googleapis.com/v1beta", DefaultModel = "gemini-2.0-flash", UpdatedAt = seedAt },
+				new AiProviderConfig { Id = 5, Provider = "Claude", BaseUrl = "https://api.anthropic.com", DefaultModel = "claude-sonnet-4-20250514", UpdatedAt = seedAt }
+			);
 		}
 	}
 
