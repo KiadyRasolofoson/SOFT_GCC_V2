@@ -2,6 +2,8 @@
 
 > Système de licensing on-premise basé sur RSA 4096 bits — Protection par signature + binding machine.
 
+Les chemins de ce document sont relatifs à la racine du dépôt.
+
 ---
 
 ## 1. Générer une licence pour un client (côté éditeur)
@@ -168,7 +170,7 @@ Pour renouveler une licence arrivée à expiration :
 La table `license` n'existe pas en base. Exécutez le script SQL :
 
 ```bash
-sqlcmd -S localhost -d Soft_GCC -i BACKEND/bdd/01_CREATE_LICENSE_TABLE.sql
+sqlcmd -S localhost -d Soft_GCC -i BACKEND/src/SoftGcc.Api/bdd/Licence/01_CREATE_LICENSE_TABLE.sql
 ```
 
 Ou via votre outil SQL préféré (SSMS, Azure Data Studio, etc.)

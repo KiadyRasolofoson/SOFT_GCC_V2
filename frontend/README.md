@@ -1,7 +1,7 @@
 # SoftTalent — frontend Angular
 
 Application Angular 22 (Tailwind + Angular Material) branchée sur l’API SoftTalent.
-Le React `front_soft_gcc/` reste en place pendant la migration.
+Le React `old_frontend/` reste en place pendant la migration.
 
 ## Démarrage
 

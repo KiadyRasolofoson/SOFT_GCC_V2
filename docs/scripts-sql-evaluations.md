@@ -1,18 +1,18 @@
-# 📁 Scripts SQL - Module d'Évaluation (VERSION FINALE)
+# Scripts SQL - Module d'Évaluation
 
-Ce dossier contient tous les scripts SQL nécessaires pour installer et configurer le module d'évaluation de l'application GCC.
+Les scripts SQL du module d'évaluation se trouvent dans `BACKEND/src/SoftGcc.Api/bdd/eval/`.
+Les chemins de ce document sont relatifs à la racine du dépôt.
 
 ---
 
 ## 🎯 STRUCTURE FINALE (4 SCRIPTS PRINCIPAUX)
 
 ```
-📁 BACKEND/bdd/eval/
-├── 📄 01_TABLES_EVALUATIONS.sql       ⭐ TABLES (25 tables)
-├── 📄 02_VUES_EVALUATIONS.sql         ⭐ VUES (8 vues)
-├── 📄 03_DONNEES_ESSENTIELLES.sql     ⭐ DONNÉES DE BASE
-├── 📄 04_DONNEES_TEST.sql             🧪 DONNÉES DE TEST (optionnel)
-└── 📄 README.md                       📚 Ce fichier
+BACKEND/src/SoftGcc.Api/bdd/eval/
+├── 01_TABLES_EVALUATIONS.sql       TABLES (25 tables)
+├── 02_VUES_EVALUATIONS.sql         VUES (8 vues)
+├── 03_DONNEES_ESSENTIELLES.sql     DONNÉES DE BASE
+└── 04_DONNEES_TEST.sql             DONNÉES DE TEST (optionnel)
 ```
 
 ---

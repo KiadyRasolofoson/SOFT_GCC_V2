@@ -1,6 +1,0 @@
-@soft_carriere_competence_HostAddress = http://localhost:5189
-
-GET {{soft_carriere_competence_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

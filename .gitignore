@@ -45,12 +45,12 @@ BACKEND/.history/
 # === BACKEND - node_modules (si npm installé par erreur) ===
 BACKEND/node_modules/
 
-# === FRONTEND - Build output ===
-front_soft_gcc/dist/
-front_soft_gcc/dist-ssr/
+# === FRONTEND REACT (old_frontend) - Build output ===
+old_frontend/dist/
+old_frontend/dist-ssr/
 
-# === FRONTEND - Dépendances ===
-front_soft_gcc/node_modules/
+# === FRONTEND REACT (old_frontend) - Dépendances ===
+old_frontend/node_modules/
 
 # === DESIGN SYSTEM (Angular, indépendant) ===
 design-system/node_modules/
@@ -61,14 +61,8 @@ frontend/node_modules/
 frontend/dist/
 frontend/.angular/
 
-# === FRONTEND - Historique des backups ===
-front_soft_gcc/.history/
-
-# === Photo - Fichiers volumineux / espaces ===
-# (Optionnel: décommenter si vous ne voulez pas versionner les photos)
-# Photo/*.jpeg
-# Photo/*.jpg
-# Photo/*.png
+# === FRONTEND REACT (old_frontend) - Historique des backups ===
+old_frontend/.history/
 
 # === IDE / Éditeurs ===
 .vscode/*
