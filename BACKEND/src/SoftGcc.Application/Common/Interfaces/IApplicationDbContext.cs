@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SoftGcc.Domain.Entities;
+using SoftGcc.Domain.Entities.AiAgent;
 using SoftGcc.Domain.Entities.career_plan;
 using SoftGcc.Domain.Entities.crud_career;
 using SoftGcc.Domain.Entities.dashboard;
@@ -113,6 +114,11 @@ public interface IApplicationDbContext
     public DbSet<ActivityLog> ActivityLog { get; }
     public DbSet<License> Licenses { get; }
     public DbSet<Notification> Notifications { get; }
+    public DbSet<AiAgentSetting> AiAgentSettings { get; }
+    public DbSet<AiProviderConfig> AiProviderConfigs { get; }
+    public DbSet<AiConversation> AiConversations { get; }
+    public DbSet<AiMessage> AiMessages { get; }
+    public DbSet<AiToolPermission> AiToolPermissions { get; }
 
     DbSet<TEntity> Set<TEntity>() where TEntity : class;
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

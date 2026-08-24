@@ -271,6 +271,15 @@ export const routes: Routes = [
         canActivate: [moduleGuard],
       },
       {
+        path: 'soft-gcc/assistant',
+        loadComponent: () => import('./features/ai-chat/ai-chat.page').then((m) => m.AiChatPage),
+      },
+      {
+        path: 'soft-gcc/parametres/agent-ia',
+        loadComponent: () =>
+          import('./features/ai-chat/ai-agent-settings.page').then((m) => m.AiAgentSettingsPage)
+      },
+      {  
         path: 'soft-gcc/historique',
         loadComponent: () =>
           import('./features/history/activity-history.page').then((m) => m.ActivityHistoryPage),
