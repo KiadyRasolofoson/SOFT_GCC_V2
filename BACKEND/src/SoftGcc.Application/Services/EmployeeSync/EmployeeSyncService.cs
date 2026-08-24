@@ -6,7 +6,6 @@ using SoftGcc.Domain.Entities.salary_skills;
 using SoftGcc.Domain.Entities.salary_skills.p_sw;
 using SoftGcc.Domain.Interfaces;
 using SoftGcc.Application.Common.Interfaces;
-using SoftGcc.Application.Common.Interfaces;
 
 namespace SoftGcc.Application.Services.EmployeeSync
 {

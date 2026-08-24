@@ -7,6 +7,7 @@ import {
   CareerPlanForm,
   CareerPlanFormErrors,
   CareerPlanPayload,
+  createEmptyForm,
 } from '../../core/career-plan-create.models';
 import { CareerPlanCreateService } from '../../core/career-plan-create.service';
 import { GccSelectOption } from '../../ui/gcc.types';
@@ -16,36 +17,6 @@ import { GccSelect } from '../../ui/gcc-select';
 import { CareerAdvancementFormComponent } from './components/career-advancement-form.component';
 import { CareerAppointmentFormComponent } from './components/career-appointment-form.component';
 import { CareerLayoffFormComponent } from './components/career-layoff-form.component';
-
-function createEmptyForm(): CareerPlanForm {
-  return {
-    assignmentTypeId: '1',
-    registrationNumber: null,
-    decisionNumber: null,
-    decisionDate: null,
-    assignmentDate: null,
-    description: null,
-    establishmentId: null,
-    departmentId: null,
-    positionId: null,
-    employeeTypeId: null,
-    socioCategoryProfessionalId: null,
-    indicationId: null,
-    baseSalary: null,
-    netSalary: null,
-    professionalCategoryId: null,
-    legalClassId: null,
-    newsletterTemplateId: null,
-    paymentMethodId: null,
-    endingContract: null,
-    reason: null,
-    assigningInstitution: null,
-    startDate: null,
-    endDate: null,
-    echelonId: null,
-    state: 1,
-  };
-}
 
 @Component({
   selector: 'app-career-plan-create-page',

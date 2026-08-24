@@ -16,9 +16,31 @@ export interface CertificateHistoryItem {
   fileSize: number | null;
 }
 
+export interface EstablishmentInfo {
+  establishmentId: number;
+  establishmentName: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
+  website: string;
+  socialMedia: string;
+  [key: string]: any;
+}
+
 @Injectable({ providedIn: 'root' })
 export class EmployeeAttestationService {
   private readonly http = inject(HttpClient);
+
+  async loadEstablishment(id: number | null | undefined): Promise<EstablishmentInfo | null> {
+    if (!id) return null;
+    try {
+      return await firstValueFrom(
+        this.http.get<EstablishmentInfo>(`${environment.apiUrl}/Establishment/${id}`),
+      );
+    } catch {
+      return null;
+    }
+  }
 
   async loadCertificateTypes(): Promise<CertificateTypeItem[]> {
     try {
@@ -66,7 +88,12 @@ export class EmployeeAttestationService {
     formData.append('state', String(payload.state));
     formData.append('token', payload.token);
 
-    await firstValueFrom(this.http.post(`${environment.apiUrl}/CareerPlan/Certificate/Save`, formData));
+    // Le backend renvoie un corps TEXTE avec statut 200 (Ok("...")) → responseType 'text' pour éviter l'échec de parse JSON.
+    await firstValueFrom(
+      this.http.post(`${environment.apiUrl}/CareerPlan/Certificate/Save`, formData, {
+        responseType: 'text',
+      }),
+    );
   }
 
   async getHistory(registrationNumber: string): Promise<CertificateHistoryItem[]> {
@@ -105,7 +132,11 @@ export class EmployeeAttestationService {
     fileName: string;
     base64Pdf: string;
   }): Promise<void> {
-    await firstValueFrom(this.http.post(`${environment.apiUrl}/Email/send-pdf`, payload));
+    await firstValueFrom(
+      this.http.post(`${environment.apiUrl}/Email/send-pdf`, payload, {
+        responseType: 'text',
+      }),
+    );
   }
 
   private createReference(counter: number): string {

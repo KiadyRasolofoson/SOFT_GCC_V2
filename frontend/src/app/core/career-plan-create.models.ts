@@ -125,3 +125,34 @@ export interface EchelonOption {
   echelonId: number | string;
   echelonName: string;
 }
+
+/** Formulaire vide (parité React initializeForm — type affectation par défaut : nomination). */
+export function createEmptyForm(): CareerPlanForm {
+  return {
+    assignmentTypeId: '1',
+    registrationNumber: null,
+    decisionNumber: null,
+    decisionDate: null,
+    assignmentDate: null,
+    description: null,
+    establishmentId: null,
+    departmentId: null,
+    positionId: null,
+    employeeTypeId: null,
+    socioCategoryProfessionalId: null,
+    indicationId: null,
+    baseSalary: null,
+    netSalary: null,
+    professionalCategoryId: null,
+    legalClassId: null,
+    newsletterTemplateId: null,
+    paymentMethodId: null,
+    endingContract: null,
+    reason: null,
+    assigningInstitution: null,
+    startDate: null,
+    endDate: null,
+    echelonId: null,
+    state: 1,
+  };
+}

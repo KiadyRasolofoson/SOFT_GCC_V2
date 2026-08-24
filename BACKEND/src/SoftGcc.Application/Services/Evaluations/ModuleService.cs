@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SoftGcc.Domain.Entities.Evaluations;
 using SoftGcc.Application.Common.Interfaces;
-using SoftGcc.Application.Common.Interfaces;
 
 namespace SoftGcc.Application.Services.Evaluations
 {

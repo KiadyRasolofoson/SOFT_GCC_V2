@@ -250,7 +250,7 @@ namespace SoftGcc.Application.Services.Evaluations
             return (users, totalPages);
         }
 
-        public async Task<(IEnumerable<VEmployeeDetails> Employees, int TotalPages)> GetVEmployeeDetailsPaginatedAsync(
+        public async Task<(IEnumerable<VEmployeeDetails> Employees, int TotalPages, int TotalCount)> GetVEmployeeDetailsPaginatedAsync(
             int pageNumber = 1, 
             int pageSize = 10,
             string? search = null,
@@ -331,7 +331,47 @@ namespace SoftGcc.Application.Services.Evaluations
                 .Take(pageSize)
                 .ToListAsync();
 
-            return (employees, totalPages);
+            return (employees, totalPages, totalItems);
+        }
+
+        // Statistiques de notation (totaux par statut) — mêmes filtres que GetVEmployeeDetailsPaginatedAsync
+        public async Task<(int TotalCount, int NoneCount, int ToGradeCount, int ExpertCount, int ValidatedCount)> GetEmployeeNotationStatisticsAsync(
+            string? search = null,
+            int? position = null,
+            int? department = null)
+        {
+            var query = _dataService.GetEmployeeDetailsQuery();
+
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(e =>
+                    (e.FirstName + " " + e.LastName).Contains(search) ||
+                    e.FirstName.Contains(search) ||
+                    e.LastName.Contains(search));
+
+            if (position.HasValue)
+                query = query.Where(e => e.positionId == position);
+
+            if (department.HasValue)
+            {
+                var deptRows = await _dataService.ExecuteReaderAsync(
+                    "SELECT Name FROM Department WHERE DepartmentId = @p0", department.Value);
+                if (deptRows.Count > 0)
+                {
+                    var deptName = deptRows[0]["Name"]?.ToString();
+                    if (!string.IsNullOrEmpty(deptName))
+                    {
+                        query = query.Where(e => e.Department != null && e.Department.Contains(deptName));
+                    }
+                }
+            }
+
+            var totalCount = await query.CountAsync();
+            var noneCount = await query.CountAsync(e => e.EvaluationId == null);
+            var toGradeCount = await query.CountAsync(e => e.EvaluationId != null && e.IsServiceApproved != true);
+            var expertCount = await query.CountAsync(e => e.IsServiceApproved == true && e.IsDgApproved != true);
+            var validatedCount = await query.CountAsync(e => e.IsServiceApproved == true && e.IsDgApproved == true);
+
+            return (totalCount, noneCount, toGradeCount, expertCount, validatedCount);
         }
 
         public async Task<User?> GetUserByEmailAsync(string email)
@@ -389,7 +429,7 @@ namespace SoftGcc.Application.Services.Evaluations
         }
 
         // Get paginated users with search
-        public async Task<(IEnumerable<object> Users, int TotalPages)> GetPaginatedUsersAsync(int pageNumber, int pageSize, string? search)
+        public async Task<(IEnumerable<object> Users, int TotalPages, int TotalCount, int MissingEmailCount)> GetPaginatedUsersAsync(int pageNumber, int pageSize, string? search)
         {
             string whereClause = string.IsNullOrEmpty(search)
                 ? "1=1"
@@ -420,6 +460,19 @@ namespace SoftGcc.Application.Services.Evaluations
 
             var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
+            // Compteur des comptes sans e-mail sur l'ensemble filtré
+            string missingEmailWhere = string.IsNullOrEmpty(search)
+                ? "1=1"
+                : "(u.first_name LIKE @p0 OR u.last_name LIKE @p0 OR u.username LIKE @p0 OR u.Email LIKE @p0)";
+            var missingEmailRows = await _dataService.ExecuteReaderAsync($@"
+                SELECT COUNT(*) AS MissingEmailCount
+                FROM Users u
+                WHERE {missingEmailWhere} AND (u.Email IS NULL OR u.Email = '')",
+                string.IsNullOrEmpty(search) ? Array.Empty<object>() : new object[] { searchParam });
+            var missingEmailCount = missingEmailRows.FirstOrDefault()?.ContainsKey("MissingEmailCount") == true
+                ? Convert.ToInt32(missingEmailRows.First()["MissingEmailCount"])
+                : 0;
+
             var userList = users.Select(row => new
             {
                 Id = Convert.ToInt32(row["UserId"]),
@@ -431,7 +484,7 @@ namespace SoftGcc.Application.Services.Evaluations
                 Role = row.ContainsKey("RoleTitle") ? new { Title = row["RoleTitle"]?.ToString() ?? "" } : null
             }).ToList();
 
-            return (userList, totalPages);
+            return (userList, totalPages, totalItems, missingEmailCount);
         }
     }
 }

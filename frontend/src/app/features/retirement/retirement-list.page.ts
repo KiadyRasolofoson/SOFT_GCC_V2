@@ -71,15 +71,15 @@ import { RetirementFilter, RetirementItem, RetirementParameter, RetirementServic
         </label>
 
         <div class="min-w-0">
-          <gcc-select [options]="civiliteOptions()" [(value)]="filters.civiliteId" placeholder="Civilité" />
+          <gcc-select [options]="civiliteOptions()" [value]="filters.civiliteId" (valueChange)="onSelectFilterChange('civiliteId', $event)" placeholder="Civilité" />
         </div>
 
         <div class="min-w-0">
-          <gcc-select [options]="departmentOptions()" [(value)]="filters.departmentId" placeholder="Département" />
+          <gcc-select [options]="departmentOptions()" [value]="filters.departmentId" (valueChange)="onSelectFilterChange('departmentId', $event)" placeholder="Département" />
         </div>
 
         <div class="min-w-0">
-          <gcc-select [options]="positionOptions()" [(value)]="filters.positionId" placeholder="Poste" />
+          <gcc-select [options]="positionOptions()" [value]="filters.positionId" (valueChange)="onSelectFilterChange('positionId', $event)" placeholder="Poste" />
         </div>
       </div>
     </div>
@@ -304,6 +304,11 @@ export class RetirementListPage {
 
   onFilterChange(): void {
     this.filterDebouncer.next();
+  }
+
+  onSelectFilterChange(field: string, value: string | null): void {
+    (this.filters as Record<string, any>)[field] = value ?? '';
+    this.onFilterChange();
   }
 
   onPageChange(event: PageEvent): void {

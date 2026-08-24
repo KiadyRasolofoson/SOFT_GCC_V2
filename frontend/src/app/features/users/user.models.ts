@@ -62,6 +62,8 @@ export interface PaginatedUsers {
   totalPages: number;
   currentPage: number;
   pageSize: number;
+  totalCount?: number;
+  missingEmailCount?: number;
 }
 
 export interface AdminRole {

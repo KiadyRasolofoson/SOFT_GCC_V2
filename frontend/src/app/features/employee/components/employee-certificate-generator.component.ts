@@ -1,16 +1,24 @@
-import { Component, inject, input, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, inject, input, signal, viewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { EmployeeAttestationService } from '../../../core/employee-attestation.service';
+import { environment } from '../../../../environments/environment';
+import { CertificateTypeItem, EmployeeAttestationService, EstablishmentInfo } from '../../../core/employee-attestation.service';
 import { GccEmptyState } from '../../../ui/gcc-empty-state';
-import { GccSelect } from '../../../ui/gcc-select';
-
-type JsonObject = Record<string, any>;
+import { AttestationFormComponent } from './attestation-form.component';
+import { AttestationPreviewPanelComponent } from './attestation-preview-panel.component';
+import {
+  ATTESTATION_VARIABLES,
+  CompanyInfo,
+  createAttestationForm,
+  EMPTY_COMPANY,
+  FALLBACK_EMAIL,
+  JsonObject,
+} from './attestation.constants';
+import { downloadBlob, generateAttestationPdf, newToken, pdfToFile, toBase64 } from './attestation-pdf.util';
 
 @Component({
   selector: 'app-employee-certificate-generator',
-  imports: [FormsModule, MatButtonModule, MatIconModule, GccSelect, GccEmptyState],
+  imports: [MatButtonModule, MatIconModule, GccEmptyState, AttestationFormComponent, AttestationPreviewPanelComponent],
   template: `
     @if (!registrationNumber()) {
       <gcc-empty-state
@@ -18,148 +26,53 @@ type JsonObject = Record<string, any>;
         message="Impossible de générer une attestation sans matricule employé."
       />
     } @else {
-      <section class="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="mb-4 flex items-center justify-between">
-            <h3 class="text-base font-semibold text-navy">Génération d'attestation</h3>
-            <button mat-stroked-button type="button" class="gcc-btn-secondary" (click)="regenerateReference()">
-              <mat-icon>autorenew</mat-icon>
-              Nouvelle référence
-            </button>
-          </div>
+      @if (loading()) {
+        <div class="rounded-xl border border-slate-200 bg-white p-5 text-center text-sm text-slate-500 shadow-sm">
+          Chargement du formulaire…
+        </div>
+      } @else {
+        <section class="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+          <!-- Colonne formulaire -->
+          <app-attestation-form
+            [form]="form"
+            [certificateTypes]="certificateTypes()"
+            [variables]="variables"
+            [error]="error()"
+            [uploading]="uploading()"
+            [sending]="sending()"
+            [errorUpload]="errorUpload()"
+            [uploadSuccess]="uploadSuccess()"
+            [sendError]="sendError()"
+            [sendSuccess]="sendSuccess()"
+            [info]="info()"
+            [showPreview]="showPreview()"
+            (regenerateReference)="regenerateReference()"
+            (previewToggle)="togglePreview()"
+            (exportPdf)="handleExportPDF()"
+            (send)="handleSend()"
+            (reset)="resetForm()"
+          />
 
-          @if (loading()) {
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-              Chargement du formulaire…
-            </div>
-          } @else {
-            <div class="grid gap-3 md:grid-cols-2">
-              <label class="flex flex-col gap-1">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Référence</span>
-                <input
-                  type="text"
-                  class="h-10 rounded-xl border border-slate-200 px-3 text-sm text-navy outline-none"
-                  [(ngModel)]="reference"
-                />
-              </label>
-
-              <label class="flex flex-col gap-1">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Type d'attestation</span>
-                <gcc-select [options]="certificateTypeOptions()" [(value)]="certificateTypeId" placeholder="Sélectionner" />
-              </label>
-
-              <label class="flex flex-col gap-1">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Date</span>
-                <input
-                  type="date"
-                  class="h-10 rounded-xl border border-slate-200 px-3 text-sm text-navy outline-none"
-                  [(ngModel)]="issueDate"
-                />
-              </label>
-
-              <label class="flex flex-col gap-1">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lieu</span>
-                <input
-                  type="text"
-                  class="h-10 rounded-xl border border-slate-200 px-3 text-sm text-navy outline-none"
-                  [(ngModel)]="place"
-                  placeholder="Antananarivo"
-                />
-              </label>
-
-              <label class="flex flex-col gap-1 md:col-span-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Motif</span>
-                <input
-                  type="text"
-                  class="h-10 rounded-xl border border-slate-200 px-3 text-sm text-navy outline-none"
-                  [(ngModel)]="reason"
-                  placeholder="Attestation de travail"
-                />
-              </label>
-
-              <label class="flex flex-col gap-1">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Nom signataire</span>
-                <input
-                  type="text"
-                  class="h-10 rounded-xl border border-slate-200 px-3 text-sm text-navy outline-none"
-                  [(ngModel)]="signatoryName"
-                />
-              </label>
-
-              <label class="flex flex-col gap-1">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Poste signataire</span>
-                <input
-                  type="text"
-                  class="h-10 rounded-xl border border-slate-200 px-3 text-sm text-navy outline-none"
-                  [(ngModel)]="signatoryPosition"
-                />
-              </label>
-
-              <label class="flex flex-col gap-1 md:col-span-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Fichier PDF</span>
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  class="h-10 rounded-xl border border-slate-200 px-3 py-2 text-sm text-navy"
-                  (change)="onFileSelected($event)"
-                />
-                @if (selectedFileName()) {
-                  <span class="text-xs text-slate-500">Fichier sélectionné: {{ selectedFileName() }}</span>
-                }
-              </label>
-
-              <label class="flex flex-col gap-1 md:col-span-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Email destinataire</span>
-                <input
-                  type="email"
-                  class="h-10 rounded-xl border border-slate-200 px-3 text-sm text-navy outline-none"
-                  [(ngModel)]="recipientEmail"
-                  placeholder="email@entreprise.com"
-                />
-              </label>
-            </div>
-
-            @if (error()) {
-              <p class="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error() }}</p>
-            }
-            @if (success()) {
-              <p class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ success() }}</p>
-            }
-
-            <div class="mt-4 flex flex-wrap gap-2">
-              <button mat-flat-button type="button" class="gcc-btn-primary" (click)="saveExported()" [disabled]="saving()">
-                <mat-icon>save</mat-icon>
-                Enregistrer fichier exporté
-              </button>
-              <button mat-stroked-button type="button" class="gcc-btn-secondary" (click)="saveAndSend()" [disabled]="saving()">
-                <mat-icon>send</mat-icon>
-                Enregistrer et envoyer par email
-              </button>
-            </div>
-          }
-        </article>
-
-        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h3 class="mb-3 text-base font-semibold text-navy">Aperçu attestation</h3>
-          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <p>
-              Nous attestons que <strong>{{ fullName() }}</strong>, matricule <strong>{{ registrationNumber() }}</strong>,
-              occupe le poste de <strong>{{ positionName() || '—' }}</strong>
-              depuis le <strong>{{ hiringDateLabel() }}</strong>.
-            </p>
-            <p class="mt-2">
-              Cette attestation est délivrée pour <strong>{{ reason || 'attester la situation professionnelle' }}</strong>.
-            </p>
-            <p class="mt-2">
-              Fait à <strong>{{ place || '—' }}</strong>, le <strong>{{ formatDate(issueDate) }}</strong>.
-            </p>
-            <p class="mt-4">
-              Signataire: <strong>{{ signatoryName || '—' }}</strong> ({{ signatoryPosition || '—' }})
-            </p>
-            <p class="mt-2 text-xs text-slate-500">Référence: {{ reference || '—' }}</p>
-          </div>
-        </article>
-      </section>
+          <!-- Colonne aperçu -->
+          <app-attestation-preview-panel
+            [showPreview]="showPreview()"
+            [logo]="form.logoPreview"
+            [title]="form.certificateTypeName"
+            [reference]="form.reference"
+            [sections]="form.sections"
+            [reason]="form.reason"
+            [place]="form.place"
+            [date]="form.date"
+            [signatoryPosition]="form.signatoryPosition"
+            [signatoryName]="form.signatoryName"
+            [companyInfo]="companyInfo()"
+            [qrValue]="qrValue()"
+            [careerSummary]="careerSummary()"
+            (previewToggle)="togglePreview()"
+            (requestShow)="showPreview.set(true)"
+          />
+        </section>
+      }
     }
   `,
 })
@@ -169,79 +82,120 @@ export class EmployeeCertificateGeneratorComponent {
   readonly registrationNumber = input<string | null>(null);
   readonly careerSummary = input<JsonObject | null>(null);
 
+  private readonly previewComp = viewChild(AttestationPreviewPanelComponent);
+
   readonly loading = signal(true);
-  readonly saving = signal(false);
+  readonly uploading = signal(false);
+  readonly sending = signal(false);
   readonly error = signal<string | null>(null);
-  readonly success = signal<string | null>(null);
-  readonly selectedFileName = signal<string | null>(null);
+  readonly errorUpload = signal<string | null>(null);
+  readonly uploadSuccess = signal<string | null>(null);
+  readonly sendError = signal<string | null>(null);
+  readonly sendSuccess = signal(false);
+  readonly info = signal<string | null>(null);
 
-  readonly certificateTypeOptions = signal<{ label: string; value: string }[]>([]);
+  readonly certificateTypes = signal<CertificateTypeItem[]>([]);
+  readonly companyInfo = signal<CompanyInfo>(EMPTY_COMPANY);
+  readonly showPreview = signal(false);
+  readonly variables = ATTESTATION_VARIABLES;
 
-  reference = '';
-  certificateTypeId: string | null = null;
-  issueDate = this.toInputDate(new Date());
-  place = '';
-  reason = 'Attestation de travail';
-  signatoryName = '';
-  signatoryPosition = '';
-  recipientEmail = '';
+  /** Modèle mutable du document, partagé entre le formulaire et l'aperçu. */
+  readonly form = createAttestationForm();
 
-  private selectedFile: File | null = null;
+  /** Jeton du document courant : partagé entre l'aperçu (QR) et l'enregistrement, régénéré après chaque succès. */
+  private readonly token = signal(newToken());
+
+  readonly qrValue = computed(() => `${environment.apiUrl}/verify/${this.token()}`);
 
   constructor() {
     void this.initialize();
   }
 
-  fullName(): string {
-    const data = this.careerSummary();
-    return [data?.['firstName'], data?.['name']].filter(Boolean).join(' ').trim() || 'Employé';
-  }
-
-  positionName(): string {
-    return String(this.careerSummary()?.['positionName'] ?? '');
-  }
-
-  hiringDateLabel(): string {
-    return this.formatDate(this.careerSummary()?.['hiringDate'] ?? this.careerSummary()?.['assignmentDate']);
-  }
-
   async regenerateReference(): Promise<void> {
-    this.reference = await this.service.generateReference();
+    this.form.reference = await this.service.generateReference();
   }
 
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+  togglePreview(): void {
+    this.showPreview.update((value) => !value);
+    this.info.set(null);
+  }
 
-    if (file && file.type !== 'application/pdf') {
-      this.error.set('Le fichier doit être au format PDF.');
-      this.selectedFile = null;
-      this.selectedFileName.set(null);
+  async handleExportPDF(): Promise<void> {
+    this.errorUpload.set(null);
+    this.uploadSuccess.set(null);
+    this.info.set(null);
+
+    if (!this.registrationNumber() || !this.form.certificateTypeId || !this.form.reference.trim()) {
+      this.errorUpload.set('Certains champs obligatoires sont manquants pour l’enregistrement.');
+      return;
+    }
+    if (!this.showPreview()) {
+      this.info.set('Veuillez cliquer d’abord sur le bouton « Voir l’aperçu »');
       return;
     }
 
-    this.selectedFile = file;
-    this.selectedFileName.set(file?.name ?? null);
-    this.error.set(null);
+    try {
+      const blob = await this.generatePdfBlob();
+      const file = pdfToFile(blob, this.form.reference.trim());
+      const uploaded = await this.handleUpload(file, 1, this.token());
+      if (uploaded) {
+        downloadBlob(blob, file.name);
+      }
+    } catch (err: any) {
+      this.errorUpload.set(`Erreur lors de l'export PDF : ${err?.message ?? 'erreur inconnue'}`);
+    }
   }
 
-  async saveExported(): Promise<void> {
-    await this.save(1, false);
+  async handleSend(): Promise<void> {
+    this.sending.set(true);
+    this.sendError.set(null);
+    this.sendSuccess.set(false);
+    this.errorUpload.set(null);
+    this.info.set(null);
+
+    try {
+      if (!this.registrationNumber() || !this.form.certificateTypeId || !this.form.reference.trim()) {
+        this.errorUpload.set('Certains champs obligatoires sont manquants pour l’enregistrement.');
+        return;
+      }
+      if (!this.showPreview()) {
+        this.info.set('Veuillez cliquer d’abord sur le bouton « Voir l’aperçu »');
+        return;
+      }
+
+      const blob = await this.generatePdfBlob();
+      const file = pdfToFile(blob, this.form.reference.trim());
+
+      const uploaded = await this.handleUpload(file, 2, this.token());
+      if (!uploaded) return; // stoppe si l'upload a échoué
+
+      const recipient = String(this.careerSummary()?.['email'] ?? '') || FALLBACK_EMAIL;
+      const data = this.careerSummary() ?? {};
+      await this.service.sendCertificateEmail({
+        recipientEmail: recipient,
+        subject: this.form.certificateTypeName || 'Attestation',
+        body: `<p>Bonjour ${data['civiliteName'] ?? ''} ${data['firstName'] ?? ''} ${data['name'] ?? ''},<br/>Veuillez trouver ci-joint votre attestation de travail.</p>`,
+        fileName: file.name,
+        base64Pdf: await toBase64(file),
+      });
+
+      this.sendSuccess.set(true);
+      this.sendError.set(null);
+    } catch {
+      this.sendError.set("Une erreur s'est produite lors de l'envoi de l'attestation.");
+    } finally {
+      this.sending.set(false);
+    }
   }
 
-  async saveAndSend(): Promise<void> {
-    await this.save(2, true);
-  }
-
-  formatDate(value: string | null | undefined): string {
-    if (!value) return '—';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    }).format(date);
+  async resetForm(): Promise<void> {
+    await this.resetAboutModel();
+    this.showPreview.set(false);
+    this.info.set(null);
+    this.errorUpload.set(null);
+    this.uploadSuccess.set(null);
+    this.sendError.set(null);
+    this.sendSuccess.set(false);
   }
 
   private async initialize(): Promise<void> {
@@ -249,113 +203,127 @@ export class EmployeeCertificateGeneratorComponent {
     this.error.set(null);
 
     try {
-      const [types, reference] = await Promise.all([
+      const establishmentId = Number(this.careerSummary()?.['establishmentId'] ?? 0) || null;
+      const [establishment, types, reference] = await Promise.all([
+        this.service.loadEstablishment(establishmentId),
         this.service.loadCertificateTypes(),
         this.service.generateReference(),
       ]);
 
-      this.certificateTypeOptions.set(
-        types.map((item) => ({
-          label: item.certificateTypeName,
-          value: String(item.certificateTypeId),
-        })),
-      );
-
-      this.certificateTypeId =
-        this.certificateTypeOptions().length > 0 ? this.certificateTypeOptions()[0].value : null;
-      this.reference = reference;
-      this.place = String(this.careerSummary()?.['workLocation'] ?? '');
-      this.recipientEmail = String(this.careerSummary()?.['email'] ?? '');
+      this.certificateTypes.set(types);
+      this.form.reference = reference;
+      this.form.place = String(this.careerSummary()?.['workLocation'] ?? '');
+      this.companyInfo.set(this.toCompanyInfo(establishment));
     } catch {
-      this.error.set('Impossible de préparer le formulaire d\'attestation.');
+      this.error.set('Erreur lors de la récupération des données.');
     } finally {
       this.loading.set(false);
     }
   }
 
-  private async save(state: number, sendEmail: boolean): Promise<void> {
-    this.error.set(null);
-    this.success.set(null);
+  private toCompanyInfo(establishment: EstablishmentInfo | null): CompanyInfo {
+    if (!establishment) return EMPTY_COMPANY;
+    return {
+      nom: establishment.establishmentName ?? '',
+      adresse: establishment.address ?? '',
+      telephone: establishment.phoneNumber ?? '',
+      email: establishment.email ?? '',
+      site: establishment.website ?? '',
+      reseaux: establishment.socialMedia ?? '',
+    };
+  }
 
-    if (!this.registrationNumber()) {
-      this.error.set('Matricule introuvable.');
-      return;
-    }
-    if (!this.certificateTypeId) {
-      this.error.set('Veuillez sélectionner un type d\'attestation.');
-      return;
-    }
-    if (!this.reference.trim()) {
-      this.error.set('La référence est obligatoire.');
-      return;
-    }
-    if (!this.selectedFile) {
-      this.error.set('Veuillez sélectionner un fichier PDF avant enregistrement.');
-      return;
-    }
+  private async resetAboutModel(): Promise<void> {
+    this.form.certificateTypeId = null;
+    this.form.certificateTypeName = '';
+    this.form.place = '';
+    this.form.date = '';
+    this.form.reason = '';
+    this.form.signatoryPosition = '';
+    this.form.signatoryName = '';
+    this.form.logoPreview = null;
+    this.token.set(newToken());
+    this.form.reference = await this.service.generateReference();
+  }
 
-    const token = crypto.randomUUID().replaceAll('-', '');
-    this.saving.set(true);
+  private async generatePdfBlob(): Promise<Blob> {
+    const element = this.previewComp()?.previewElement();
+    if (!element) {
+      throw new Error('Aperçu introuvable');
+    }
+    return generateAttestationPdf(element);
+  }
+
+  private async handleUpload(file: File, state: number, token: string): Promise<boolean> {
+    if (!file) {
+      this.errorUpload.set('Aucun fichier sélectionné.');
+      return false;
+    }
+    this.uploading.set(true);
+    this.uploadSuccess.set(null);
+    this.errorUpload.set(null);
 
     try {
       await this.service.saveCertificate({
-        file: this.selectedFile,
+        file,
         registrationNumber: this.registrationNumber()!,
-        certificateTypeId: Number(this.certificateTypeId),
-        reference: this.reference.trim(),
+        certificateTypeId: Number(this.form.certificateTypeId),
+        reference: this.form.reference.trim(),
         state,
         token,
       });
-
-      if (sendEmail) {
-        if (!this.recipientEmail) {
-          this.error.set('Aucun email destinataire.');
-          return;
-        }
-        const base64Pdf = await this.toBase64(this.selectedFile);
-        await this.service.sendCertificateEmail({
-          recipientEmail: this.recipientEmail,
-          subject: this.selectedTypeLabel() || 'Attestation',
-          body: `<p>Bonjour,</p><p>Veuillez trouver ci-joint votre attestation (${this.reference}).</p>`,
-          fileName: this.selectedFile.name,
-          base64Pdf,
-        });
-      }
-
-      this.success.set(sendEmail ? 'Attestation enregistrée et envoyée par email.' : 'Attestation enregistrée.');
-      this.selectedFile = null;
-      this.selectedFileName.set(null);
-      this.reference = await this.service.generateReference();
-    } catch (error: any) {
-      const message = typeof error?.error === 'string' ? error.error : null;
-      this.error.set(message || 'Erreur lors de l\'enregistrement de l\'attestation.');
+      this.uploadSuccess.set(
+        state === 1 ? 'PDF exporté et enregistré avec succès.' : 'PDF enregistré avec succès.',
+      );
+      await this.resetAboutModel();
+      return true;
+    } catch (err: any) {
+      this.errorUpload.set(this.uploadErrorMessage(err));
+      return false;
     } finally {
-      this.saving.set(false);
+      this.uploading.set(false);
     }
   }
 
-  private selectedTypeLabel(): string {
-    const current = this.certificateTypeOptions().find((item) => item.value === this.certificateTypeId);
-    return current?.label ?? '';
-  }
+    private uploadErrorMessage(err: any): string {
+    if (!err) {
+      return "Erreur inconnue lors de l'enregistrement. Veuillez réessayer.";
+    }
+    console.error('[Attestation] Échec de l\'enregistrement', err);
 
-  private async toBase64(file: File): Promise<string> {
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = String(reader.result ?? '');
-        const base64 = result.includes(',') ? result.split(',')[1] : result;
-        resolve(base64);
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-  }
+    const status = err?.status;
+    if (status === 409) {
+      return 'Erreur : référence ou jeton déjà utilisé pour une autre attestation.';
+    }
+    if (status === 400) {
+      return 'Erreur : fichier PDF invalide ou informations manquantes.';
+    }
+    if (status === 404) {
+      return 'Erreur : employé introuvable pour cet enregistrement.';
+    }
+    if (status === 401) {
+      return 'Erreur : session expirée, veuillez vous reconnecter.';
+    }
+    if (status === 403) {
+      return 'Erreur : permissions insuffisantes pour enregistrer une attestation.';
+    }
+    if (status === 0) {
+      return 'Impossible de joindre le serveur (réseau/CORS). Vérifiez que le backend est démarré.';
+    }
 
-  private toInputDate(date: Date): string {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    // const body = err?.error;
+    // if (typeof body === 'string' && body.trim()) {
+    //   return `Erreur serveur : ${body.trim()}`;
+    // }
+    // if (body && typeof body === 'object') {
+    //   const msg = body.message ?? body.Message ?? body.title ?? body.detail ?? body.error;
+    //   if (typeof msg === 'string' && msg.trim()) {
+    //     return `Erreur serveur : ${msg.trim()}`;
+    //   }
+    //   if (body.traceId) {
+    //     return `Erreur serveur (trace ${body.traceId}). Consultez les logs du serveur.`;
+    //   }
+    // }
+    return "Erreur inconnue lors de l'enregistrement. Veuillez réessayer.";
   }
 }

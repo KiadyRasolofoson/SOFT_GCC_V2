@@ -3,14 +3,19 @@ import { authGuard, guestGuard, moduleGuard } from './core/auth.guard';
 import { LoginPage } from './features/auth/login.page';
 import { CareerListPage } from './features/career/career-list.page';
 import { CareerPlanCreatePage } from './features/career/career-plan-create.page';
+import { CareerPlanEditPage } from './features/career/career-plan-edit.page';
 import { DashboardPage } from './features/dashboard/dashboard.page';
 import { DepartmentDetailPage } from './features/effectif/department-detail.page';
 import { DepartmentEffectivePage } from './features/effectif/department-effective.page';
+import { EmployeeCreatePage } from './features/employee/employee-create.page';
 import { EmployeeFichePage } from './features/employee/employee-fiche.page';
+import { EmployeeListPage } from './features/employee/employee-list.page';
 import { EmployeeSkillListPage } from './features/skills/employee-skill-list.page';
 import { NotFoundPage } from './features/not-found/not-found.page';
 import { OrgChartPage } from './features/organigramme/org-chart.page';
 import { RetirementListPage } from './features/retirement/retirement-list.page';
+import { ParametresCarrieresPage } from './features/settings/parametres-carrieres.page';
+import { ParametresCompetencesPage } from './features/settings/parametres-competences.page';
 import { WishEvolutionAddPage } from './features/wish-evolution/wish-evolution-add.page';
 import { WishEvolutionDetailPage } from './features/wish-evolution/wish-evolution-detail.page';
 import { WishEvolutionEditPage } from './features/wish-evolution/wish-evolution-edit.page';
@@ -48,8 +53,26 @@ export const routes: Routes = [
         canActivate: [moduleGuard],
       },
       {
+        path: 'soft-gcc/carrieres/fiche/modifier/:careerPlanId',
+        component: CareerPlanEditPage,
+        data: { mode: 'edit' },
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/carrieres/fiche/detail/:careerPlanId',
+        component: CareerPlanEditPage,
+        data: { mode: 'detail' },
+        canActivate: [moduleGuard],
+      },
+      {
         path: 'soft-gcc/effectifs',
         component: DepartmentEffectivePage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/effectifs/importer',
+        loadComponent: () =>
+          import('./features/effectif/csv-import.page').then((m) => m.CsvImportPage),
         canActivate: [moduleGuard],
       },
       {
@@ -65,6 +88,26 @@ export const routes: Routes = [
       {
         path: 'soft-gcc/retraite',
         component: RetirementListPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/competences',
+        component: ParametresCompetencesPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/carrieres',
+        component: ParametresCarrieresPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/employes/liste',
+        component: EmployeeListPage,
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/employes/creer',
+        component: EmployeeCreatePage,
         canActivate: [moduleGuard],
       },
       {
@@ -168,6 +211,24 @@ export const routes: Routes = [
         canActivate: [moduleGuard],
       },
       {
+        path: 'soft-gcc/evaluations/bulletin',
+        loadComponent: () =>
+          import('./features/evaluations/bulletin-competence.page').then((m) => m.BulletinCompetencePage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/attestations',
+        loadComponent: () =>
+          import('./features/attestation/attestation-model-list.page').then((m) => m.AttestationModelListPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/synchronisation',
+        loadComponent: () =>
+          import('./features/settings/employee-sync.page').then((m) => m.EmployeeSyncPage),
+        canActivate: [moduleGuard],
+      },
+      {
         path: 'soft-gcc/evaluations/parametres',
         loadComponent: () =>
           import('./features/evaluations/settings.page').then((m) => m.SettingsPage),
@@ -216,7 +277,13 @@ export const routes: Routes = [
       {
         path: 'soft-gcc/parametres/agent-ia',
         loadComponent: () =>
-          import('./features/ai-chat/ai-agent-settings.page').then((m) => m.AiAgentSettingsPage),
+          import('./features/ai-chat/ai-agent-settings.page').then((m) => m.AiAgentSettingsPage)
+      },
+      {  
+        path: 'soft-gcc/historique',
+        loadComponent: () =>
+          import('./features/history/activity-history.page').then((m) => m.ActivityHistoryPage),
+        canActivate: [moduleGuard],
       },
       { path: 'history', redirectTo: 'soft-gcc/evaluations/historique', pathMatch: 'full' },
       { path: '**', component: NotFoundPage, canActivate: [moduleGuard] },
