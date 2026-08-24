@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
@@ -9,10 +9,11 @@ import { NotificationService } from '../core/notification.service';
 import { toMaterialIcon } from '../core/icon-map';
 import { AppModule } from '../core/models';
 import { GccNotificationBell } from '../ui/gcc-notification-bell';
+import { GccAiChatWidget } from '../features/ai-chat/gcc-ai-chat-widget';
 
 @Component({
   selector: 'gcc-app-shell',
-  imports: [MatIconModule, MatButtonModule, RouterLink, RouterOutlet, GccNotificationBell],
+  imports: [MatIconModule, MatButtonModule, RouterLink, RouterOutlet, GccNotificationBell, GccAiChatWidget],
   template: `
     <div class="flex h-screen overflow-hidden bg-canvas font-sans">
       <!-- Sidebar Navigation -->
@@ -148,7 +149,12 @@ import { GccNotificationBell } from '../ui/gcc-notification-bell';
 
         <!-- Main Workspace -->
         <main
-          class="min-w-0 flex-1 overflow-y-auto p-6 transition duration-200 lg:p-8"
+          class="flex min-w-0 flex-1 flex-col transition duration-200"
+          [class.overflow-y-auto]="!canvasMain()"
+          [class.overflow-hidden]="canvasMain()"
+          [class.p-6]="!canvasMain()"
+          [class.lg:p-8]="!canvasMain()"
+          [class.p-0]="canvasMain()"
           [class.pointer-events-none]="notifications.panelOpen()"
           [class.select-none]="notifications.panelOpen()"
           [class.blur-sm]="notifications.panelOpen()"
@@ -157,19 +163,21 @@ import { GccNotificationBell } from '../ui/gcc-notification-bell';
           <router-outlet />
         </main>
 
-        <!-- Page Footer -->
-        <footer
-          class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 bg-white/50 px-6 py-3.5 text-xs text-slate-400 transition duration-200"
-          [class.pointer-events-none]="notifications.panelOpen()"
-          [class.select-none]="notifications.panelOpen()"
-          [class.blur-sm]="notifications.panelOpen()"
-          [class.opacity-70]="notifications.panelOpen()"
-        >
-          <span>© SoftTalent — Plateforme de Gestion des Compétences & Carrières</span>
-          <span class="text-slate-400">Données RH Confidentielles</span>
-        </footer>
+        @if (!canvasMain()) {
+          <footer
+            class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 bg-white/50 px-6 py-3.5 text-xs text-slate-400 transition duration-200"
+            [class.pointer-events-none]="notifications.panelOpen()"
+            [class.select-none]="notifications.panelOpen()"
+            [class.blur-sm]="notifications.panelOpen()"
+            [class.opacity-70]="notifications.panelOpen()"
+          >
+            <span>© SoftTalent — Plateforme de Gestion des Compétences & Carrières</span>
+            <span class="text-slate-400">Données RH Confidentielles</span>
+          </footer>
+        }
       </div>
     </div>
+    <gcc-ai-chat-widget />
   `,
 })
 export class GccAppShell {
@@ -180,6 +188,7 @@ export class GccAppShell {
   readonly openMenu = signal<string | null>(null);
   readonly userMenuOpen = signal(false);
   currentPath = signal(this.router.url.split('?')[0]);
+  readonly canvasMain = computed(() => this.currentPath().startsWith('/soft-gcc/assistant'));
 
   constructor() {
     this.syncOpenMenu(this.currentPath());
