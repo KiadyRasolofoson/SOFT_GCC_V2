@@ -1,5 +1,6 @@
 using SoftGcc.Application.Services.license;
 using SoftGcc.Application.Common.Interfaces;
+using SoftGcc.Application.Dtos.LicenseDto;
 
 namespace SoftGcc.Api.Middlewares
 {
@@ -48,44 +49,21 @@ namespace SoftGcc.Api.Middlewares
 
         public async Task InvokeAsync(HttpContext context, ILicenseService licenseService)
         {
+            var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
+
+            if (IsPathExcluded(path))
+            {
+                await _next(context);
+                return;
+            }
+
+            LicenseValidationResult status;
             try
             {
-                var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
-
-                // Ignore les chemins exclus
-                if (IsPathExcluded(path))
-                {
-                    await _next(context);
-                    return;
-                }
-
-                // Vérifie le statut de la licence
-                var status = await licenseService.GetStatus();
-
-                if (status.IsValid)
-                {
-                    // Licence valide : continue le pipeline
-                    await _next(context);
-                    return;
-                }
-
-                // Licence invalide : retourne une réponse structurée
-                context.Response.StatusCode = _options.FailureStatusCode;
-                context.Response.ContentType = "application/json";
-
-                var response = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    error = "license_invalid",
-                    reason = status.ErrorReason.ToString(),
-                    message = status.ErrorMessage,
-                    isLicenseValid = false
-                });
-
-                await context.Response.WriteAsync(response);
+                status = await licenseService.GetStatus();
             }
             catch (Exception ex)
             {
-                // Capture toutes les exceptions pour ne jamais renvoyer de 500 brute
                 context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                 context.Response.ContentType = "application/json";
 
@@ -97,7 +75,27 @@ namespace SoftGcc.Api.Middlewares
                 });
 
                 await context.Response.WriteAsync(response);
+                return;
             }
+
+            if (status.IsValid)
+            {
+                await _next(context);
+                return;
+            }
+
+            context.Response.StatusCode = _options.FailureStatusCode;
+            context.Response.ContentType = "application/json";
+
+            var invalid = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                error = "license_invalid",
+                reason = status.ErrorReason.ToString(),
+                message = status.ErrorMessage,
+                isLicenseValid = false
+            });
+
+            await context.Response.WriteAsync(invalid);
         }
 
         /// <summary>
