@@ -38,5 +38,11 @@ namespace SoftGcc.Domain.Entities.salary_skills
 		public byte[]? Photo { get; set; }
 		[Column("Email")]
         public string? Email { get; set; }
+
+		[Column("Rib_number")]
+		public string? RibNumber { get; set; }
+
+		[Column("Bank_name")]
+		public string? BankName { get; set; }
 	}
 }

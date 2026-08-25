@@ -1,5 +1,6 @@
 using SoftGcc.Domain.Entities.crud_career;
 using SoftGcc.Domain.Entities.salary_skills;
+using SoftGcc.Domain.Common;
 
 namespace SoftGcc.Application.Common.Interfaces
 {
@@ -13,6 +14,7 @@ namespace SoftGcc.Application.Common.Interfaces
         Task Add(Employee employee, byte[]? photo);
         Task Update(Employee employee);
         Task Delete(int id);
+        Task<EmployeeResetResult> ResetEmployeesAsync();
         Task<(List<VEmployee> Data, int TotalCount)> GetEmployeeFilter(
             string? keyWord = null,
             string? departmentId = null,

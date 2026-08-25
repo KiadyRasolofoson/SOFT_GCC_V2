@@ -14,5 +14,13 @@ namespace SoftGcc.Domain.Entities.crud_career
 		[Column("Position_name")]
 		public string? PositionName { get; set; }
 
+		[Column("Department_id")]
+		public int? DepartmentId { get; set; }
+
+		[Column("Professional_category_id")]
+		public int? ProfessionalCategoryId { get; set; }
+
+		[Column("Legal_class_id")]
+		public int? LegalClassId { get; set; }
 	}
 }

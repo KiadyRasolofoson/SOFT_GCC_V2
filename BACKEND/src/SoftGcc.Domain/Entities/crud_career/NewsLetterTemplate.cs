@@ -13,5 +13,11 @@ namespace SoftGcc.Domain.Entities.crud_career
 
 		[Column("Newsletter_template_name")]
 		public string? NewsletterTemplateName { get; set; }
+
+		[Column("Employee_type_id")]
+		public int? EmployeeTypeId { get; set; }
+
+		[Column("Deduction_rate")]
+		public decimal? DeductionRate { get; set; }
 	}
 }

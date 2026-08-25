@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,7 @@ import {
   CareerPlanForm,
   CareerPlanFormErrors,
   CareerPlanPayload,
+  EmployeeOption,
   createEmptyForm,
 } from '../../core/career-plan-create.models';
 import { CareerPlanCreateService } from '../../core/career-plan-create.service';
@@ -172,15 +173,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
         <app-career-appointment-form
           class="mt-5"
           [form]="form"
-          [establishmentOptions]="establishmentOptions()"
-          [departmentOptions]="departmentOptions()"
-          [positionOptions]="positionOptions()"
-          [employeeTypeOptions]="employeeTypeOptions()"
-          [indicationOptions]="indicationOptions()"
-          [professionalCategoryOptions]="professionalCategoryOptions()"
-          [legalClassOptions]="legalClassOptions()"
-          [newsletterTemplateOptions]="newsletterTemplateOptions()"
-          [paymentMethodOptions]="paymentMethodOptions()"
+          [employeeRib]="selectedEmployeeRib()"
         />
       } @else if (selectedType() === '2') {
         <app-career-layoff-form class="mt-5" [form]="form" />
@@ -233,20 +226,22 @@ export class CareerPlanCreatePage {
 
   readonly employeeOptions = signal<GccSelectOption[]>([]);
   readonly assignmentTypeOptions = signal<GccSelectOption[]>([]);
-  readonly establishmentOptions = signal<GccSelectOption[]>([]);
+  readonly employeeRecords = signal<EmployeeOption[]>([]);
   readonly departmentOptions = signal<GccSelectOption[]>([]);
-  readonly positionOptions = signal<GccSelectOption[]>([]);
-  readonly employeeTypeOptions = signal<GccSelectOption[]>([]);
   readonly indicationOptions = signal<GccSelectOption[]>([]);
   readonly professionalCategoryOptions = signal<GccSelectOption[]>([]);
   readonly legalClassOptions = signal<GccSelectOption[]>([]);
-  readonly newsletterTemplateOptions = signal<GccSelectOption[]>([]);
-  readonly paymentMethodOptions = signal<GccSelectOption[]>([]);
   readonly echelonOptions = signal<GccSelectOption[]>([]);
 
   readonly form: CareerPlanForm = createEmptyForm();
 
-  readonly selectedType = computed(() => this.form.assignmentTypeId ?? '1');
+  @ViewChild(CareerAppointmentFormComponent) appointmentForm!: CareerAppointmentFormComponent;
+
+  readonly selectedType = signal<string>('1');
+  readonly selectedRegistration = signal<string | null>(null);
+  readonly selectedEmployeeRib = computed(
+    () => this.employeeRecords().find((e) => e.registrationNumber === this.selectedRegistration())?.ribNumber ?? null,
+  );
 
   constructor() {
     void this.initLookups();
@@ -260,30 +255,22 @@ export class CareerPlanCreatePage {
       const [
         employees,
         assignmentTypes,
-        establishments,
         departments,
-        positions,
-        employeeTypes,
         indications,
         professionalCategories,
         legalClasses,
-        newsletterTemplates,
-        paymentMethods,
         echelons,
       ] = await Promise.all([
         this.service.loadEmployees(),
         this.service.loadAssignmentTypes(),
-        this.service.loadEstablishments(),
         this.service.loadDepartments(),
-        this.service.loadPositions(),
-        this.service.loadEmployeeTypes(),
         this.service.loadIndications(),
         this.service.loadProfessionalCategories(),
         this.service.loadLegalClasses(),
-        this.service.loadNewsletterTemplates(),
-        this.service.loadPaymentMethods(),
         this.service.loadEchelons(),
       ]);
+
+      this.employeeRecords.set(employees);
 
       this.employeeOptions.set(
         employees.map((item) => ({
@@ -298,17 +285,8 @@ export class CareerPlanCreatePage {
         { label: 'Sélectionner une affectation', value: '' },
         ...assignmentTypes.map((item) => ({ label: item.assignmentTypeName, value: String(item.assignmentTypeId) })),
       ]);
-      this.establishmentOptions.set(
-        establishments.map((item) => ({ label: item.establishmentName, value: String(item.establishmentId) })),
-      );
       this.departmentOptions.set(
         departments.map((item) => ({ label: item.name, value: String(item.departmentId) })),
-      );
-      this.positionOptions.set(
-        positions.map((item) => ({ label: item.positionName, value: String(item.positionId) })),
-      );
-      this.employeeTypeOptions.set(
-        employeeTypes.map((item) => ({ label: item.employeeTypeName, value: String(item.employeeTypeId) })),
       );
       this.indicationOptions.set(
         indications.map((item) => ({ label: item.indicationName, value: String(item.indicationId) })),
@@ -322,15 +300,6 @@ export class CareerPlanCreatePage {
       this.legalClassOptions.set(
         legalClasses.map((item) => ({ label: item.legalClassName, value: String(item.legalClassId) })),
       );
-      this.newsletterTemplateOptions.set(
-        newsletterTemplates.map((item) => ({
-          label: item.newsletterTemplateName,
-          value: String(item.newsletterTemplateId),
-        })),
-      );
-      this.paymentMethodOptions.set(
-        paymentMethods.map((item) => ({ label: item.paymentMethodName, value: String(item.paymentMethodId) })),
-      );
       this.echelonOptions.set(echelons.map((item) => ({ label: item.echelonName, value: String(item.echelonId) })));
     } catch {
       this.loadError.set('Erreur lors du chargement des données du formulaire.');
@@ -341,11 +310,13 @@ export class CareerPlanCreatePage {
 
   onRegistrationNumberChange(value: string | null): void {
     this.form.registrationNumber = value;
+    this.selectedRegistration.set(value);
     this.revalidateField('registrationNumber', value);
   }
 
   onAssignmentTypeChange(value: string | null): void {
     this.form.assignmentTypeId = value ?? '1';
+    this.selectedType.set(value ?? '1');
     this.resetSubFormFields();
     this.revalidateField('assignmentTypeId', this.form.assignmentTypeId);
   }
@@ -358,16 +329,19 @@ export class CareerPlanCreatePage {
   onDecisionDateChange(value: string): void {
     this.form.decisionDate = value;
     this.revalidateField('decisionDate', value);
+    this.revalidateField('assignmentDate', this.form.assignmentDate);
   }
 
   onAssignmentDateChange(value: string): void {
     this.form.assignmentDate = value;
     this.revalidateField('assignmentDate', value);
+    this.revalidateField('decisionDate', this.form.decisionDate);
   }
 
   async submit(): Promise<void> {
     if (this.submitting()) return;
     if (!this.validateForm()) return;
+    if (this.selectedType() === '1' && this.appointmentForm && !this.appointmentForm.validate()) return;
 
     this.submitError.set(null);
     this.submitting.set(true);
@@ -385,6 +359,8 @@ export class CareerPlanCreatePage {
 
   resetAll(): void {
     Object.assign(this.form, createEmptyForm());
+    this.selectedType.set('1');
+    this.selectedRegistration.set(null);
     this.formErrors.set({});
     this.submitError.set(null);
     this.loadError.set(null);
@@ -442,8 +418,17 @@ export class CareerPlanCreatePage {
       case 'decisionNumber':
         return value?.trim() ? undefined : 'Le numéro de décision est obligatoire.';
       case 'decisionDate':
+        if (!value) return 'La date de décision est obligatoire.';
+        if (this.form.assignmentDate && value > this.form.assignmentDate) {
+          return 'La date de décision doit être antérieure ou égale à la date d’affectation.';
+        }
+        return undefined;
       case 'assignmentDate':
-        return value ? undefined : 'La date est obligatoire.';
+        if (!value) return 'La date d’affectation est obligatoire.';
+        if (this.form.decisionDate && this.form.decisionDate > value) {
+          return 'La date de décision doit être antérieure ou égale à la date d’affectation.';
+        }
+        return undefined;
       default:
         return undefined;
     }
@@ -454,8 +439,16 @@ export class CareerPlanCreatePage {
     if (!this.form.registrationNumber) next.registrationNumber = 'La matricule est obligatoire.';
     if (!this.form.assignmentTypeId) next.assignmentTypeId = 'Le type d’affectation est obligatoire.';
     if (!this.form.decisionNumber?.trim()) next.decisionNumber = 'Le numéro de décision est obligatoire.';
-    if (!this.form.decisionDate) next.decisionDate = 'La date de décision est obligatoire.';
-    if (!this.form.assignmentDate) next.assignmentDate = 'La date d’affectation est obligatoire.';
+    if (!this.form.decisionDate) {
+      next.decisionDate = 'La date de décision est obligatoire.';
+    } else if (this.form.assignmentDate && this.form.decisionDate > this.form.assignmentDate) {
+      next.decisionDate = 'La date de décision doit être antérieure ou égale à la date d’affectation.';
+    }
+    if (!this.form.assignmentDate) {
+      next.assignmentDate = 'La date d’affectation est obligatoire.';
+    } else if (this.form.decisionDate && this.form.decisionDate > this.form.assignmentDate) {
+      next.assignmentDate = 'La date de décision doit être antérieure ou égale à la date d’affectation.';
+    }
     this.formErrors.set(next);
     return Object.keys(next).length === 0;
   }

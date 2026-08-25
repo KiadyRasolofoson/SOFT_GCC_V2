@@ -18,6 +18,14 @@ namespace SoftGcc.Application.Services.crud_career
 			return await _repository.GetAll();
 		}
 
+		public async Task<IEnumerable<LegalClass>> GetByProfessionalCategory(int? professionalCategoryId)
+		{
+			var legalsClass = await _repository.GetAll();
+			return professionalCategoryId.HasValue
+				? legalsClass.Where(l => l.ProfessionalCategoryId == professionalCategoryId.Value)
+				: legalsClass;
+		}
+
 		public async Task<LegalClass?> GetById(int id)
 		{
 			return await _repository.GetById(id);
