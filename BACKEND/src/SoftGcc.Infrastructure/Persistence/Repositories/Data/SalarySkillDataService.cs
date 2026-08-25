@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SoftGcc.Domain.Entities.crud_career;
 using SoftGcc.Domain.Entities.salary_skills;
 using SoftGcc.Domain.Interfaces.Data;
+using SoftGcc.Domain.Common;
 using SoftGcc.Infrastructure.Persistence;
 
 namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
@@ -238,6 +239,60 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 Console.Error.WriteLine($"Erreur : {ex.Message}");
                 return ex.Message;
             }
+        }
+
+        public async Task<EmployeeResetResult> ResetEmployeesAsync()
+        {
+            var result = new EmployeeResetResult(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            // 1) Détacher les comptes utilisateurs liés aux employés (FK optionnelle → NULL)
+            result = result with { UsersDetached = await _context.Database.ExecuteSqlRawAsync(
+                "UPDATE Users SET employee_id = NULL WHERE employee_id IN (SELECT Employee_id FROM Employee)") };
+
+            // --- Sous-arbre des évaluations (FK NO ACTION → suppression explicite des enfants avant les parents) ---
+
+            // Participants aux entretiens (enfants des entretiens)
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM InterviewParticipants");
+
+            // Données directes des évaluations (enfants de Evaluations)
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM EvaluationSupervisors");
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM EvaluationStatusLogs");
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Evaluation_Responses");
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Evaluation_Selected_Questions");
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM EvaluationDelegations");
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Evaluation_progress");
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Evaluation_questionnaire");
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Evaluation_interviews");
+
+            // Résultats de compétences et comptes temporaires (référencent aussi les employés)
+            result = result with { CompetenceResultsDeleted = await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM Evaluation_Competence_Results") };
+            result = result with { TemporaryAccountsDeleted = await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM TemporaryAccounts") };
+
+            // --- Évaluations elles-mêmes ---
+            result = result with { EvaluationsDeleted = await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM Evaluations") };
+
+            // --- Données directes des employés (pas de relation EF → suppression explicite) ---
+            result = result with { SkillsDeleted = await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM Employee_skill") };
+            result = result with { EducationsDeleted = await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM Employee_education") };
+            result = result with { LanguagesDeleted = await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM Employee_language") };
+            result = result with { OtherFormationsDeleted = await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM Employee_other_formation") };
+            result = result with { WishEvolutionDeleted = await _context.Database.ExecuteSqlRawAsync(
+                "DELETE FROM Wish_evolution_career") };
+
+            // --- Enfin les employés eux-mêmes ---
+            result = result with { EmployeesDeleted = await _context.Database.ExecuteSqlRawAsync("DELETE FROM Employee") };
+
+            await transaction.CommitAsync();
+            return result;
         }
     }
 }

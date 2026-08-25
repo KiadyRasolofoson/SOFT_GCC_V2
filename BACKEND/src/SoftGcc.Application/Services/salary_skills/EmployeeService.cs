@@ -3,6 +3,7 @@ using SoftGcc.Domain.Entities.salary_skills;
 using SoftGcc.Domain.Interfaces;
 using SoftGcc.Domain.Interfaces.Data;
 using SoftGcc.Application.Common.Interfaces;
+using SoftGcc.Domain.Common;
 
 namespace SoftGcc.Application.Services.salary_skills
 {
@@ -69,6 +70,11 @@ namespace SoftGcc.Application.Services.salary_skills
 		public async Task Delete(int id)
 		{
 			await _repository.Delete(id);
+		}
+
+		public async Task<EmployeeResetResult> ResetEmployeesAsync()
+		{
+			return await _dataService.ResetEmployeesAsync();
 		}
 
 		public async Task SaveImage(ImageEntity imageEntity)
