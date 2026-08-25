@@ -66,6 +66,11 @@ namespace SoftGcc.Application.Services.Evaluations
         {
             ArgumentNullException.ThrowIfNull(question);
 
+            if (question.ResponseTypeId == 3 && (question.CompetenceLineId is null or <= 0))
+            {
+                throw new ValidationException("Une question de type SCORE doit être liée à une ligne de compétence du poste.");
+            }
+
             var newQuestion = new EvaluationQuestion
             {
                 question = question.Question,
@@ -91,6 +96,11 @@ namespace SoftGcc.Application.Services.Evaluations
         public async Task UpdateQuestionAsync(int questionId, EvaluationQuestionDto question)
         {
             ArgumentNullException.ThrowIfNull(question);
+
+            if (question.ResponseTypeId == 3 && (question.CompetenceLineId is null or <= 0))
+            {
+                throw new ValidationException("Une question de type SCORE doit être liée à une ligne de compétence du poste.");
+            }
 
             if (question.QuestionId.HasValue && question.QuestionId.Value != questionId)
             {

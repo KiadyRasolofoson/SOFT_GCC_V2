@@ -1,121 +1,100 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SoftGcc.Application.Common.Interfaces;
-
 using SoftGcc.Application.Authorization;
+using SoftGcc.Application.Common.Interfaces;
+using SoftGcc.Application.SkillReferential;
+
 namespace SoftGcc.Api.Controllers.Evaluations
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
     [RequirePermission("VIEW_COMPETENCE_BULLETIN","VIEW_SKILLS_PROFILES","MANAGE_SKILLS_PROFILES")]
-public class BulletinCompetenceController : ControllerBase
+    public class BulletinCompetenceController : ControllerBase
     {
         private readonly IEmployeeSkillService _employeeSkillService;
+        private readonly ISkillReferentialService _referential;
 
-        public BulletinCompetenceController(IEmployeeSkillService employeeSkillService)
+        public BulletinCompetenceController(
+            IEmployeeSkillService employeeSkillService,
+            ISkillReferentialService referential)
         {
             _employeeSkillService = employeeSkillService;
+            _referential = referential;
         }
 
-        /// <summary>
-        /// Récupère les données structurées pour le bulletin de compétences d'un employé.
-        /// Retourne les compétences groupées par domaine avec classification (maîtrisée, en cours, non acquise).
-        /// </summary>
         [HttpGet("employee/{employeeId}")]
-        public async Task<IActionResult> GetBulletinData(int employeeId)
+        public async Task<IActionResult> GetBulletinData(int employeeId, CancellationToken cancellationToken)
         {
-            try
+            var employeeSkills = await _employeeSkillService.GetEmployeeSkills(employeeId);
+            var gaps = await _referential.GetEmployeeGapsAsync(employeeId, null, cancellationToken);
+
+            var employeeName = employeeSkills.FirstOrDefault()?.Name ?? "";
+            var employeeFirstName = employeeSkills.FirstOrDefault()?.FirstName ?? "";
+            var registrationNumber = employeeSkills.FirstOrDefault()?.RegistrationNumber ?? "";
+            var departmentName = employeeSkills.FirstOrDefault()?.DepartmentName ?? "";
+
+            // Date de dernière mise à jour du niveau acquis, pour la colonne « Dernière MAJ ».
+            var lastUpdatedBySkill = employeeSkills
+                .GroupBy(skill => skill.SkillId)
+                .ToDictionary(group => group.Key, group => group.Max(skill => skill.UpdatedDate));
+
+            var skills = gaps.Items.Select(item =>
             {
-                // 1. Récupérer toutes les compétences de l'employé
-                var employeeSkills = await _employeeSkillService.GetEmployeeSkills(employeeId);
-
-                if (employeeSkills == null || employeeSkills.Count == 0)
+                var classification = SkillGapCalculator.BulletinClassification(item.ExpectedRank, item.AcquiredRank);
+                return new
                 {
-                    return Ok(new BulletinResponse
+                    item.DomainId,
+                    DomainName = string.IsNullOrWhiteSpace(item.DomainName) ? "Non spécifié" : item.DomainName,
+                    Dto = new SkillBulletinDto
                     {
-                        EmployeeId = employeeId,
-                        EmployeeName = "",
-                        EmployeeFirstName = "",
-                        RegistrationNumber = "",
-                        DepartmentName = "",
-                        TotalSkills = 0,
-                        MasteredCount = 0,
-                        InProgressCount = 0,
-                        NotAcquiredCount = 0,
-                        Domains = new List<DomainBulletinDto>()
-                    });
-                }
-
-                // 2. Extraire les infos de l'employé
-                var first = employeeSkills.First();
-                var employeeName = first.Name ?? "";
-                var employeeFirstName = first.FirstName ?? "";
-                var registrationNumber = first.RegistrationNumber ?? "";
-                var departmentName = first.DepartmentName ?? "";
-
-                // 3. Classifier et grouper par domaine
-                var domainGroups = employeeSkills
-                    .GroupBy(s => new { s.DomainSkillId, s.DomainSkillName })
-                    .Select(g =>
-                    {
-                        var skills = g.Select(s => new SkillBulletinDto
-                        {
-                            SkillId = s.SkillId,
-                            SkillName = s.SkillName ?? "Inconnu",
-                            Level = s.Level,
-                            State = s.State ?? 1,
-                            LastUpdated = s.UpdatedDate.Year > 1 ? s.UpdatedDate : (DateTime?)null,
-                            Classification = s.Level >= 70 ? "maitrisee" :
-                                             s.Level >= 40 ? "en_cours" : "non_acquise",
-                            ClassificationLabel = s.Level >= 70 ? "Maîtrisée" :
-                                                  s.Level >= 40 ? "En cours d'acquisition" : "Non acquise"
-                        }).OrderByDescending(s => s.Level).ToList();
-
-                        return new DomainBulletinDto
-                        {
-                            DomainId = g.Key.DomainSkillId,
-                            DomainName = g.Key.DomainSkillName ?? "Non spécifié",
-                            Skills = skills,
-                            MasteredCount = skills.Count(s => s.Classification == "maitrisee"),
-                            InProgressCount = skills.Count(s => s.Classification == "en_cours"),
-                            NotAcquiredCount = skills.Count(s => s.Classification == "non_acquise")
-                        };
-                    })
-                    .OrderBy(d => d.DomainName)
-                    .ToList();
-
-                // 4. Calculer les totaux
-                int totalSkills = employeeSkills.Count;
-                int masteredCount = employeeSkills.Count(s => s.Level >= 70);
-                int inProgressCount = employeeSkills.Count(s => s.Level >= 40 && s.Level < 70);
-                int notAcquiredCount = employeeSkills.Count(s => s.Level < 40);
-
-                var response = new BulletinResponse
-                {
-                    EmployeeId = employeeId,
-                    EmployeeName = employeeName,
-                    EmployeeFirstName = employeeFirstName,
-                    RegistrationNumber = registrationNumber,
-                    DepartmentName = departmentName,
-                    TotalSkills = totalSkills,
-                    MasteredCount = masteredCount,
-                    InProgressCount = inProgressCount,
-                    NotAcquiredCount = notAcquiredCount,
-                    Domains = domainGroups
+                        SkillId = item.SkillId,
+                        SkillName = item.SkillName,
+                        Level = item.AcquiredRank ?? 0,
+                        ExpectedLevel = item.ExpectedRank,
+                        State = 1,
+                        LastUpdated = lastUpdatedBySkill.TryGetValue(item.SkillId, out var lastUpdated)
+                            ? lastUpdated
+                            : null,
+                        Classification = classification,
+                        ClassificationLabel = SkillGapCalculator.BulletinLabel(classification)
+                    }
                 };
+            }).ToList();
 
-                return Ok(response);
-            }
-            catch (Exception ex)
+            var domainGroups = skills
+                .GroupBy(s => new { s.DomainId, s.DomainName })
+                .Select(g =>
+                {
+                    var list = g.Select(x => x.Dto).OrderByDescending(s => s.Level).ToList();
+                    return new DomainBulletinDto
+                    {
+                        DomainId = g.Key.DomainId,
+                        DomainName = g.Key.DomainName,
+                        Skills = list,
+                        MasteredCount = list.Count(s => s.Classification == "maitrisee"),
+                        InProgressCount = list.Count(s => s.Classification == "en_cours"),
+                        NotAcquiredCount = list.Count(s => s.Classification == "non_acquise")
+                    };
+                })
+                .OrderBy(d => d.DomainName)
+                .ToList();
+
+            return Ok(new BulletinResponse
             {
-                Console.WriteLine($"Erreur dans GetBulletinData: {ex.Message}");
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
+                EmployeeId = employeeId,
+                EmployeeName = employeeName,
+                EmployeeFirstName = employeeFirstName,
+                RegistrationNumber = registrationNumber,
+                DepartmentName = departmentName,
+                TotalSkills = skills.Count,
+                MasteredCount = skills.Count(s => s.Dto.Classification == "maitrisee"),
+                InProgressCount = skills.Count(s => s.Dto.Classification == "en_cours"),
+                NotAcquiredCount = skills.Count(s => s.Dto.Classification == "non_acquise"),
+                Domains = domainGroups
+            });
         }
     }
-
-    // --- DTOs ---
 
     public class BulletinResponse
     {
@@ -146,6 +125,7 @@ public class BulletinCompetenceController : ControllerBase
         public int SkillId { get; set; }
         public string SkillName { get; set; } = string.Empty;
         public double Level { get; set; }
+        public int ExpectedLevel { get; set; }
         public int State { get; set; }
         public string Classification { get; set; } = string.Empty;
         public string ClassificationLabel { get; set; } = string.Empty;

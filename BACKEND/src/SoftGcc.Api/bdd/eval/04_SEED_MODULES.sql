@@ -98,8 +98,23 @@ SELECT 'eval_objectifs',      N'Récap objectifs',           NULL, N'/soft-gcc/e
 AND NOT EXISTS (SELECT 1 FROM Modules x WHERE x.name = 'eval_objectifs');
 
 INSERT INTO Modules (name, display_name, icon, route, parent_module_id, sort_order, state)
-SELECT 'param_competences',   N'Gestion Compétences',       NULL, N'/soft-gcc/parametres/competences',  m.module_id, 1, 1 FROM Modules m WHERE m.name = 'parametrage'
+SELECT 'param_competences',   N'Référentiel de compétences', NULL, N'/soft-gcc/parametres/referentiel-competences',  m.module_id, 1, 1 FROM Modules m WHERE m.name = 'parametrage'
 AND NOT EXISTS (SELECT 1 FROM Modules x WHERE x.name = 'param_competences');
+UPDATE Modules
+SET route = N'/soft-gcc/parametres/referentiel-competences',
+    display_name = N'Référentiel de compétences'
+WHERE name = 'param_competences';
+INSERT INTO Modules (name, display_name, icon, route, parent_module_id, sort_order, state)
+SELECT 'param_competences_nomenclatures', N'Nomenclatures compétences', NULL, N'/soft-gcc/parametres/competences', m.module_id, 2, 1
+FROM Modules m WHERE m.name = 'parametrage'
+AND NOT EXISTS (SELECT 1 FROM Modules x WHERE x.name = 'param_competences_nomenclatures');
+UPDATE Modules
+SET parent_module_id = (SELECT TOP 1 module_id FROM Modules WHERE name = 'parametrage'),
+    display_name = N'Nomenclatures compétences',
+    route = N'/soft-gcc/parametres/competences',
+    sort_order = 2,
+    state = 1
+WHERE name = 'param_competences_nomenclatures';
 INSERT INTO Modules (name, display_name, icon, route, parent_module_id, sort_order, state)
 SELECT 'param_carrieres',     N'Gestion Carrières',         NULL, N'/soft-gcc/parametres/carrieres',    m.module_id, 2, 1 FROM Modules m WHERE m.name = 'parametrage'
 AND NOT EXISTS (SELECT 1 FROM Modules x WHERE x.name = 'param_carrieres');
@@ -165,7 +180,7 @@ EXEC(N'UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE n
 EXEC(N'UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = ''competences'') WHERE name IN (''VIEW_SKILLS_PROFILES'',''EDIT_SKILLS_PROFILES'',''VIEW_COMPETENCE_BULLETIN'',''MANAGE_SKILLS_PROFILES'') AND module_id IS NULL');
 EXEC(N'UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = ''organigramme'') WHERE name IN (''VIEW_ORGANIZATION'',''IMPORT_ORGANIZATION'',''MANAGE_ORGANIZATION'') AND module_id IS NULL');
 EXEC(N'UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = ''historique'') WHERE name IN (''VIEW_ACTIVITY_HISTORY'',''MANAGE_ACTIVITY_HISTORY'') AND module_id IS NULL');
-EXEC(N'UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = ''param_competences'') WHERE name IN (''VIEW_SKILL_SETTINGS'',''MANAGE_SKILL_SETTINGS'') AND module_id IS NULL');
+EXEC(N'UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = ''param_competences'') WHERE name IN (''VIEW_SKILL_SETTINGS'',''MANAGE_SKILL_SETTINGS'',''PUBLISH_SKILL_REFERENTIAL'') AND module_id IS NULL');
 EXEC(N'UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = ''param_carrieres'') WHERE name IN (''VIEW_CAREER_SETTINGS'',''MANAGE_CAREER_SETTINGS'') AND module_id IS NULL');
 EXEC(N'UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = ''param_employes'') WHERE name IN (''VIEW_EMPLOYEES'',''CREATE_EMPLOYEES'',''EDIT_EMPLOYEES'',''DELETE_EMPLOYEES'',''MANAGE_EMPLOYEES'') AND module_id IS NULL');
 EXEC(N'UPDATE Permissions SET module_id = (SELECT module_id FROM Modules WHERE name = ''param_synchronisation'') WHERE name = ''MANAGE_EMPLOYEE_SYNC'' AND module_id IS NULL');

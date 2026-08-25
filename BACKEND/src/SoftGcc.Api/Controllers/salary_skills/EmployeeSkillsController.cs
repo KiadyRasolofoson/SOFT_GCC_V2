@@ -1,17 +1,13 @@
-﻿using System;
-using DocumentFormat.OpenXml.Office2010.Excel;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis;
+using SoftGcc.Application.Authorization;
+using SoftGcc.Application.Common.Interfaces;
 using SoftGcc.Application.Services.Evaluations;
-using SoftGcc.Application.Services.history;
-using SoftGcc.Application.Services.salary_skills;
+using SoftGcc.Application.SkillReferential;
 using SoftGcc.Domain.Entities.history;
 using SoftGcc.Domain.Entities.salary_skills;
-using SoftGcc.Application.Common.Interfaces;
+using SoftGcc.Domain.SkillReferential;
 
-using SoftGcc.Application.Authorization;
 namespace SoftGcc.Api.Controllers.salary_skills
 {
 	[Route("api/[controller]")]
@@ -22,14 +18,18 @@ namespace SoftGcc.Api.Controllers.salary_skills
 	{
 		private readonly IEmployeeSkillService _employeeSkillService;
 		private readonly IHistoryService _historyService;
-		private readonly ISkillService _skillService;
+		private readonly ISkillReferentialService _referential;
 		private readonly UserService _userService;
 
-		public EmployeeSkillsController(IEmployeeSkillService service, IHistoryService historyService, ISkillService skillService, UserService userService)
+		public EmployeeSkillsController(
+			IEmployeeSkillService service,
+			IHistoryService historyService,
+			ISkillReferentialService referential,
+			UserService userService)
 		{
 			_employeeSkillService = service;
 			_historyService = historyService;
-			_skillService = skillService;
+			_referential = referential;
 			_userService = userService;
 		}
 
@@ -51,28 +51,9 @@ namespace SoftGcc.Api.Controllers.salary_skills
 		[HttpPost]
 		public async Task<IActionResult> Create(EmployeeSkill employeeSkill)
 		{
+			await Normalize(employeeSkill);
 			await _employeeSkillService.Add(employeeSkill);
-			VEmployeeSkill? vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(employeeSkill.EmployeeSkillId);
-			var userIdClaim = User.FindFirst("userId")?.Value;
-			if (string.IsNullOrEmpty(userIdClaim))
-			{
-				return Unauthorized("Utilisateur non authentifié.");
-			}
-
-			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim!));
-			if (user == null) return NotFound("Utilisateur introuvable.");
-
-			var activityLog = new ActivityLog
-			{
-				UserId = user.Id,
-				Module = 1,
-				Action = "Création",
-				Description = "L'user "+ user.Username +" a crée une nouvelle compétence "+vEmployeeSkill?.SkillName ?? ""+ " pour l'employé matricule "+vEmployeeSkill?.RegistrationNumber ?? "",
-				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
-			};
-
-			await _historyService.Add(activityLog);
+			await WriteLog("Création", employeeSkill.EmployeeSkillId);
 			return CreatedAtAction(nameof(Get), new { id = employeeSkill.EmployeeSkillId }, employeeSkill);
 		}
 
@@ -80,55 +61,17 @@ namespace SoftGcc.Api.Controllers.salary_skills
 		public async Task<IActionResult> Update(int id, EmployeeSkill employeeSkill)
 		{
 			if (id != employeeSkill.EmployeeSkillId) return BadRequest();
-			VEmployeeSkill? vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(id);
-			var userIdClaim = User.FindFirst("userId")?.Value;
-			if (string.IsNullOrEmpty(userIdClaim))
-			{
-				return Unauthorized("Utilisateur non authentifié.");
-			}
-
-			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim!));
-			if (user == null) return NotFound("Utilisateur introuvable.");
-
-			var activityLog = new ActivityLog
-			{
-				UserId = user.Id,
-				Module = 1,
-				Action = "Modification",
-				Description = "L'user "+user.Username+" a modifié la compétence " + vEmployeeSkill?.SkillName ?? "" + " de l'employé matricule " + vEmployeeSkill?.RegistrationNumber ?? "",
-				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
-			};
+			await Normalize(employeeSkill);
+			await WriteLog("Modification", id);
 			await _employeeSkillService.Update(employeeSkill);
-			await _historyService.Add(activityLog);
 			return NoContent();
 		}
 
 		[HttpDelete("{id}")]
 		public async Task<IActionResult> Delete(int id)
 		{
-			VEmployeeSkill? vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(id);
-			var userIdClaim = User.FindFirst("userId")?.Value;
-			if (string.IsNullOrEmpty(userIdClaim))
-			{
-				return Unauthorized("Utilisateur non authentifié.");
-			}
-
-			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim!));
-			if (user == null) return NotFound("Utilisateur introuvable.");
-			
-			var activityLog = new ActivityLog
-			{
-				UserId = user.Id,
-				Module = 1,
-				Action = "Suppression",
-				Description = "L'user "+user.Username+" a supprimé la compétence " + vEmployeeSkill?.SkillName ?? "" + " de l'employé matricule " + vEmployeeSkill?.RegistrationNumber ?? "",
-				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
-			};
-
+			await WriteLog("Suppression", id);
 			await _employeeSkillService.Delete(id);
-			await _historyService.Add(activityLog);
 			return NoContent();
 		}
 
@@ -180,6 +123,40 @@ namespace SoftGcc.Api.Controllers.salary_skills
 				return Ok(stateNumber);
 			}
 			return Ok(employeeDescription);
+		}
+
+		private async Task Normalize(EmployeeSkill employeeSkill)
+		{
+			var request = new EmployeeSkillWriteRequest
+			{
+				SkillId = employeeSkill.SkillId,
+				AcquiredLevel = employeeSkill.AcquiredLevel,
+				LegacyPercent = employeeSkill.Level,
+				Source = EmployeeSkillSource.Manual
+			};
+			await _referential.NormalizeEmployeeSkillAsync(request);
+			employeeSkill.DomainSkillId = request.ResolvedDomainSkillId;
+			employeeSkill.AcquiredLevel = request.ResolvedAcquiredLevel;
+			employeeSkill.SkillVersionId = request.ResolvedSkillVersionId;
+			employeeSkill.Source = request.ResolvedSource;
+		}
+
+		private async Task WriteLog(string action, int employeeSkillId)
+		{
+			VEmployeeSkill? vEmployeeSkill = await _employeeSkillService.GetEmployeeSkillById(employeeSkillId);
+			var userIdClaim = User.FindFirst("userId")?.Value;
+			if (string.IsNullOrEmpty(userIdClaim)) return;
+			var user = await _userService.GetUserByIdAsync(int.Parse(userIdClaim));
+			if (user == null) return;
+			await _historyService.Add(new ActivityLog
+			{
+				UserId = user.Id,
+				Module = 1,
+				Action = action,
+				Description = "L'user " + user.Username + " a traité la compétence " + (vEmployeeSkill?.SkillName ?? "") + " de l'employé matricule " + (vEmployeeSkill?.RegistrationNumber ?? ""),
+				Timestamp = DateTime.UtcNow,
+				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
+			});
 		}
 	}
 }
