@@ -1,21 +1,11 @@
-import { HttpClient } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
-import { DashboardSummary } from '../../core/models';
+import { DashboardFacade } from './application/dashboard.facade';
 import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccKpiCard } from '../../ui/gcc-kpi-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
-
-interface KpiItem {
-  label: string;
-  value: string;
-  hint: string;
-  tone: 'neutral' | 'up' | 'down' | 'accent';
-  icon: string;
-}
 
 @Component({
   selector: 'app-dashboard-page',
@@ -62,7 +52,7 @@ interface KpiItem {
         [message]="error()!"
         actionLabel="Réessayer"
         actionIcon="refresh"
-        (action)="load()"
+        (action)="facade.load()"
       />
     } @else {
       <!-- KPI Cards Grid -->
@@ -93,7 +83,7 @@ interface KpiItem {
           </div>
 
           <div class="space-y-4">
-            @for (dept of departmentStats; track dept.name) {
+            @for (dept of departmentStats(); track dept.name) {
               <div>
                 <div class="flex items-center justify-between text-xs font-semibold mb-1.5">
                   <span class="text-navy">{{ dept.name }}</span>
@@ -130,7 +120,7 @@ interface KpiItem {
           </div>
 
           <div class="space-y-3.5">
-            @for (age of ageDistribution; track age.range) {
+            @for (age of ageDistribution(); track age.range) {
               <div class="flex items-center gap-3">
                 <span class="w-20 text-xs font-semibold text-slate-600 shrink-0">{{ age.range }}</span>
                 <div class="flex-1 h-3 overflow-hidden rounded-full bg-slate-100">
@@ -154,95 +144,18 @@ interface KpiItem {
   `,
 })
 export class DashboardPage implements OnInit {
-  private readonly http = inject(HttpClient);
+  /** Couche présentation (contrôleur) : n'expose que l'état de la facade. */
+  readonly facade = inject(DashboardFacade);
   readonly auth = inject(AuthService);
 
-  readonly currentYear = new Date().getFullYear();
+  readonly currentYear = this.facade.currentYear;
+  readonly kpis = this.facade.kpis;
+  readonly error = this.facade.error;
+  readonly departmentStats = this.facade.departmentStats;
+  readonly ageDistribution = this.facade.ageDistribution;
   readonly crumbs = [{ label: 'Tableau de bord' }];
-  readonly loading = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly kpis = signal<KpiItem[]>([]);
-
-  readonly departmentStats = [
-    { name: 'Ressources Humaines', count: 24, rate: 92 },
-    { name: 'DSI / Informatique', count: 86, rate: 85 },
-    { name: 'Finance & Comptabilité', count: 42, rate: 78 },
-    { name: 'Direction & Management', count: 18, rate: 95 },
-    { name: 'Opérations & Production', count: 120, rate: 71 },
-  ];
-
-  readonly ageDistribution = [
-    { range: '< 25 ans', percentage: 12 },
-    { range: '25-35 ans', percentage: 38 },
-    { range: '35-45 ans', percentage: 28 },
-    { range: '45-55 ans', percentage: 16 },
-    { range: '55+ ans', percentage: 6 },
-  ];
 
   ngOnInit(): void {
-    this.load();
-  }
-
-  load(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.http.get<DashboardSummary>(`${environment.apiUrl}/Dashboard`).subscribe({
-      next: (data) => {
-        this.kpis.set([
-          {
-            label: 'Total employés',
-            value: this.formatNumber(data.employeeTotal),
-            hint: 'Effectif global consolidé',
-            tone: 'up',
-            icon: 'groups',
-          },
-          {
-            label: 'Compétences répertoriées',
-            value: this.formatNumber(data.skillRepertory),
-            hint: 'Référentiel d’entreprise active',
-            tone: 'accent',
-            icon: 'star',
-          },
-          {
-            label: 'Postes actifs',
-            value: this.formatNumber(data.activePosition),
-            hint: 'Positions RH ouvertes',
-            tone: 'neutral',
-            icon: 'work',
-          },
-          {
-            label: 'Taux de couverture',
-            value: `${this.formatNumber(data.coverageRatios)} %`,
-            hint: 'Ecart moyen requis/acquis',
-            tone: 'down',
-            icon: 'insights',
-          },
-          {
-            label: 'Demandes d’évolution',
-            value: this.formatNumber(data.wishEvolutionTotal),
-            hint: 'Souhaits de carrière en cours',
-            tone: 'accent',
-            icon: 'trending_up',
-          },
-          {
-            label: 'Attestations générées',
-            value: this.formatNumber(data.allAttestationNumber),
-            hint: 'Documents officiels produits',
-            tone: 'neutral',
-            icon: 'workspace_premium',
-          },
-        ]);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Le serveur n’a pas pu renvoyer les indicateurs. Vérifiez vos droits ou réessayez.');
-        this.loading.set(false);
-      },
-    });
-  }
-
-  private formatNumber(value: number | null | undefined): string {
-    if (value == null || Number.isNaN(Number(value))) return '—';
-    return new Intl.NumberFormat('fr-FR').format(Number(value));
+    void this.facade.load();
   }
 }

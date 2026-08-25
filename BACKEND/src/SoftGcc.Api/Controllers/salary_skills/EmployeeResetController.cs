@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using SoftGcc.Application.Authorization;
 using SoftGcc.Application.Common.Interfaces;
 
@@ -6,6 +7,7 @@ namespace SoftGcc.Api.Controllers.salary_skills
 {
     [ApiController]
     [Route("api/[controller]")]
+    [AllowAnonymous]
     // [RequirePermission("RESET_EMPLOYEES", "MANAGE_EMPLOYEES", "MANAGE_PERMISSIONS")]
     public class EmployeeResetController : ControllerBase
     {
