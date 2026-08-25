@@ -1,6 +1,6 @@
 /** Modèle déclaratif d'une entité paramètre (miroir EntityManager React). */
 
-export type EntityFormKind = 'simple' | 'establishment' | 'department';
+export type EntityFormKind = 'simple' | 'establishment' | 'department' | 'fields';
 
 export interface EntityColumn {
   header: string;
@@ -14,6 +14,30 @@ export interface EntityColumn {
   imageFallback?: string;
   /** Classes CSS additionnelles de la cellule. */
   className?: string;
+  /** Résolution du libellé d'une clé étrangère dans la liste (endpoint des options). */
+  optionsEndpoint?: string;
+  /** Pour optionsEndpoint : champ libellé. */
+  optionLabel?: string;
+  /** Pour optionsEndpoint : champ valeur. */
+  optionValue?: string;
+}
+
+export type EntityFormFieldType = 'text' | 'number' | 'select' | 'file';
+
+export interface EntityFormField {
+  name: string;
+  label: string;
+  required?: boolean;
+  type?: EntityFormFieldType;
+  placeholder?: string;
+  /** Pour type='select' : endpoint de chargement des options (cascades métier). */
+  optionsEndpoint?: string;
+  /** Pour type='select' : champ libellé dans la liste d'options. */
+  optionLabel?: string;
+  /** Pour type='select' : champ valeur dans la liste d'options. */
+  optionValue?: string;
+  /** Pour type='file' : endpoint d'affichage de l'image en édition ({id}). */
+  imageEndpoint?: string;
 }
 
 export interface EntityConfig {
@@ -27,14 +51,8 @@ export interface EntityConfig {
   formKind: EntityFormKind;
   columns: EntityColumn[];
   searchFields: string[];
-  /** Champs du formulaire complexe (establishment/department). */
-  formFields?: {
-    name: string;
-    label: string;
-    required?: boolean;
-    type?: 'text' | 'file';
-    placeholder?: string;
-  }[];
+  /** Champs du formulaire (texte, nombre, liste déroulante, fichier). */
+  formFields?: EntityFormField[];
 }
 
 /** Endpoint GET/POST/PUT/DELETE par défaut = apiEndpoint ; possibilité d'extra endpoints. */
@@ -78,8 +96,16 @@ const ESTABLISHMENT_FIELDS = [
 ] as const;
 
 const DEPARTMENT_FIELDS = [
-  { name: 'name', label: 'Nom du département', required: true, placeholder: 'Nom du département' },
-  { name: 'photo', label: 'Photo du département', type: 'file' },
+  { name: 'name', label: 'Nom du département', required: true, type: 'text', placeholder: 'Nom du département' },
+  {
+    name: 'establishmentId',
+    label: 'Établissement',
+    type: 'select',
+    optionsEndpoint: '/Establishment',
+    optionLabel: 'establishmentName',
+    optionValue: 'establishmentId',
+  },
+  { name: 'photo', label: 'Photo du département', type: 'file', imageEndpoint: '/Department/photo/{id}' },
 ] as const;
 
 export const CARRIERES_ENTITIES: EntityConfig[] = [
@@ -164,9 +190,35 @@ export const CARRIERES_ENTITIES: EntityConfig[] = [
     apiEndpoint: '/Indication',
     idField: 'indicationId',
     nameField: 'indicationName',
-    formKind: 'simple',
-    columns: simpleColumns('indicationId', 'indicationName'),
+    formKind: 'fields',
+    formLabel: 'Désignation de l\'indice',
+    columns: [
+      { header: '#', field: 'indicationId' },
+      { header: 'Désignation', field: 'indicationName' },
+      {
+        header: 'Classe légale',
+        field: 'legalClassId',
+        optionsEndpoint: '/LegalClass',
+        optionLabel: 'legalClassName',
+        optionValue: 'legalClassId',
+      },
+      { header: 'Valeur', field: 'indicationValue' },
+      { header: 'Point', field: 'pointValue' },
+    ],
     searchFields: ['indicationName'],
+    formFields: [
+      { name: 'indicationName', label: 'Désignation de l\'indice', required: true, type: 'text', placeholder: 'Ex. Indice 300' },
+      {
+        name: 'legalClassId',
+        label: 'Classe légale',
+        type: 'select',
+        optionsEndpoint: '/LegalClass',
+        optionLabel: 'legalClassName',
+        optionValue: 'legalClassId',
+      },
+      { name: 'indicationValue', label: 'Valeur de l\'indice', type: 'number', placeholder: '300' },
+      { name: 'pointValue', label: 'Valeur du point', type: 'number', placeholder: '50,00' },
+    ],
   },
   {
     key: 'legalClass',
@@ -175,9 +227,33 @@ export const CARRIERES_ENTITIES: EntityConfig[] = [
     apiEndpoint: '/LegalClass',
     idField: 'legalClassId',
     nameField: 'legalClassName',
-    formKind: 'simple',
-    columns: simpleColumns('legalClassId', 'legalClassName'),
+    formKind: 'fields',
+    formLabel: 'Désignation de la classe légale',
+    columns: [
+      { header: '#', field: 'legalClassId' },
+      { header: 'Désignation', field: 'legalClassName' },
+      {
+        header: 'Catégorie pro.',
+        field: 'professionalCategoryId',
+        optionsEndpoint: '/ProfessionalCategory',
+        optionLabel: 'professionalCategoryName',
+        optionValue: 'professionalCategoryId',
+      },
+      { header: 'Min. salaire', field: 'minSalary' },
+    ],
     searchFields: ['legalClassName'],
+    formFields: [
+      { name: 'legalClassName', label: 'Désignation de la classe légale', required: true, type: 'text', placeholder: 'Ex. Classe 1' },
+      {
+        name: 'professionalCategoryId',
+        label: 'Catégorie professionnelle',
+        type: 'select',
+        optionsEndpoint: '/ProfessionalCategory',
+        optionLabel: 'professionalCategoryName',
+        optionValue: 'professionalCategoryId',
+      },
+      { name: 'minSalary', label: 'Salaire minimum', type: 'number', placeholder: '150000,00' },
+    ],
   },
   {
     key: 'newsletterTemplate',
@@ -186,9 +262,33 @@ export const CARRIERES_ENTITIES: EntityConfig[] = [
     apiEndpoint: '/NewsletterTemplate',
     idField: 'newsletterTemplateId',
     nameField: 'newsletterTemplateName',
-    formKind: 'simple',
-    columns: simpleColumns('newsletterTemplateId', 'newsletterTemplateName'),
+    formKind: 'fields',
+    formLabel: 'Nom du modèle de bulletin',
+    columns: [
+      { header: '#', field: 'newsletterTemplateId' },
+      { header: 'Désignation', field: 'newsletterTemplateName' },
+      {
+        header: 'Type de contrat',
+        field: 'employeeTypeId',
+        optionsEndpoint: '/EmployeeType',
+        optionLabel: 'employeeTypeName',
+        optionValue: 'employeeTypeId',
+      },
+      { header: 'Taux déduction %', field: 'deductionRate' },
+    ],
     searchFields: ['newsletterTemplateName'],
+    formFields: [
+      { name: 'newsletterTemplateName', label: 'Nom du modèle de bulletin', required: true, type: 'text', placeholder: 'Ex. Standard Cadre 40h' },
+      {
+        name: 'employeeTypeId',
+        label: 'Type de contrat',
+        type: 'select',
+        optionsEndpoint: '/EmployeeType',
+        optionLabel: 'employeeTypeName',
+        optionValue: 'employeeTypeId',
+      },
+      { name: 'deductionRate', label: 'Taux de déduction (%)', type: 'number', placeholder: '15,00' },
+    ],
   },
   {
     key: 'paymentMethod',
@@ -208,9 +308,61 @@ export const CARRIERES_ENTITIES: EntityConfig[] = [
     apiEndpoint: '/Position',
     idField: 'positionId',
     nameField: 'positionName',
-    formKind: 'simple',
-    columns: simpleColumns('positionId', 'positionName'),
+    formKind: 'fields',
+    formLabel: 'Nom du poste',
+    columns: [
+      { header: '#', field: 'positionId' },
+      { header: 'Désignation', field: 'positionName' },
+      {
+        header: 'Département',
+        field: 'departmentId',
+        optionsEndpoint: '/Department',
+        optionLabel: 'name',
+        optionValue: 'departmentId',
+      },
+      {
+        header: 'Catégorie pro.',
+        field: 'professionalCategoryId',
+        optionsEndpoint: '/ProfessionalCategory',
+        optionLabel: 'professionalCategoryName',
+        optionValue: 'professionalCategoryId',
+      },
+      {
+        header: 'Classe légale',
+        field: 'legalClassId',
+        optionsEndpoint: '/LegalClass',
+        optionLabel: 'legalClassName',
+        optionValue: 'legalClassId',
+      },
+    ],
     searchFields: ['positionName'],
+    formFields: [
+      { name: 'positionName', label: 'Nom du poste', required: true, type: 'text', placeholder: 'Nom du poste' },
+      {
+        name: 'departmentId',
+        label: 'Département',
+        type: 'select',
+        optionsEndpoint: '/Department',
+        optionLabel: 'name',
+        optionValue: 'departmentId',
+      },
+      {
+        name: 'professionalCategoryId',
+        label: 'Catégorie professionnelle',
+        type: 'select',
+        optionsEndpoint: '/ProfessionalCategory',
+        optionLabel: 'professionalCategoryName',
+        optionValue: 'professionalCategoryId',
+      },
+      {
+        name: 'legalClassId',
+        label: 'Classe légale',
+        type: 'select',
+        optionsEndpoint: '/LegalClass',
+        optionLabel: 'legalClassName',
+        optionValue: 'legalClassId',
+      },
+    ],
   },
   {
     key: 'professionalCategory',
@@ -255,15 +407,22 @@ export const COMPETENCES_ENTITIES: EntityConfig[] = [
     apiEndpoint: '/Department',
     idField: 'departmentId',
     nameField: 'name',
-    formKind: 'department',
+    formKind: 'fields',
     formLabel: 'Nom du département',
     columns: [
       { header: '#', field: 'departmentId' },
       { header: 'Photo', image: true, imageEndpoint: '/Department/photo/{id}', imageFallback: 'Pas de photo' },
       { header: 'Nom', field: 'name' },
+      {
+        header: 'Établissement',
+        field: 'establishmentId',
+        optionsEndpoint: '/Establishment',
+        optionLabel: 'establishmentName',
+        optionValue: 'establishmentId',
+      },
     ],
     searchFields: ['name'],
-    formFields: DEPARTMENT_FIELDS as any,
+    formFields: DEPARTMENT_FIELDS as unknown as EntityFormField[],
   },
   {
     key: 'language',

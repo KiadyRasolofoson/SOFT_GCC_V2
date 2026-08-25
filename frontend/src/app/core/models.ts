@@ -29,12 +29,3 @@ export interface AccessMap {
   catalogRoutes: string[];
 }
 
-export interface DashboardSummary {
-  employeeTotal: number;
-  wishEvolutionTotal: number;
-  averageSkill: number;
-  skillRepertory: number;
-  activePosition: number;
-  coverageRatios: number;
-  allAttestationNumber: number;
-}

@@ -5,7 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { EntityCrudService } from '../../core/entity-crud.service';
-import { EntityConfig } from './entity.config';
+import { EntityColumn, EntityConfig } from './entity.config';
+import { GccSelectOption } from '../../ui/gcc.types';
 
 interface EntityRow {
   [key: string]: any;
@@ -168,6 +169,73 @@ interface EntityRow {
                 </button>
               </div>
             </form>
+          } @else if (currentEntity().formKind === 'fields') {
+            <form (ngSubmit)="submit()" novalidate class="grid gap-3">
+              @for (field of currentEntity().formFields ?? []; track field.name) {
+                <label class="flex flex-col gap-1">
+                  <span class="text-xs font-medium text-slate-600">
+                    {{ field.label }}@if (field.required) { <span class="text-red-500"> *</span> }
+                  </span>
+                  @switch (field.type) {
+                    @case ('select') {
+                      <select
+                        class="gcc-input"
+                        [ngModel]="selectValue(field.name)"
+                        (ngModelChange)="onModelChange(field.name, $event)"
+                        [name]="field.name"
+                      >
+                        <option value="">—</option>
+                        @for (opt of options()[field.optionsEndpoint ?? ''] ?? []; track opt.value) {
+                          <option [value]="opt.value">{{ opt.label }}</option>
+                        }
+                      </select>
+                    }
+                    @case ('number') {
+                      <input
+                        class="gcc-input"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [ngModel]="formData[field.name]"
+                        (ngModelChange)="onModelChange(field.name, $event)"
+                        [name]="field.name"
+                        [placeholder]="field.placeholder || ''"
+                      />
+                    }
+                    @case ('file') {
+                      @if (previews()[field.name]) {
+                        <img [src]="previews()[field.name]" alt="Aperçu" class="h-20 w-20 rounded-lg object-cover" />
+                      }
+                      <input
+                        type="file"
+                        accept="image/*"
+                        class="h-10 rounded-xl border border-slate-200 px-3 py-2 text-sm text-navy"
+                        (change)="onFileSelected(field.name, $event)"
+                      />
+                    }
+                    @default {
+                      <input
+                        class="gcc-input"
+                        type="text"
+                        [ngModel]="formData[field.name]"
+                        (ngModelChange)="onModelChange(field.name, $event)"
+                        [name]="field.name"
+                        [placeholder]="field.placeholder || ''"
+                      />
+                    }
+                  }
+                </label>
+              }
+              <div class="mt-2 flex justify-end gap-2">
+                @if (editing()) {
+                  <button mat-stroked-button type="button" class="gcc-btn-secondary" (click)="cancelEdit()">Annuler</button>
+                }
+                <button mat-flat-button type="submit" class="gcc-btn-primary" [disabled]="saving()">
+                  <mat-icon>check</mat-icon>
+                  {{ editing() ? 'Modifier' : 'Créer' }}
+                </button>
+              </div>
+            </form>
           } @else {
             <form (ngSubmit)="submit()" novalidate class="grid gap-3">
               <label class="flex flex-col gap-1">
@@ -259,6 +327,8 @@ interface EntityRow {
                             } @else {
                               <span class="text-xs text-slate-400">{{ col.imageFallback || '—' }}</span>
                             }
+                          } @else if (col.optionsEndpoint) {
+                            {{ resolveLabel(col, item[col.field ?? '']) }}
                           } @else {
                             {{ item[col.field ?? ''] ?? '—' }}
                           }
@@ -316,6 +386,10 @@ export class EntityManagerComponent {
 
   readonly logoPreview = signal<string | null>(null);
   readonly photoPreview = signal<string | null>(null);
+  /** Options des listes déroulantes (indexées par endpoint). */
+  readonly options = signal<Record<string, GccSelectOption[]>>({});
+  /** Aperçus des fichiers (indexés par nom de champ). */
+  readonly previews = signal<Record<string, string>>({});
 
   readonly formData: EntityRow = {};
   private fileMap = new Map<string, File>();
@@ -353,6 +427,7 @@ export class EntityManagerComponent {
   async ngOnInit(): Promise<void> {
     if (this.entities().length > 0) {
       this.activeKey.set(this.entities()[0].key);
+      await this.loadOptions(this.currentEntity());
       await this.fetchData();
     }
   }
@@ -364,6 +439,7 @@ export class EntityManagerComponent {
     this.searchTerm.set('');
     this.pageIndex.set(0);
     this.error.set(null);
+    void this.loadOptions(this.currentEntity());
     void this.fetchData();
   }
 
@@ -374,6 +450,7 @@ export class EntityManagerComponent {
       this.resetForm();
       this.searchTerm.set('');
       this.pageIndex.set(0);
+      void this.loadOptions(this.currentEntity());
       void this.fetchData();
     }
   }
@@ -415,6 +492,47 @@ export class EntityManagerComponent {
     this.formData[field] = value;
   }
 
+  /** Valeur affichée d'un champ select (toujours en chaîne pour matcher les options). */
+  selectValue(field: string): string {
+    const v = this.formData[field];
+    return v == null ? '' : String(v);
+  }
+
+  /** Charge les options des listes déroulantes (formulaires + colonnes FK) de l'entité. */
+  async loadOptions(entity: EntityConfig): Promise<void> {
+    const configs = new Map<string, { label: string; value: string }>();
+    const add = (endpoint: string, label?: string, value?: string) => {
+      if (endpoint && !configs.has(endpoint)) configs.set(endpoint, { label: label ?? 'name', value: value ?? 'id' });
+    };
+    for (const field of entity.formFields ?? []) {
+      if (field.type === 'select' && field.optionsEndpoint) {
+        add(field.optionsEndpoint, field.optionLabel, field.optionValue);
+      }
+    }
+    for (const col of entity.columns ?? []) {
+      if (col.optionsEndpoint) add(col.optionsEndpoint, col.optionLabel, col.optionValue);
+    }
+    const next: Record<string, GccSelectOption[]> = {};
+    await Promise.all(
+      [...configs.entries()].map(async ([endpoint, cfg]) => {
+        const rows = await this.service.list<Record<string, any>>(endpoint);
+        next[endpoint] = rows.map((row) => ({
+          label: String(row[cfg.label] ?? row[cfg.value] ?? ''),
+          value: String(row[cfg.value] ?? ''),
+        }));
+      }),
+    );
+    this.options.set(next);
+  }
+
+  /** Résout le libellé d'une clé étrangère dans la liste. */
+  resolveLabel(col: EntityColumn, value: any): string {
+    if (value == null || value === '') return '—';
+    if (!col.optionsEndpoint) return String(value);
+    const opt = (this.options()[col.optionsEndpoint] ?? []).find((o) => o.value === String(value));
+    return opt?.label ?? String(value);
+  }
+
   onFileSelected(field: string, event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
@@ -422,6 +540,7 @@ export class EntityManagerComponent {
       this.fileMap.set(field, file);
       if (field === 'logo') this.logoPreview.set(URL.createObjectURL(file));
       if (field === 'photo') this.photoPreview.set(URL.createObjectURL(file));
+      this.previews.update((p) => ({ ...p, [field]: URL.createObjectURL(file) }));
     }
   }
 
@@ -430,6 +549,7 @@ export class EntityManagerComponent {
     this.fileMap.clear();
     this.logoPreview.set(null);
     this.photoPreview.set(null);
+    this.previews.set({});
     this.editing.set(false);
     this.editingId.set(null);
   }
@@ -458,6 +578,16 @@ export class EntityManagerComponent {
       if (entity.formKind === 'department' && data['departmentId'] != null) {
         this.photoPreview.set(`${this.service.absoluteUrl('/Department/photo/' + data['departmentId'])}?t=${Date.now()}`);
       }
+      for (const field of entity.formFields ?? []) {
+        if (field.type === 'file' && field.imageEndpoint && data[entity.idField] != null) {
+          const imageEndpoint = field.imageEndpoint;
+          const id = String(data[entity.idField]);
+          this.previews.update((p) => ({
+            ...p,
+            [field.name]: `${this.service.absoluteUrl(imageEndpoint.replace('{id}', id))}?t=${Date.now()}`,
+          }));
+        }
+      }
 
       this.editingId.set(id);
       this.editing.set(true);
@@ -476,7 +606,41 @@ export class EntityManagerComponent {
     const isFormData = entity.formKind === 'establishment' || entity.formKind === 'department';
 
     try {
-      if (isFormData) {
+      if (entity.formKind === 'fields') {
+        const fields = entity.formFields ?? [];
+        const hasFile = fields.some((f) => f.type === 'file');
+        if (hasFile) {
+          const form = new FormData();
+          for (const f of fields) {
+            if (f.type === 'file') {
+              const file = this.fileMap.get(f.name);
+              if (file) form.append(f.name, file);
+            } else {
+              const value = this.formData[f.name];
+              if (value != null && value !== '') form.append(f.name, String(value));
+            }
+          }
+          if (this.editing() && this.editingId() != null) {
+            await this.service.update(entity.apiEndpoint, this.editingId()!, form);
+          } else {
+            await this.service.create(entity.apiEndpoint, form);
+          }
+        } else {
+          const payload: EntityRow = {};
+          for (const f of fields) {
+            const value = this.formData[f.name];
+            if (value == null || value === '') continue;
+            payload[f.name] = f.type === 'number' || f.type === 'select' ? Number(value) : String(value).trim();
+          }
+          if (this.editing() && this.editingId() != null) {
+            const id = this.editingId()!;
+            payload[entity.idField] = id;
+            await this.service.update(entity.apiEndpoint, id, payload);
+          } else {
+            await this.service.create(entity.apiEndpoint, payload);
+          }
+        }
+      } else if (isFormData) {
         const form = new FormData();
         const fields =
           entity.formKind === 'establishment'

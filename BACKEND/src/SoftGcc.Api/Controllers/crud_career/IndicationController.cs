@@ -21,9 +21,9 @@ namespace SoftGcc.Api.Controllers.crud_career
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetAll()
+		public async Task<IActionResult> GetAll([FromQuery] int? legalClassId)
 		{
-			var indications = await _indicationService.GetAll();
+			var indications = await _indicationService.GetByLegalClass(legalClassId);
 			return Ok(indications);
 		}
 

@@ -21,9 +21,9 @@ namespace SoftGcc.Api.Controllers.crud_career
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetAll()
+		public async Task<IActionResult> GetAll([FromQuery] int? professionalCategoryId)
 		{
-			var legalsClass = await _legalClassService.GetAll();
+			var legalsClass = await _legalClassService.GetByProfessionalCategory(professionalCategoryId);
 			return Ok(legalsClass);
 		}
 

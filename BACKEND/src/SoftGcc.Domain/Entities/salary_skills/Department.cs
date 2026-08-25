@@ -15,5 +15,8 @@ namespace SoftGcc.Domain.Entities.salary_skills
 
 		[Column("Photo")]
 		public byte[]? Photo { get; set; }
+
+		[Column("Establishment_id")]
+		public int? EstablishmentId { get; set; }
 	}
 }

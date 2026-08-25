@@ -1,5 +1,6 @@
 using SoftGcc.Domain.Entities.salary_skills;
 using SoftGcc.Domain.Entities.crud_career;
+using SoftGcc.Domain.Common;
 
 namespace SoftGcc.Domain.Interfaces.Data
 {
@@ -37,5 +38,8 @@ namespace SoftGcc.Domain.Interfaces.Data
         Task<List<VEmployeeSkill>> GetSkillLevel(int idEmployee, int state);
         Task<List<VStateNumber>> GetStateNumber(int idEmployee);
         Task<string> IsSkillEmployeeExist(int idEmployee, int domainSkillId, int skillId);
+
+        // Réinitialisation : suppression de tous les employés et des données liées
+        Task<EmployeeResetResult> ResetEmployeesAsync();
     }
 }

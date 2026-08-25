@@ -26,7 +26,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 _context.Database.OpenConnection();
 
                 var result = await command.ExecuteScalarAsync();
-                return Convert.ToInt32(result);
+                return ToInt32(result);
             }
         }
 
@@ -40,7 +40,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 _context.Database.OpenConnection();
 
                 var result = await command.ExecuteScalarAsync();
-                return Convert.ToInt32(result);
+                return ToInt32(result);
             }
         }
 
@@ -54,7 +54,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 _context.Database.OpenConnection();
 
                 var result = await command.ExecuteScalarAsync();
-                return Convert.ToDouble(result);
+                return ToDouble(result);
             }
         }
 
@@ -68,7 +68,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 _context.Database.OpenConnection();
 
                 var result = await command.ExecuteScalarAsync();
-                return Convert.ToInt32(result);
+                return ToInt32(result);
             }
         }
 
@@ -82,8 +82,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 _context.Database.OpenConnection();
 
                 var result = await command.ExecuteScalarAsync();
-                if (result == null || result is DBNull) return 0;
-                return Convert.ToDouble(result);
+                return ToDouble(result);
             }
         }
 
@@ -102,7 +101,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 _context.Database.OpenConnection();
 
                 var result = await command.ExecuteScalarAsync();
-                return Convert.ToInt32(result);
+                return ToInt32(result);
             }
         }
 
@@ -587,7 +586,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 _context.Database.OpenConnection();
 
                 var result = await command.ExecuteScalarAsync();
-                return Convert.ToInt32(result);
+                return ToInt32(result);
             }
         }
 
@@ -666,6 +665,23 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 decimal d => (int)d,
                 _ => Convert.ToInt32(value)
             };
+        }
+
+        /// <summary>
+        /// Convertit un résultat scalaire SQL en int, en tolérant NULL/DBNull (retourne 0).
+        /// Évite « Object cannot be cast from DBNull to other types » quand une agrégation renvoie NULL.
+        /// </summary>
+        private static int ToInt32(object? value)
+        {
+            return value == null || value == DBNull.Value ? 0 : Convert.ToInt32(value);
+        }
+
+        /// <summary>
+        /// Convertit un résultat scalaire SQL en double, en tolérant NULL/DBNull (retourne 0).
+        /// </summary>
+        private static double ToDouble(object? value)
+        {
+            return value == null || value == DBNull.Value ? 0 : Convert.ToDouble(value);
         }
     }
 }

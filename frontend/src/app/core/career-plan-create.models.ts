@@ -69,6 +69,8 @@ export interface EmployeeOption {
   registrationNumber: string | null;
   name: string | null;
   firstName: string | null;
+  ribNumber: string | null;
+  bankName: string | null;
 }
 
 export interface AssignmentTypeOption {
@@ -84,11 +86,15 @@ export interface EstablishmentOption {
 export interface DepartmentOption {
   departmentId: number | string;
   name: string;
+  establishmentId: number | null;
 }
 
 export interface PositionOption {
   positionId: number | string;
   positionName: string;
+  departmentId: number | null;
+  professionalCategoryId: number | null;
+  legalClassId: number | null;
 }
 
 export interface EmployeeTypeOption {
@@ -99,6 +105,9 @@ export interface EmployeeTypeOption {
 export interface IndicationOption {
   indicationId: number | string;
   indicationName: string;
+  legalClassId: number | null;
+  indicationValue: number | null;
+  pointValue: number | null;
 }
 
 export interface ProfessionalCategoryOption {
@@ -109,11 +118,15 @@ export interface ProfessionalCategoryOption {
 export interface LegalClassOption {
   legalClassId: number | string;
   legalClassName: string;
+  professionalCategoryId: number | null;
+  minSalary: number | null;
 }
 
 export interface NewsletterTemplateOption {
   newsletterTemplateId: number | string;
   newsletterTemplateName: string;
+  employeeTypeId: number | null;
+  deductionRate: number | null;
 }
 
 export interface PaymentMethodOption {
