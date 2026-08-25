@@ -91,6 +91,48 @@ export const routes: Routes = [
         canActivate: [moduleGuard],
       },
       {
+        path: 'soft-gcc/parametres/referentiel-competences',
+        loadComponent: () =>
+          import('./features/skill-referential/skill-catalog.page').then((m) => m.SkillCatalogPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/referentiel-competences/competences/nouveau',
+        loadComponent: () =>
+          import('./features/skill-referential/skill-form.page').then((m) => m.SkillFormPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/referentiel-competences/competences/:skillId',
+        loadComponent: () =>
+          import('./features/skill-referential/skill-form.page').then((m) => m.SkillFormPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/referentiel-competences/domaines',
+        loadComponent: () =>
+          import('./features/skill-referential/skill-domain.page').then((m) => m.SkillDomainPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/referentiel-competences/familles',
+        loadComponent: () =>
+          import('./features/skill-referential/skill-family.page').then((m) => m.SkillFamilyPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/referentiel-competences/postes',
+        loadComponent: () =>
+          import('./features/skill-referential/skill-position-list.page').then((m) => m.SkillPositionListPage),
+        canActivate: [moduleGuard],
+      },
+      {
+        path: 'soft-gcc/parametres/referentiel-competences/postes/:positionId',
+        loadComponent: () =>
+          import('./features/skill-referential/skill-matrix.page').then((m) => m.SkillMatrixPage),
+        canActivate: [moduleGuard],
+      },
+      {
         path: 'soft-gcc/parametres/competences',
         component: ParametresCompetencesPage,
         canActivate: [moduleGuard],

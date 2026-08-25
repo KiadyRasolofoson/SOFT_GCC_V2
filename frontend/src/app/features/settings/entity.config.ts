@@ -266,17 +266,6 @@ export const COMPETENCES_ENTITIES: EntityConfig[] = [
     formFields: DEPARTMENT_FIELDS as any,
   },
   {
-    key: 'domainSkill',
-    label: 'Domaine de compétence',
-    icon: 'work',
-    apiEndpoint: '/DomainSkill',
-    idField: 'domainSkillId',
-    nameField: 'name',
-    formKind: 'simple',
-    columns: simpleColumns('domainSkillId', 'name'),
-    searchFields: ['name'],
-  },
-  {
     key: 'language',
     label: 'Langue',
     icon: 'translate',
@@ -296,17 +285,6 @@ export const COMPETENCES_ENTITIES: EntityConfig[] = [
     nameField: 'name',
     formKind: 'simple',
     columns: simpleColumns('schoolId', 'name'),
-    searchFields: ['name'],
-  },
-  {
-    key: 'skill',
-    label: 'Compétence',
-    icon: 'star',
-    apiEndpoint: '/Skill',
-    idField: 'skillId',
-    nameField: 'name',
-    formKind: 'simple',
-    columns: simpleColumns('skillId', 'name'),
     searchFields: ['name'],
   },
   {
@@ -330,8 +308,8 @@ export const PARAMETRES_CARRIERES: EntityGroupConfig = {
 };
 
 export const PARAMETRES_COMPETENCES: EntityGroupConfig = {
-  title: 'Paramètre des compétences',
-  subtitle: 'Gérez les référentiels du module compétences.',
+  title: 'Nomenclatures compétences',
+  subtitle: 'Écoles, langues, diplômes, filières et départements. Le catalogue compétences est dans le référentiel.',
   icon: 'settings',
   entities: COMPETENCES_ENTITIES,
 };

@@ -7,6 +7,7 @@ export interface BulletinSkill {
   skillId: number;
   skillName: string;
   level: number;
+  expectedLevel?: number;
   state: number;
   classification: string;
   classificationLabel: string;

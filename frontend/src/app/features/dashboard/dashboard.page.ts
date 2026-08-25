@@ -213,7 +213,7 @@ export class DashboardPage implements OnInit {
           {
             label: 'Taux de couverture',
             value: `${this.formatNumber(data.coverageRatios)} %`,
-            hint: 'Ecart moyen requis/acquis',
+            hint: 'Titulaires à niveau (critiques et requises)',
             tone: 'down',
             icon: 'insights',
           },

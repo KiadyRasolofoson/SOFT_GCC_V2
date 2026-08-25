@@ -183,7 +183,7 @@ export function generateBulletinPdf(data: BulletinResponse, onProgress?: (pct: n
         const tableData = section.items.map((skill) => [
           skill.skillName,
           skill.classificationLabel,
-          `${Math.round(skill.level)}%`,
+          `${Math.round(skill.level || 0)}/4 (attendu ${skill.expectedLevel ?? '—'}/4)`,
           skill.lastUpdated ? new Date(skill.lastUpdated).toLocaleDateString('fr-FR') : 'N/A',
         ]);
 
@@ -231,9 +231,9 @@ export function generateBulletinPdf(data: BulletinResponse, onProgress?: (pct: n
   y += 5;
 
   const legendItems = [
-    { label: 'Maîtrisée (>= 70%)', color: SUCCESS },
-    { label: 'En cours (40% - 69%)', color: WARNING },
-    { label: 'Non acquise (< 40%)', color: DANGER },
+    { label: 'Maîtrisée (acquis ≥ attendu)', color: SUCCESS },
+    { label: 'En cours (un rang sous l’attendu)', color: WARNING },
+    { label: 'Non acquise (écart ou non renseigné)', color: DANGER },
   ];
   const legendColWidth = contentWidth / 2;
   legendItems.forEach((item, idx) => {
