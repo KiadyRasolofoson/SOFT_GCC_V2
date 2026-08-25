@@ -181,11 +181,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
         <app-career-advancement-form
           class="mt-5"
           [form]="form"
-          [departmentOptions]="departmentOptions()"
-          [indicationOptions]="indicationOptions()"
-          [echelonOptions]="echelonOptions()"
-          [professionalCategoryOptions]="professionalCategoryOptions()"
-          [legalClassOptions]="legalClassOptions()"
+          [registrationNumber]="form.registrationNumber"
         />
       }
 
@@ -236,6 +232,7 @@ export class CareerPlanCreatePage {
   readonly form: CareerPlanForm = createEmptyForm();
 
   @ViewChild(CareerAppointmentFormComponent) appointmentForm!: CareerAppointmentFormComponent;
+  @ViewChild(CareerAdvancementFormComponent) advancementForm!: CareerAdvancementFormComponent;
 
   readonly selectedType = signal<string>('1');
   readonly selectedRegistration = signal<string | null>(null);
@@ -342,6 +339,7 @@ export class CareerPlanCreatePage {
     if (this.submitting()) return;
     if (!this.validateForm()) return;
     if (this.selectedType() === '1' && this.appointmentForm && !this.appointmentForm.validate()) return;
+    if (this.advancementForm && !this.advancementForm.validate()) return;
 
     this.submitError.set(null);
     this.submitting.set(true);

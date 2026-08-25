@@ -137,6 +137,9 @@ export interface PaymentMethodOption {
 export interface EchelonOption {
   echelonId: number | string;
   echelonName: string;
+  legalClassId: number | null;
+  indicationId: number | null;
+  minMonths: number | null;
 }
 
 /** Formulaire vide (parité React initializeForm — type affectation par défaut : nomination). */

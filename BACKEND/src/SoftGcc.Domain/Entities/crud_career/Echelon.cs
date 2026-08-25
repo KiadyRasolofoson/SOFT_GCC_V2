@@ -14,5 +14,14 @@ namespace SoftGcc.Domain.Entities.crud_career
 
 		[Column("Echelon_name")]
 		public string? EchelonName { get; set; }
+
+		[Column("Legal_class_id")]
+		public int? LegalClassId { get; set; }
+
+		[Column("Indication_id")]
+		public int? IndicationId { get; set; }
+
+		[Column("Min_months")]
+		public int? MinMonths { get; set; }
 	}
 }
