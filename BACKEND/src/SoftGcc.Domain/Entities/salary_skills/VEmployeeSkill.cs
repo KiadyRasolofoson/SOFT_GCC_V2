@@ -22,6 +22,15 @@ namespace SoftGcc.Domain.Entities.salary_skills
 		[Column("Level")]
 		public double Level { get; set; }
 
+		[Column("Acquired_level")]
+		public int? AcquiredLevel { get; set; }
+
+		[Column("Skill_version_id")]
+		public int? SkillVersionId { get; set; }
+
+		[Column("Source")]
+		public string? Source { get; set; }
+
 		[Column("State")]
 		public int? State { get; set; }
 

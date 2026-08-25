@@ -117,9 +117,9 @@ import { downloadBulletinPdf, previewBulletinPdf } from './bulletin-pdf.util';
     @if (bulletin(); as data) {
       <!-- KPIs -->
       <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <gcc-kpi-card label="Maîtrisées" [value]="kpiText(data.masteredCount)" hint="Niveau ≥ 70%" tone="up" icon="check_circle" />
-        <gcc-kpi-card label="En cours d'acquisition" [value]="kpiText(data.inProgressCount)" hint="40 % – 69 %" tone="neutral" icon="schedule" />
-        <gcc-kpi-card label="Non acquises" [value]="kpiText(data.notAcquiredCount)" hint="Niveau < 40 %" tone="down" icon="cancel" />
+        <gcc-kpi-card label="Maîtrisées" [value]="kpiText(data.masteredCount)" hint="Acquis ≥ attendu du poste" tone="up" icon="check_circle" />
+        <gcc-kpi-card label="En cours d'acquisition" [value]="kpiText(data.inProgressCount)" hint="Un rang sous l’attendu" tone="neutral" icon="schedule" />
+        <gcc-kpi-card label="Non acquises" [value]="kpiText(data.notAcquiredCount)" hint="Écart plus large ou non renseigné" tone="down" icon="cancel" />
         <gcc-kpi-card label="Total compétences" [value]="kpiText(data.totalSkills)" hint="Toutes classifications" tone="accent" icon="school" />
       </div>
 
@@ -146,6 +146,7 @@ import { downloadBulletinPdf, previewBulletinPdf } from './bulletin-pdf.util';
                   <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-[0.08em] text-slate-500">
                     <th class="px-2 py-2 font-semibold">Compétence</th>
                     <th class="px-2 py-2 font-semibold">Niveau</th>
+                    <th class="px-2 py-2 font-semibold">Attendu</th>
                     <th class="px-2 py-2 font-semibold">Statut</th>
                     <th class="px-2 py-2 font-semibold">Dernière MAJ</th>
                   </tr>
@@ -163,9 +164,10 @@ import { downloadBulletinPdf, previewBulletinPdf } from './bulletin-pdf.util';
                               [style.background]="levelColor(skill.level)"
                             ></div>
                           </div>
-                          <span class="text-xs font-semibold text-navy">{{ roundedLevel(skill.level) }}%</span>
+                          <span class="text-xs font-semibold text-navy">{{ roundedLevel(skill.level) }}/4</span>
                         </div>
                       </td>
+                      <td class="px-2 py-2 text-slate-500">{{ skill.expectedLevel || '—' }}/4</td>
                       <td class="px-2 py-2">
                         @let tag = skillStatus(skill.classification);
                         <gcc-status-tag [status]="tag.status" [label]="tag.label" />
@@ -329,12 +331,13 @@ export class BulletinCompetencePage {
   }
 
   levelWidth(level: number): number {
-    return Math.min(level || 0, 100);
+    return Math.min((level || 0) * 25, 100);
   }
 
   levelColor(level: number): string {
-    if (level >= 70) return '#27ae60';
-    if (level >= 40) return '#f39c12';
+    if (level >= 4) return '#27ae60';
+    if (level >= 3) return '#047857';
+    if (level >= 2) return '#f39c12';
     return '#c0392b';
   }
 

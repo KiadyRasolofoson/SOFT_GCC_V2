@@ -1,3 +1,5 @@
+import { SkillLevel } from '../ui/gcc-skill-badge';
+
 export type EmployeeTabKey = 'infos' | 'competences' | 'carrieres';
 
 export interface ResolvedEmployeeIds {
@@ -29,6 +31,7 @@ export interface EmployeeFicheProfile {
 
 export interface EmployeeSkillGapItem {
   label: string;
-  required: 'beginner' | 'intermediate' | 'expert';
-  acquired: 'beginner' | 'intermediate' | 'expert';
+  required: SkillLevel;
+  acquired: SkillLevel;
+  missing?: boolean;
 }

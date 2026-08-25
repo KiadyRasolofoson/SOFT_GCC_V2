@@ -69,7 +69,7 @@ export interface SettingsQuestionDialogData {
             <gcc-select
               [options]="competenceOptions()"
               [(value)]="competenceLineId"
-              placeholder="Optionnel"
+              [placeholder]="isScore() ? 'Obligatoire pour SCORE' : 'Optionnel'"
               [searchable]="true"
               searchPlaceholder="Rechercher une compétence…"
             />
@@ -131,14 +131,19 @@ export class SettingsQuestionDialog {
     const lines = this.data.competenceLines.filter(
       (item) => !positionId || !item.positionId || item.positionId === positionId,
     );
-    return [
-      { label: 'Aucune ligne de compétence', value: 'none' },
-      ...lines.map((item) => ({
-        label: item.skillName + (item.positionName ? ` · ${item.positionName}` : ''),
-        value: String(item.competenceLineId),
-      })),
-    ];
+    const mapped = lines.map((item) => ({
+      label: item.skillName + (item.positionName ? ` · ${item.positionName}` : ''),
+      value: String(item.competenceLineId),
+    }));
+    if (this.isScore()) {
+      return mapped;
+    }
+    return [{ label: 'Aucune ligne de compétence', value: 'none' }, ...mapped];
   });
+
+  isScore(): boolean {
+    return Number(this.responseTypeId()) === 3;
+  }
 
   submit(): void {
     const text = this.question().trim();
@@ -150,6 +155,10 @@ export class SettingsQuestionDialog {
       return;
     }
     const competence = this.competenceLineId();
+    if (responseTypeId === 3 && (!competence || competence === 'none')) {
+      this.error.set('Une ligne de compétence est obligatoire pour une question SCORE.');
+      return;
+    }
     this.dialogRef.close({
       questionId: this.data.question?.questionId ?? null,
       question: text,

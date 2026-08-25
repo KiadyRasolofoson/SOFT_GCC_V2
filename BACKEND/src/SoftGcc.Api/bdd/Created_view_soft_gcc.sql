@@ -35,7 +35,10 @@ SELECT
 	ds.Domain_skill_name, 
 	es.Skill_id, 
 	s.Skill_name, 
-	es.Level, 
+	es.Level,
+	es.Acquired_level,
+	es.Skill_version_id,
+	es.Source,
 	es.State, 
 	es.Employee_id,
 	es.Creation_date,
@@ -586,6 +589,9 @@ SELECT
 	p.position_name,
 	cp.Skill_id,
 	s.Skill_name,
+	cp.Expected_level,
+	cp.Requirement_kind,
+	cp.Weight,
 	cp.State,
 	cp.Creation_date,
 	cp.Updated_date
@@ -597,6 +603,10 @@ ON s.Skill_id = cp.Skill_id;
 
 
 -- Creation d'une procedure stockee pour les suggestions des postes d'un employe
+-- OBSOLETE : l'API ne l'appelle plus. Les suggestions sont calculees par
+-- PositionSuggestionRanker (part des exigences critiques/requises deja atteintes),
+-- car "partager une seule competence" suggere presque tous les postes des que la
+-- matrice emplois-competences est remplie. Conservee pour compatibilite.
 CREATE PROCEDURE pcd_GetSuggestionPosition
     @IdEmployee INT
 AS 
@@ -767,24 +777,24 @@ CREATE VIEW v_employee_skills_level AS
 SELECT
         ca.Position_id,
         rs.Skill_id,
-        rs.Required_level,
-        AVG(CAST(es.Level AS FLOAT)) AS AverageLevel
-    FROM skill_position rs
+        rs.Expected_level,
+        AVG(CAST(es.Acquired_level AS FLOAT)) AS AverageLevel,
+        CAST(SUM(CASE WHEN es.Acquired_level >= rs.Expected_level THEN 1 ELSE 0 END) AS FLOAT)
+            / NULLIF(COUNT(ca.Employee_id), 0) * 100 AS CoverageRatio
+    FROM Skill_position rs
     LEFT JOIN v_current_assignments ca ON rs.Position_id = ca.Position_id
-    LEFT JOIN employee_skill es ON es.Employee_id = ca.Employee_id AND es.Skill_id = rs.Skill_id
-    GROUP BY ca.Position_id, rs.Skill_id, rs.Required_level
+    LEFT JOIN Employee_skill es ON es.Employee_id = ca.Employee_id AND es.Skill_id = rs.Skill_id
+    WHERE rs.State > 0 AND rs.Requirement_kind IN (N'Critical', N'Required')
+    GROUP BY ca.Position_id, rs.Skill_id, rs.Expected_level
 
--- Taux moyen des compétences
+-- Taux de couverture : % de titulaires à niveau (Critical + Required), plus AverageLevel / Required_level
 CREATE VIEW v_coverage_ratios AS
  SELECT
         Position_id,
         Skill_id,
-        Required_level,
+        Expected_level,
         ISNULL(AverageLevel, 0) AS AverageLevel,
-        CASE 
-            WHEN Required_level > 0 THEN ROUND((ISNULL(AverageLevel, 0) / Required_level) * 100, 2)
-            ELSE 0
-        END AS CoverageRatio
+        ISNULL(CoverageRatio, 0) AS CoverageRatio
     FROM v_employee_skills_level
 
 -- Employé par tranche d'age

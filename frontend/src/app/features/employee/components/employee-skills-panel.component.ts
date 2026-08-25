@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +11,7 @@ import {
 } from '../../../core/employee-skills-profile.service';
 import { GccEmptyState } from '../../../ui/gcc-empty-state';
 import { GccSelect } from '../../../ui/gcc-select';
+import { GccSkillBadge, skillLevelFromRank } from '../../../ui/gcc-skill-badge';
 import { GccSkillGap } from '../../../ui/gcc-skill-gap';
 import { GccStatusTag, StatusKind } from '../../../ui/gcc-status-tag';
 import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-crud-dialog.component';
@@ -19,6 +20,7 @@ import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-c
   selector: 'app-employee-skills-panel',
   imports: [
     GccSkillGap,
+    GccSkillBadge,
     GccEmptyState,
     MatTabsModule,
     MatProgressBarModule,
@@ -82,7 +84,13 @@ import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-c
                             <tr class="border-b border-slate-100 text-sm text-slate-700">
                               <td class="px-2 py-2">{{ row['domainSkillName'] || '—' }}</td>
                               <td class="px-2 py-2 font-medium text-navy">{{ row['skillName'] || '—' }}</td>
-                              <td class="px-2 py-2">{{ formatLevel(row['level']) }}</td>
+                              <td class="px-2 py-2">
+                                @if (row['acquiredLevel']) {
+                                  <gcc-skill-badge [level]="skillLevelFromRank(row['acquiredLevel'])" />
+                                } @else {
+                                  {{ formatLevel(row['level']) }}
+                                }
+                              </td>
                               @let skillTag = skillStatus(row['state']);
                               <td class="px-2 py-2"><gcc-status-tag [status]="skillTag.status" [label]="skillTag.label" /></td>
                               <td class="px-2 py-2">
@@ -276,7 +284,12 @@ import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-c
               <h2 class="mb-3 text-base font-semibold text-navy">Synthèse des écarts</h2>
               <div class="space-y-3">
                 @for (item of skillGaps(); track item.label) {
-                  <gcc-skill-gap [skill]="item.label" [required]="item.required" [acquired]="item.acquired" />
+                  <gcc-skill-gap
+                    [skill]="item.label"
+                    [required]="item.required"
+                    [acquired]="item.acquired"
+                    [missing]="item.missing === true"
+                  />
                 }
               </div>
             </article>
@@ -302,6 +315,8 @@ export class EmployeeSkillsPanelComponent {
   readonly employeeId = input<number | null>(null);
   readonly skillGaps = input<EmployeeSkillGapItem[]>([]);
   readonly profile = input<EmployeeFicheProfile | null>(null);
+  readonly skillsChanged = output<void>();
+  readonly skillLevelFromRank = skillLevelFromRank;
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -435,6 +450,7 @@ export class EmployeeSkillsPanelComponent {
     if (employeeId) {
       void this.loadData(employeeId);
     }
+    this.skillsChanged.emit();
   }
 
   async deleteSkill(row: Record<string, any>): Promise<void> {
@@ -484,6 +500,7 @@ export class EmployeeSkillsPanelComponent {
     try {
       await remove(id);
       await this.loadData(employeeId);
+      this.skillsChanged.emit();
     } catch (err: any) {
       this.actionError.set(this.crudErrorMessage(err));
     }

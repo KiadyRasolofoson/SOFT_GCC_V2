@@ -28,6 +28,7 @@ INSERT INTO @perms (name, description) VALUES
 -- Paramétrage compétences
 ('VIEW_SKILL_SETTINGS', N'Consulter le référentiel compétences (paramètres)'),
 ('MANAGE_SKILL_SETTINGS', N'Gérer le référentiel compétences (paramètres)'),
+('PUBLISH_SKILL_REFERENTIAL', N'Publier et archiver le référentiel de compétences'),
 -- Paramétrage carrières
 ('VIEW_CAREER_SETTINGS', N'Consulter le référentiel carrières (paramètres)'),
 ('MANAGE_CAREER_SETTINGS', N'Gérer le référentiel carrières (paramètres)'),
@@ -109,7 +110,7 @@ WHERE p.name IN (
     'VIEW_CAREER', 'CREATE_CAREER', 'EDIT_CAREER', 'DELETE_CAREER', 'MANAGE_CAREER',
     'VIEW_ORGANIZATION', 'IMPORT_ORGANIZATION', 'MANAGE_ORGANIZATION',
     'VIEW_ACTIVITY_HISTORY', 'MANAGE_ACTIVITY_HISTORY',
-    'VIEW_SKILL_SETTINGS', 'MANAGE_SKILL_SETTINGS',
+    'VIEW_SKILL_SETTINGS', 'MANAGE_SKILL_SETTINGS', 'PUBLISH_SKILL_REFERENTIAL',
     'VIEW_CAREER_SETTINGS', 'MANAGE_CAREER_SETTINGS',
     'VIEW_EMPLOYEES', 'CREATE_EMPLOYEES', 'EDIT_EMPLOYEES', 'DELETE_EMPLOYEES', 'MANAGE_EMPLOYEES',
     'MANAGE_EMPLOYEE_SYNC',
@@ -171,7 +172,7 @@ BEGIN
       AND (module_id IS NULL OR module_id = 0);
 
     UPDATE Permissions SET module_id = (SELECT TOP 1 module_id FROM Modules WHERE name = 'param_competences')
-    WHERE name IN ('VIEW_SKILL_SETTINGS','MANAGE_SKILL_SETTINGS')
+    WHERE name IN ('VIEW_SKILL_SETTINGS','MANAGE_SKILL_SETTINGS','PUBLISH_SKILL_REFERENTIAL')
       AND (module_id IS NULL OR module_id = 0);
 
     UPDATE Permissions SET module_id = (SELECT TOP 1 module_id FROM Modules WHERE name = 'param_carrieres')

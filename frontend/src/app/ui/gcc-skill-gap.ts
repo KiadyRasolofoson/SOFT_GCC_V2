@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { GccSkillBadge, SkillLevel } from './gcc-skill-badge';
+import { GccSkillBadge, SkillLevel, skillLevelLabel, skillRank } from './gcc-skill-badge';
 import { GccStatusTag } from './gcc-status-tag';
 
 @Component({
@@ -15,7 +15,15 @@ import { GccStatusTag } from './gcc-status-tag';
         <mat-progress-bar class="mt-2" mode="determinate" [value]="percent()" />
       </div>
       <div class="flex items-center gap-2">
-        <gcc-skill-badge [level]="acquired()" />
+        @if (missing()) {
+          <span
+            class="inline-flex items-center rounded-full border border-dashed border-slate-300 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-500"
+          >
+            Non renseigné
+          </span>
+        } @else {
+          <gcc-skill-badge [level]="acquired()" />
+        }
         <gcc-status-tag [status]="gap() ? 'gap' : 'ok'" />
       </div>
     </div>
@@ -25,22 +33,20 @@ export class GccSkillGap {
   skill = input('Gestion de la paie');
   required = input<SkillLevel>('expert');
   acquired = input<SkillLevel>('intermediate');
+  missing = input(false);
 
   acquiredLabel() {
-    return this.label(this.acquired());
+    return this.missing() ? 'Non renseigné' : skillLevelLabel(this.acquired());
   }
   requiredLabel() {
-    return this.label(this.required());
+    return skillLevelLabel(this.required());
   }
   percent() {
-    const map = { beginner: 33, intermediate: 66, expert: 100 };
-    return map[this.acquired()];
+    if (this.missing()) return 0;
+    return skillRank(this.acquired()) * 25;
   }
   gap() {
-    const rank = { beginner: 1, intermediate: 2, expert: 3 };
-    return rank[this.acquired()] < rank[this.required()];
-  }
-  private label(level: SkillLevel) {
-    return { beginner: 'Notions', intermediate: 'Autonome', expert: 'Expert' }[level];
+    if (this.missing()) return true;
+    return skillRank(this.acquired()) < skillRank(this.required());
   }
 }

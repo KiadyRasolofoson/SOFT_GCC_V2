@@ -9,6 +9,8 @@ import { GccIdentityCard } from '../../ui/gcc-identity-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { EmployeeFicheProfile, EmployeeSkillGapItem, EmployeeTabKey } from '../../core/employee-fiche.models';
 import { EmployeeFicheService } from '../../core/employee-fiche.service';
+import { skillLevelFromRank } from '../../ui/gcc-skill-badge';
+import { SkillReferentialService } from '../skill-referential/skill-referential.service';
 import { EmployeeInfosPanelComponent } from './components/employee-infos-panel.component';
 import { EmployeeSkillsPanelComponent } from './components/employee-skills-panel.component';
 import { EmployeeCareerPanelComponent } from './components/employee-career-panel.component';
@@ -87,6 +89,7 @@ type JsonObject = Record<string, any>;
               [employeeId]="profile.employeeId"
               [profile]="profile"
               [skillGaps]="skillGaps()"
+              (skillsChanged)="loadGaps(profile.employeeId)"
             />
           </section>
         }
@@ -109,6 +112,7 @@ export class EmployeeFichePage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(EmployeeFicheService);
+  private readonly skillApi = inject(SkillReferentialService);
 
   private readonly routeParamKey = this.route.snapshot.paramMap.get('employeeKey') ?? '';
   readonly loading = signal(true);
@@ -116,6 +120,7 @@ export class EmployeeFichePage {
   readonly profile = signal<EmployeeFicheProfile | null>(null);
   readonly careerSummary = signal<JsonObject | null>(null);
   readonly selectedTab = signal<EmployeeTabKey>('infos');
+  readonly skillGaps = signal<EmployeeSkillGapItem[]>([]);
   selectedTabIndex = 0;
 
   readonly careerAdvancement = computed<JsonObject[]>(() => {
@@ -144,17 +149,6 @@ export class EmployeeFichePage {
     if (!current) return 'Chargement du profil…';
     const label = [current.name, current.firstName].filter(Boolean).join(' ');
     return label || current.registrationNumber || 'Profil employé';
-  });
-
-  readonly skillGaps = computed<EmployeeSkillGapItem[]>(() => {
-    const current = this.profile();
-    if (!current) return [];
-
-    return [
-      { label: 'Gestion RH', required: 'expert', acquired: current.skillNumber ? 'intermediate' : 'beginner' },
-      { label: 'Formation', required: 'expert', acquired: current.educationNumber ? 'intermediate' : 'beginner' },
-      { label: 'Langues', required: 'intermediate', acquired: current.languageNumber ? 'intermediate' : 'beginner' },
-    ];
   });
 
   constructor() {
@@ -219,6 +213,7 @@ export class EmployeeFichePage {
 
       this.profile.set(merged);
       this.careerSummary.set(careerData ?? null);
+      await this.loadGaps(merged.employeeId);
 
       if (!merged.employeeId && !merged.registrationNumber) {
         this.error.set('Aucune donnée trouvée pour cet employé.');
@@ -228,6 +223,26 @@ export class EmployeeFichePage {
       this.profile.set(null);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async loadGaps(employeeId: number | null | undefined): Promise<void> {
+    if (!employeeId) {
+      this.skillGaps.set([]);
+      return;
+    }
+    try {
+      const response = await this.skillApi.getEmployeeGaps(employeeId);
+      this.skillGaps.set(
+        (response.items ?? []).map((item) => ({
+          label: item.skillName,
+          required: skillLevelFromRank(item.expectedRank),
+          acquired: skillLevelFromRank(item.acquiredRank),
+          missing: item.acquiredRank == null,
+        })),
+      );
+    } catch {
+      this.skillGaps.set([]);
     }
   }
 

@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { EmployeeSkillsProfileService } from '../../../core/employee-skills-profile.service';
 import { GccSelect } from '../../../ui/gcc-select';
 import { GccSelectOption } from '../../../ui/gcc.types';
+import { SKILL_RANK_OPTIONS } from '../../skill-referential/skill-referential.models';
 
 type JsonObject = Record<string, any>;
 export type CrudKind = 'skill' | 'education' | 'language' | 'other';
@@ -45,19 +46,13 @@ const STATE_OPTIONS: GccSelectOption[] = [
               @switch (kind()) {
                 @case ('skill') {
                   <label class="block">
-                    <span class="mb-1.5 block text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Domaine *</span>
-                    <gcc-select [options]="domainOptions()" [value]="domainSkillId()" (valueChange)="domainSkillId.set($event)" placeholder="Sélectionner un domaine" />
-                    @if (errors()['domainSkillId']) {
-                      <p class="mt-1 text-xs text-red-600">{{ errors()['domainSkillId'] }}</p>
-                    }
-                  </label>
-                  <label class="block">
                     <span class="mb-1.5 block text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Compétence *</span>
                     <gcc-select [options]="skillOptions()" [value]="skillId()" (valueChange)="skillId.set($event)" placeholder="Sélectionner une compétence" />
                     @if (errors()['skillId']) {
                       <p class="mt-1 text-xs text-red-600">{{ errors()['skillId'] }}</p>
                     }
                   </label>
+                  <p class="text-xs text-slate-500">Le domaine est dérivé automatiquement de la famille de la compétence.</p>
                 }
                 @case ('education') {
                   <label class="block">
@@ -116,7 +111,20 @@ const STATE_OPTIONS: GccSelectOption[] = [
                 </label>
               }
 
-              @if (showLevel()) {
+              @if (kind() === 'skill') {
+                <label class="block">
+                  <span class="mb-1.5 block text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Niveau acquis *</span>
+                  <gcc-select [options]="rankOptions" [value]="acquiredLevel()" (valueChange)="acquiredLevel.set($event)" placeholder="Niveau 1 à 4" />
+                  @if (errors()['acquiredLevel']) {
+                    <p class="mt-1 text-xs text-red-600">{{ errors()['acquiredLevel'] }}</p>
+                  }
+                </label>
+                @if (legacyPercent() > 0) {
+                  <p class="text-xs text-slate-500">Ancien niveau legacy : {{ legacyPercent() }} % (lecture seule)</p>
+                }
+              }
+
+              @if (showLevel() && kind() !== 'skill') {
                 <label class="block">
                   <span class="mb-1.5 block text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Niveau (en %)</span>
                   <input
@@ -200,6 +208,7 @@ export class EmployeeSkillsCrudDialogComponent {
   readonly closed = output<void>();
 
   readonly stateOptions = STATE_OPTIONS;
+  readonly rankOptions = SKILL_RANK_OPTIONS;
 
   readonly optionsLoading = signal(false);
   readonly submitError = signal<string | null>(null);
@@ -215,6 +224,8 @@ export class EmployeeSkillsCrudDialogComponent {
 
   readonly domainSkillId = signal<string | null>(null);
   readonly skillId = signal<string | null>(null);
+  readonly acquiredLevel = signal<string | null>(null);
+  readonly legacyPercent = signal(0);
   readonly studyPathId = signal<string | null>(null);
   readonly degreeId = signal<string | null>(null);
   readonly schoolId = signal<string | null>(null);
@@ -301,10 +312,10 @@ export class EmployeeSkillsCrudDialogComponent {
         case 'skill': {
           const payload: Record<string, any> = {
             employeeId,
-            domainSkillId: Number(this.domainSkillId()),
             skillId: Number(this.skillId()),
             state: Number(this.state()),
-            level: this.showLevel() ? Number(this.level()) : 0,
+            acquiredLevel: Number(this.acquiredLevel()),
+            level: this.legacyPercent() || 0,
             creationDate: now,
             updateDate: now,
           };
@@ -398,12 +409,19 @@ export class EmployeeSkillsCrudDialogComponent {
   private async loadRefs(): Promise<void> {
     switch (this.kind()) {
       case 'skill': {
-        const [domains, skills] = await Promise.all([
-          this.service.loadDomainSkills(),
-          this.service.loadSkills(),
-        ]);
-        this.domainOptions.set(domains.map((d) => ({ label: String(d['name'] ?? ''), value: String(d['domainSkillId']) })));
-        this.skillOptions.set(skills.map((s) => ({ label: String(s['name'] ?? ''), value: String(s['skillId']) })));
+        const skills = await this.service.loadSkills();
+        const options = skills.map((s) => ({
+          label: `${s['name'] ?? ''}${s['code'] ? ` (${s['code']})` : ''}`,
+          value: String(s['skillId']),
+        }));
+        const current = this.item();
+        if (current?.['skillId'] && !options.some((opt) => opt.value === String(current['skillId']))) {
+          options.unshift({
+            label: String(current['skillName'] ?? current['skillId']),
+            value: String(current['skillId']),
+          });
+        }
+        this.skillOptions.set(options);
         break;
       }
       case 'education': {
@@ -439,6 +457,8 @@ export class EmployeeSkillsCrudDialogComponent {
         this.skillId.set(String(item['skillId'] ?? ''));
         this.state.set(String(item['state'] ?? ''));
         this.level.set(Number(item['level']) || 0);
+        this.legacyPercent.set(Number(item['level']) || 0);
+        this.acquiredLevel.set(item['acquiredLevel'] ? String(item['acquiredLevel']) : null);
         break;
       case 'education':
         this.studyPathId.set(String(item['studyPathId'] ?? ''));
@@ -467,6 +487,8 @@ export class EmployeeSkillsCrudDialogComponent {
   private resetForm(): void {
     this.domainSkillId.set(null);
     this.skillId.set(null);
+    this.acquiredLevel.set(null);
+    this.legacyPercent.set(0);
     this.studyPathId.set(null);
     this.degreeId.set(null);
     this.schoolId.set(null);
@@ -484,11 +506,10 @@ export class EmployeeSkillsCrudDialogComponent {
     const errors: Record<string, string> = {};
     switch (this.kind()) {
       case 'skill':
-        if (!this.domainSkillId()) errors['domainSkillId'] = 'Le domaine est requis.';
         if (!this.skillId()) errors['skillId'] = 'La compétence est requise.';
         if (!this.state()) errors['state'] = "L'état est requis.";
-        if (this.showLevel() && (Number(this.level()) < 1 || Number(this.level()) > 100)) {
-          errors['level'] = 'Le niveau doit être compris entre 1 et 100.';
+        if (!this.acquiredLevel() || !['1', '2', '3', '4'].includes(this.acquiredLevel()!)) {
+          errors['acquiredLevel'] = 'Choisissez un niveau de 1 à 4.';
         }
         break;
       case 'education':

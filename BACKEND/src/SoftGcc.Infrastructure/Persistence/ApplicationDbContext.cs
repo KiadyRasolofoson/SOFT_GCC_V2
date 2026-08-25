@@ -28,6 +28,10 @@ namespace SoftGcc.Infrastructure.Persistence
 		public DbSet<EmployeeEducation> EmployeeEducations { get; set; }
 		public DbSet<Skill> Skill { get; set; }
 		public DbSet<DomainSkill> DomainSkill { get; set; }
+		public DbSet<SkillFamily> SkillFamily { get; set; }
+		public DbSet<SkillVersion> SkillVersion { get; set; }
+		public DbSet<SkillLevelDescriptor> SkillLevelDescriptor { get; set; }
+		public DbSet<SkillPosition> SkillPosition { get; set; }
 		public DbSet<EmployeeSkill> EmployeeSkill { get; set; }
 		public DbSet<EmployeeLanguage> EmployeeLanguage { get; set; }
 		public DbSet<Language> Language { get; set; }
@@ -287,6 +291,82 @@ namespace SoftGcc.Infrastructure.Persistence
 				.HasKey(es => new { es.EvaluationId, es.SupervisorId });
 
 			ConfigureAiAgent(modelBuilder);
+			ConfigureSkillReferential(modelBuilder);
+		}
+
+		private static void ConfigureSkillReferential(ModelBuilder modelBuilder)
+		{
+			modelBuilder.Entity<DomainSkill>(entity =>
+			{
+				entity.HasIndex(e => e.Code).IsUnique();
+			});
+
+			modelBuilder.Entity<SkillFamily>(entity =>
+			{
+				entity.HasIndex(e => e.Code).IsUnique();
+				entity.HasOne(e => e.Domain)
+					.WithMany(d => d.Families)
+					.HasForeignKey(e => e.DomainSkillId)
+					.OnDelete(DeleteBehavior.Restrict);
+			});
+
+			modelBuilder.Entity<Skill>(entity =>
+			{
+				entity.HasIndex(e => e.Code).IsUnique();
+				entity.HasIndex(e => e.Name)
+					.IsUnique()
+					.HasFilter("[State] = N'Active'");
+				entity.HasOne(e => e.Family)
+					.WithMany(f => f.Skills)
+					.HasForeignKey(e => e.FamilyId)
+					.OnDelete(DeleteBehavior.Restrict);
+			});
+
+			modelBuilder.Entity<SkillVersion>(entity =>
+			{
+				entity.HasIndex(e => new { e.SkillId, e.Version }).IsUnique();
+				entity.HasOne(e => e.Skill)
+					.WithMany(s => s.Versions)
+					.HasForeignKey(e => e.SkillId)
+					.OnDelete(DeleteBehavior.Restrict);
+			});
+
+			modelBuilder.Entity<SkillLevelDescriptor>(entity =>
+			{
+				entity.HasIndex(e => new { e.SkillId, e.Version, e.Rank }).IsUnique();
+				entity.HasOne(e => e.Skill)
+					.WithMany(s => s.LevelDescriptors)
+					.HasForeignKey(e => e.SkillId)
+					.OnDelete(DeleteBehavior.Restrict);
+			});
+
+			modelBuilder.Entity<SkillPosition>(entity =>
+			{
+				entity.Property(e => e.Weight).HasColumnType("decimal(9,4)");
+				entity.HasIndex(e => new { e.PositionId, e.SkillId })
+					.IsUnique()
+					.HasFilter("[State] > 0");
+				entity.HasOne(e => e.Skill)
+					.WithMany(s => s.SkillPositions)
+					.HasForeignKey(e => e.SkillId)
+					.OnDelete(DeleteBehavior.Restrict);
+			});
+
+			modelBuilder.Entity<EmployeeSkill>(entity =>
+			{
+				entity.HasOne(e => e.SkillVersion)
+					.WithMany()
+					.HasForeignKey(e => e.SkillVersionId)
+					.OnDelete(DeleteBehavior.SetNull);
+			});
+
+			modelBuilder.Entity<EvaluationCompetenceResult>(entity =>
+			{
+				entity.HasOne<SkillVersion>()
+					.WithMany()
+					.HasForeignKey(e => e.SkillVersionId)
+					.OnDelete(DeleteBehavior.SetNull);
+			});
 		}
 
 		private static void ConfigureAiAgent(ModelBuilder modelBuilder)

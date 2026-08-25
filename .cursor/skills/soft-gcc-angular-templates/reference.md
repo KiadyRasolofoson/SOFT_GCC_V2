@@ -59,7 +59,8 @@ Badges maîtrise (`gcc-skill-badge`) :
 | Niveau | Input | Fond / texte |
 |---|---|---|
 | Notions | `beginner` | `#E0F2FE` / `#0369A1` |
-| Autonome | `intermediate` | `#D1FAE5` / `#047857` |
+| Application | `application` | `#FFEDD5` / `#C2410C` |
+| Maîtrise | `intermediate` | `#D1FAE5` / `#047857` |
 | Expert | `expert` | `#EDE9FE` / `#6D28D9` |
 
 Statuts (`gcc-status-tag`) : `pending`, `ok` / `validated`, `gap` (`#FEF3C7` / `#B45309`), `refused`, `processed`.

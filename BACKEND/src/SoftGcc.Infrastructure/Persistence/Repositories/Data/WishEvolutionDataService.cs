@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using SoftGcc.Application.SkillReferential;
 using SoftGcc.Domain.Entities.wish_evolution;
 using SoftGcc.Domain.Interfaces.Data;
 using SoftGcc.Infrastructure.Persistence;
@@ -16,11 +17,51 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             _context = context;
         }
 
+        /// <summary>
+        /// Postes suggérés : ceux dont l'employé satisfait déjà l'essentiel des exigences
+        /// critiques, les mieux couverts d'abord (voir <see cref="PositionSuggestionRanker"/>).
+        /// Remplace l'ancienne procédure stockée qui suggérait tout poste partageant une seule
+        /// compétence — devenu du bruit dès que la matrice emplois est remplie.
+        /// </summary>
         public async Task<List<PcdSuggestionPosition>> GetSuggestionPosition(int idEmployee)
         {
-            return await _context.PcdSuggestionPosition
-                .FromSqlRaw("EXEC pcd_GetSuggestionPosition @idEmployee = {0}", idEmployee)
+            var acquired = await _context.EmployeeSkill
+                .AsNoTracking()
+                .Where(es => es.EmployeeId == idEmployee)
+                .GroupBy(es => es.SkillId)
+                .Select(group => new
+                {
+                    SkillId = group.Key,
+                    Level = group.Max(es => es.AcquiredLevel)
+                })
                 .ToListAsync();
+
+            if (acquired.Count == 0)
+            {
+                return [];
+            }
+
+            var acquiredLevels = acquired.ToDictionary(item => item.SkillId, item => item.Level ?? 0);
+
+            var requirements = await _context.SkillPosition
+                .AsNoTracking()
+                .Where(sp => sp.State > 0)
+                .Select(sp => new PositionRequirementRow(
+                    sp.PositionId,
+                    sp.Position.PositionName ?? string.Empty,
+                    sp.SkillId,
+                    sp.ExpectedLevel,
+                    sp.RequirementKind))
+                .ToListAsync();
+
+            return PositionSuggestionRanker
+                .Rank(requirements, acquiredLevels)
+                .Select(suggestion => new PcdSuggestionPosition
+                {
+                    PositionId = suggestion.PositionId,
+                    PositionName = suggestion.PositionName
+                })
+                .ToList();
         }
 
         public async Task<object> GetAllWishEvolution(int pageNumber = 1, int pageSize = 10)
