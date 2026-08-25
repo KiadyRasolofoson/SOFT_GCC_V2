@@ -3,4 +3,4 @@ using SoftGcc.Domain.Entities.crud_career;
 
 namespace SoftGcc.Application.Positions.Queries.GetPositions;
 
-public sealed record GetPositionsQuery : IRequest<IEnumerable<Position>>;
+public sealed record GetPositionsQuery(int? DepartmentId = null) : IRequest<IEnumerable<Position>>;

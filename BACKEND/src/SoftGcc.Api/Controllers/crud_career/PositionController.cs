@@ -24,9 +24,9 @@ namespace SoftGcc.Api.Controllers.crud_career
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetAll()
+		public async Task<IActionResult> GetAll([FromQuery] int? departmentId)
 		{
-			var positions = await _mediator.Send(new GetPositionsQuery());
+			var positions = await _mediator.Send(new GetPositionsQuery(departmentId));
 			return Ok(positions);
 		}
 

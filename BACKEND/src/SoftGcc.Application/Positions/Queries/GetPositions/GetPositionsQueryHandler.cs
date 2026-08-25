@@ -13,6 +13,11 @@ public sealed class GetPositionsQueryHandler : IRequestHandler<GetPositionsQuery
         _repository = repository;
     }
 
-    public Task<IEnumerable<Position>> Handle(GetPositionsQuery request, CancellationToken cancellationToken)
-        => _repository.GetAll();
+    public async Task<IEnumerable<Position>> Handle(GetPositionsQuery request, CancellationToken cancellationToken)
+    {
+        var positions = await _repository.GetAll();
+        return request.DepartmentId.HasValue
+            ? positions.Where(p => p.DepartmentId == request.DepartmentId.Value)
+            : positions;
+    }
 }

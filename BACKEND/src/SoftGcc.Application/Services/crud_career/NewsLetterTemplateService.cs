@@ -18,6 +18,14 @@ namespace SoftGcc.Application.Services.crud_career
 			return await _repository.GetAll();
 		}
 
+		public async Task<IEnumerable<NewsLetterTemplate>> GetByEmployeeType(int? employeeTypeId)
+		{
+			var templates = await _repository.GetAll();
+			return employeeTypeId.HasValue
+				? templates.Where(t => t.EmployeeTypeId == employeeTypeId.Value)
+				: templates;
+		}
+
 		public async Task<NewsLetterTemplate?> GetById(int id)
 		{
 			return await _repository.GetById(id);

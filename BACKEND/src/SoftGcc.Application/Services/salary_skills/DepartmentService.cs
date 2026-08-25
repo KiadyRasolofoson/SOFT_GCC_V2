@@ -20,6 +20,14 @@ namespace SoftGcc.Application.Services.salary_skills
 			return await _repository.GetAll();
 		}
 
+		public async Task<IEnumerable<Department>> GetByEstablishment(int? establishmentId)
+		{
+			var departments = await _repository.GetAll();
+			return establishmentId.HasValue
+				? departments.Where(d => d.EstablishmentId == establishmentId.Value)
+				: departments;
+		}
+
 		public async Task<Department?> GetById(int id)
 		{
 			return await _repository.GetById(id);

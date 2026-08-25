@@ -13,5 +13,11 @@ namespace SoftGcc.Domain.Entities.crud_career
 
 		[Column("Legal_class_name")]
 		public string? LegalClassName { get; set; }
+
+		[Column("Professional_category_id")]
+		public int? ProfessionalCategoryId { get; set; }
+
+		[Column("Min_salary")]
+		public decimal? MinSalary { get; set; }
 	}
 }

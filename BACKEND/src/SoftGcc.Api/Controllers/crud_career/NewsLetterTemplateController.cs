@@ -21,9 +21,9 @@ namespace SoftGcc.Api.Controllers.crud_career
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetAll()
+		public async Task<IActionResult> GetAll([FromQuery] int? employeeTypeId)
 		{
-			var newsLetterTemplate = await _newsLetterTemplateService.GetAll();
+			var newsLetterTemplate = await _newsLetterTemplateService.GetByEmployeeType(employeeTypeId);
 			return Ok(newsLetterTemplate);
 		}
 

@@ -23,9 +23,9 @@ namespace SoftGcc.Api.Controllers.salary_skills
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetAll()
+		public async Task<IActionResult> GetAll([FromQuery] int? establishmentId)
 		{
-			var departments = await _departmentService.GetAll();
+			var departments = await _departmentService.GetByEstablishment(establishmentId);
 			return Ok(departments);
 		}
 
@@ -38,7 +38,7 @@ namespace SoftGcc.Api.Controllers.salary_skills
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> Create([FromForm] string name, [FromForm] IFormFile? photo)
+		public async Task<IActionResult> Create([FromForm] string name, [FromForm] int? establishmentId, [FromForm] IFormFile? photo)
 		{
 			byte[]? photoBytes = null;
 			if (photo != null)
@@ -50,7 +50,7 @@ namespace SoftGcc.Api.Controllers.salary_skills
 				}
 			}
 
-			var department = new Department { Name = name };
+			var department = new Department { Name = name, EstablishmentId = establishmentId };
 			await _departmentService.Add(department, photoBytes);
 
 			return CreatedAtAction(nameof(Get), new { id = department.DepartmentId }, department);
@@ -73,7 +73,7 @@ namespace SoftGcc.Api.Controllers.salary_skills
 		}
 
 		[HttpPut("{id}")]
-		public async Task<IActionResult> Update(int id, [FromForm] string name, [FromForm] IFormFile? photo)
+		public async Task<IActionResult> Update(int id, [FromForm] string name, [FromForm] int? establishmentId, [FromForm] IFormFile? photo)
 		{
 			var existingDepartment = await _departmentService.GetById(id);
 			if (existingDepartment == null)
@@ -92,6 +92,7 @@ namespace SoftGcc.Api.Controllers.salary_skills
 			}
 
 			existingDepartment.Name = name;
+			existingDepartment.EstablishmentId = establishmentId;
 			existingDepartment.Photo = photoBytes;
 
 			await _departmentService.Update(existingDepartment, photoBytes);
