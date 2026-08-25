@@ -126,3 +126,6 @@ apiToProd.sh
 frontToProd.sh
 
 design-system/
+# Python (scripts de seed)
+__pycache__/
+*.pyc
