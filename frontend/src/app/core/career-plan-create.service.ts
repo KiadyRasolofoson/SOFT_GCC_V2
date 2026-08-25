@@ -86,6 +86,19 @@ export class CareerPlanCreateService {
     }
   }
 
+  /** GET /CareerPlan/last/{registrationNumber} → dernier plan actif (situation actuelle de l'employé). */
+  async getLastCareerPlan(registrationNumber: string | null): Promise<Record<string, any> | null> {
+    if (!registrationNumber) return null;
+    try {
+      const response = await firstValueFrom(
+        this.http.get<Record<string, any>>(`${environment.apiUrl}/CareerPlan/last/${registrationNumber}`),
+      );
+      return response ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   /** PUT /CareerPlan/{id} → NoContent (204). */
   async update(id: number, payload: Record<string, any>): Promise<void> {
     await firstValueFrom(this.http.put(`${environment.apiUrl}/CareerPlan/${id}`, payload));

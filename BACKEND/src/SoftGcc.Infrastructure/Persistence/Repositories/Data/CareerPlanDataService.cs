@@ -39,13 +39,11 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
         public async Task<CareerPlan?> GetLastCareerPlanByEmployee(string registrationNumber)
         {
             return await _context.CareerPlan
-                .FromSqlRaw(@"SELECT * 
+                .FromSqlRaw(@"SELECT TOP 1 * 
                       FROM Career_plan 
                       WHERE Registration_number = {0} 
-                        AND state > 0 
-                        AND employee_type = 2 
-                      ORDER BY Career_plan_id DESC 
-                      LIMIT 1", registrationNumber)
+                        AND State > 0 
+                      ORDER BY Career_plan_id DESC", registrationNumber)
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
         }

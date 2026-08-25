@@ -257,6 +257,16 @@ namespace SoftGcc.Api.Controllers.career
 			return Ok(employeeCareer);
 		}
 
+		// Situation actuelle d'un employé : dernier plan de carrière actif
+		[HttpGet]
+		[Route("last/{registrationNumber}")]
+		public async Task<IActionResult> GetLastCareerPlan(string registrationNumber)
+		{
+			var lastPlan = await _careerPlanService.GetLastCareerPlanByEmployee(registrationNumber);
+			if (lastPlan == null) return NotFound();
+			return Ok(lastPlan);
+		}
+
 		//	Suppimer un pla de carrière
 		[HttpPut]
 		[Route("delete/{careerPlanId}")]
