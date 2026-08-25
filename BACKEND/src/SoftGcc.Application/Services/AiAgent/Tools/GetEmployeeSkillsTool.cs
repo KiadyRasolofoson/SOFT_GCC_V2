@@ -38,6 +38,9 @@ internal sealed class GetEmployeeSkillsTool : AiToolBase
             s.DomainSkillName,
             s.SkillName,
             s.Level,
+            s.AcquiredLevel,
+            s.SkillVersionId,
+            s.Source,
             s.State
         }));
 

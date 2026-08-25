@@ -19,6 +19,15 @@ namespace SoftGcc.Domain.Entities.wish_evolution
 		[Column("Skill_name")]
 		public string? SkillName { get; set; }
 
+		[Column("Expected_level")]
+		public int? ExpectedLevel { get; set; }
+
+		[Column("Requirement_kind")]
+		public string? RequirementKind { get; set; }
+
+		[Column("Weight")]
+		public decimal? Weight { get; set; }
+
 		[Column("State")]
 		public int? State { get; set; }
 

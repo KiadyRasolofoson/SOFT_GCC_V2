@@ -23,6 +23,7 @@ using SoftGcc.Application.Services.license;
 using SoftGcc.Application.Services.retirement;
 using SoftGcc.Application.Services.salary_skills;
 using SoftGcc.Application.Services.wish_evolution;
+using SoftGcc.Application.SkillReferential;
 
 namespace SoftGcc.Application;
 
@@ -45,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IDegreeService, DegreeService>();
         services.AddScoped<IStudyPathService, StudyPathService>();
         services.AddScoped<ISkillService, SkillService>();
+        services.AddScoped<ISkillReferentialService, SkillReferentialService>();
         services.AddScoped<IDomainSkillService, DomainSkillService>();
         services.AddScoped<IEmployeeSkillService, EmployeeSkillService>();
         services.AddScoped<ILanguageService, LanguageService>();

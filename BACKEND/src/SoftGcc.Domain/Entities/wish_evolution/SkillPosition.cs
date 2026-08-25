@@ -18,6 +18,19 @@ namespace SoftGcc.Domain.Entities.wish_evolution
 		[Column("Skill_id")]
 		public int SkillId { get; set; }
 
+		[Column("Expected_level")]
+		public int ExpectedLevel { get; set; } = 2;
+
+		[Column("Requirement_kind")]
+		[MaxLength(32)]
+		public string RequirementKind { get; set; } = SoftGcc.Domain.SkillReferential.RequirementKind.Required;
+
+		[Column("Weight")]
+		public decimal Weight { get; set; } = 1;
+
+		[Column("Required_level")]
+		public double? RequiredLevel { get; set; }
+
 		[Column("State")]
 		public int State { get; set; }
 
@@ -27,10 +40,10 @@ namespace SoftGcc.Domain.Entities.wish_evolution
 		[Column("Updated_date")]
 		public DateTime? UpdatedDate { get; set; }
 
-		[ForeignKey("PositionId")]
+		[ForeignKey(nameof(PositionId))]
 		public Position Position { get; set; } = null!;
 
-		[ForeignKey("SkillId")]
+		[ForeignKey(nameof(SkillId))]
 		public Skill Skill { get; set; } = null!;
 	}
 }

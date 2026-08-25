@@ -75,6 +75,7 @@ BEGIN
         -- Paramétrage
         ('VIEW_SKILL_SETTINGS', N'Consulter le référentiel compétences (paramètres)', 1),
         ('MANAGE_SKILL_SETTINGS', N'Gérer le référentiel compétences (paramètres)', 1),
+        ('PUBLISH_SKILL_REFERENTIAL', N'Publier et archiver le référentiel de compétences', 1),
         ('VIEW_CAREER_SETTINGS', N'Consulter le référentiel carrières (paramètres)', 1),
         ('MANAGE_CAREER_SETTINGS', N'Gérer le référentiel carrières (paramètres)', 1),
         ('VIEW_EMPLOYEES', N'Consulter la liste des employés', 1),
@@ -189,7 +190,7 @@ BEGIN
         'VIEW_CAREER', 'CREATE_CAREER', 'EDIT_CAREER', 'DELETE_CAREER',
         'VIEW_ORGANIZATION', 'IMPORT_ORGANIZATION', 'MANAGE_ORGANIZATION',
         'VIEW_ACTIVITY_HISTORY', 'MANAGE_ACTIVITY_HISTORY',
-        'VIEW_SKILL_SETTINGS', 'MANAGE_SKILL_SETTINGS',
+        'VIEW_SKILL_SETTINGS', 'MANAGE_SKILL_SETTINGS', 'PUBLISH_SKILL_REFERENTIAL',
         'VIEW_CAREER_SETTINGS', 'MANAGE_CAREER_SETTINGS',
         'VIEW_EMPLOYEES', 'CREATE_EMPLOYEES', 'EDIT_EMPLOYEES', 'DELETE_EMPLOYEES', 'MANAGE_EMPLOYEES',
         'MANAGE_EMPLOYEE_SYNC',

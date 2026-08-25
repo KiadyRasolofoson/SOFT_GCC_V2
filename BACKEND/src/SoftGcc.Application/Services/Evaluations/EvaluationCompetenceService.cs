@@ -113,226 +113,14 @@ namespace SoftGcc.Application.Services.Evaluations
         }
 
         /// <summary>
-        /// Met à jour ou crée les entrées dans EmployeeSkill basées sur les résultats d'évaluation
+        /// Campaign 1–5 scores remain performance ratings. They must not be copied onto
+        /// Employee_skill as a percentage (overallScore times twenty) nor as a referential rank.
+        /// Auto-positioning 1–4 on the job matrix is out of scope for this module.
         /// </summary>
-        public async Task UpdateEmployeeSkillsAfterEvaluation(int evaluationId)
+        public Task UpdateEmployeeSkillsAfterEvaluation(int evaluationId)
         {
-            try
-            {
-                Console.WriteLine($"Mise à jour des compétences pour l'évaluation {evaluationId}");
-                
-                // 1. Obtenir l'ID de l'employé et les résultats d'évaluation
-                var employeeId = await GetEmployeeIdFromEvaluation(evaluationId);
-                if (employeeId <= 0) return;
-                
-                var results = await GetCompetenceResults(evaluationId);
-                if (results.Count == 0) return;
-                
-                // 2. Obtenir un domaine par défaut
-                var defaultDomainId = await GetDefaultDomainId();
-                if (defaultDomainId <= 0) return;
-                
-                // 3. Traiter chaque résultat
-                foreach (var result in results)
-                {
-                    try
-                    {
-                        // Récupérer les IDs nécessaires
-                        var skillId = await GetSkillIdFromCompetenceLine(result.CompetenceLineId);
-                        if (skillId <= 0) continue;
-                        
-                        // Vérifier si la compétence existe déjà
-                        var existingSkillId = await CheckExistingSkill(employeeId, skillId);
-                        var score = (double)result.Score * 20; // Convertir le score en pourcentage
-
-                        if (existingSkillId > 0)
-                        {
-                            // Mise à jour
-                            await UpdateExistingSkill(existingSkillId, score);
-                        }
-                        else
-                        {
-                            // Création
-                            await CreateNewSkill(employeeId, skillId, defaultDomainId, score);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Erreur sur la compétence {result.CompetenceLineId}: {ex.Message}");
-                    }
-                }
-                
-                Console.WriteLine($"Mise à jour terminée pour l'employé {employeeId}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur globale: {ex.Message}");
-            }
-        }
-        
-        // Méthodes d'aide pour simplifier le code principal
-        
-        private async Task<int> GetEmployeeIdFromEvaluation(int evaluationId)
-        {
-            try
-            {
-                var result = await _dataService.ExecuteScalarAsync(
-                    "SELECT employeeId FROM Evaluations WHERE evaluations_id = @p0", evaluationId);
-                
-                if (result > 0)
-                {
-                    Console.WriteLine($"EmployeeId trouvé: {result}");
-                    return result;
-                }
-                
-                Console.WriteLine($"Évaluation {evaluationId} non trouvée ou sans employé associé");
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la récupération de l'employeeId: {ex.Message}");
-                return 0;
-            }
-        }
-        
-        private async Task<List<EvaluationCompetenceResult>> GetCompetenceResults(int evaluationId)
-        {
-            var results = new List<EvaluationCompetenceResult>();
-            try
-            {
-                var rows = await _dataService.ExecuteReaderAsync(@"
-                    SELECT ResultId, EvaluationId, EmployeeId, CompetenceLineId, Score
-                    FROM Evaluation_Competence_Results 
-                    WHERE EvaluationId = @p0", evaluationId);
-                
-                foreach (var row in rows)
-                {
-                    results.Add(new EvaluationCompetenceResult
-                    {
-                        ResultId = Convert.ToInt32(row["ResultId"]),
-                        EvaluationId = Convert.ToInt32(row["EvaluationId"]),
-                        EmployeeId = Convert.ToInt32(row["EmployeeId"]),
-                        CompetenceLineId = Convert.ToInt32(row["CompetenceLineId"]),
-                        Score = Convert.ToDecimal(row["Score"])
-                    });
-                }
-                
-                Console.WriteLine($"{results.Count} résultats de compétence trouvés");
-                return results;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la récupération des résultats: {ex.Message}");
-                return results;
-            }
-        }
-        
-        private async Task<int> GetDefaultDomainId()
-        {
-            try
-            {
-                var domainId = await _dataService.ExecuteScalarAsync(
-                    "SELECT TOP 1 Domain_skill_id FROM Domain_skill WHERE Domain_skill_id > 0");
-                
-                if (domainId > 0)
-                {
-                    Console.WriteLine($"Domaine par défaut: {domainId}");
-                    return domainId;
-                }
-                
-                Console.WriteLine("Aucun domaine trouvé");
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la récupération du domaine: {ex.Message}");
-                return 0;
-            }
-        }
-        
-        private async Task<int> GetSkillIdFromCompetenceLine(int competenceLineId)
-        {
-            try
-            {
-                // 1. Récupérer le SkillPositionId
-                int skillPositionId = await _dataService.ExecuteScalarAsync(
-                    "SELECT SkillPositionId FROM Competence_Lines WHERE CompetenceLineId = @p0", competenceLineId);
-
-                if (skillPositionId <= 0)
-                {
-                    Console.WriteLine($"SkillPositionId non trouvé pour CompetenceLine {competenceLineId}");
-                    return 0;
-                }
-                
-                // 2. Récupérer le SkillId
-                int skillId = await _dataService.ExecuteScalarAsync(
-                    "SELECT Skill_id FROM Skill_position WHERE Skill_position_id = @p0", skillPositionId);
-                
-                if (skillId > 0)
-                {
-                    Console.WriteLine($"SkillId trouvé: {skillId}");
-                    return skillId;
-                }
-                
-                Console.WriteLine($"SkillId non trouvé pour SkillPosition {skillPositionId}");
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la récupération du SkillId: {ex.Message}");
-                return 0;
-            }
-        }
-        
-        private async Task<int> CheckExistingSkill(int employeeId, int skillId)
-        {
-            try
-            {
-                return await _dataService.ExecuteScalarAsync(@"
-                    SELECT Employee_skill_id 
-                    FROM Employee_skill 
-                    WHERE Employee_id = @p0 AND Skill_id = @p1", employeeId, skillId);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la vérification de compétence: {ex.Message}");
-                return 0;
-            }
-        }
-        
-        private async Task UpdateExistingSkill(int skillId, double score)
-        {
-            try
-            {
-                var rowsAffected = await _dataService.ExecuteNonQueryAsync(@"
-                    UPDATE Employee_skill 
-                    SET Level = @p0, 
-                        Updated_date = @p1, 
-                        State = 10 
-                    WHERE Employee_skill_id = @p2", score, DateTime.Now, skillId);
-                Console.WriteLine($"Compétence {skillId} mise à jour: {rowsAffected} lignes");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la mise à jour de compétence: {ex.Message}");
-            }
-        }
-        
-        private async Task CreateNewSkill(int employeeId, int skillId, int domainId, double score)
-        {
-            try
-            {
-                var rowsAffected = await _dataService.ExecuteNonQueryAsync(@"
-                    INSERT INTO Employee_skill 
-                    (Domain_skill_id, Skill_id, Level, State, Creation_date, Updated_date, Employee_id) 
-                    VALUES (@p0, @p1, @p2, 10, @p3, @p3, @p4)",
-                    domainId, skillId, score, DateTime.Now, employeeId);
-                Console.WriteLine($"Nouvelle compétence créée: {rowsAffected} lignes");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la création de compétence: {ex.Message}");
-            }
+            _ = evaluationId;
+            return Task.CompletedTask;
         }
 
         public async Task<List<CompetenceResultDto>> GetUserCompetenceResultsAsync(int employeeId)
@@ -364,7 +152,7 @@ namespace SoftGcc.Application.Services.Evaluations
                 var competenceIds = latestResults.Select(lr => lr.CompetenceLineId).ToList();
                 var competenceLinesData = await _dataService.ExecuteReaderAsync(@"
                     SELECT cl.CompetenceLineId, cl.Description, cl.SkillPositionId, 
-                           sp.Skill_id, s.Name AS SkillName
+                           sp.Skill_id, s.Skill_name AS SkillName
                     FROM Competence_Lines cl
                     LEFT JOIN Skill_position sp ON cl.SkillPositionId = sp.Skill_position_id
                     LEFT JOIN Skill s ON sp.Skill_id = s.Skill_id
@@ -452,7 +240,7 @@ namespace SoftGcc.Application.Services.Evaluations
                 var competenceIds = results.Select(r => r.CompetenceLineId).ToList();
                 var competenceLinesData = await _dataService.ExecuteReaderAsync(@"
                     SELECT cl.CompetenceLineId, cl.Description, cl.SkillPositionId,
-                           sp.Skill_id, s.Name AS SkillName
+                           sp.Skill_id, s.Skill_name AS SkillName
                     FROM Competence_Lines cl
                     LEFT JOIN Skill_position sp ON cl.SkillPositionId = sp.Skill_position_id
                     LEFT JOIN Skill s ON sp.Skill_id = s.Skill_id
@@ -524,7 +312,7 @@ namespace SoftGcc.Application.Services.Evaluations
                     evaluationIds.Cast<object>().ToArray());
 
                 var compLinesData = await _dataService.ExecuteReaderAsync(@"
-                    SELECT cl.CompetenceLineId, s.Name AS SkillName
+                    SELECT cl.CompetenceLineId, s.Skill_name AS SkillName
                     FROM Competence_Lines cl
                     LEFT JOIN Skill_position sp ON cl.SkillPositionId = sp.Skill_position_id
                     LEFT JOIN Skill s ON sp.Skill_id = s.Skill_id

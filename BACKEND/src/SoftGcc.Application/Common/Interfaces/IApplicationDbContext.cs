@@ -22,6 +22,10 @@ public interface IApplicationDbContext
     public DbSet<EmployeeEducation> EmployeeEducations { get; }
     public DbSet<Skill> Skill { get; }
     public DbSet<DomainSkill> DomainSkill { get; }
+    public DbSet<SkillFamily> SkillFamily { get; }
+    public DbSet<SkillVersion> SkillVersion { get; }
+    public DbSet<SkillLevelDescriptor> SkillLevelDescriptor { get; }
+    public DbSet<SkillPosition> SkillPosition { get; }
     public DbSet<EmployeeSkill> EmployeeSkill { get; }
     public DbSet<EmployeeLanguage> EmployeeLanguage { get; }
     public DbSet<Language> Language { get; }

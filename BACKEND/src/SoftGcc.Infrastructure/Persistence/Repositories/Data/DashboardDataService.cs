@@ -86,11 +86,16 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             }
         }
 
+        /// <summary>
+        /// Compétences répertoriées = catalogue publié, pour coller au libellé du KPI et au
+        /// compteur du référentiel. Compter les compétences présentes dans une matrice emplois
+        /// donnait un chiffre plus petit, incohérent avec l'écran « Référentiel de compétences ».
+        /// </summary>
         public async Task<int> GetSkillRepertory()
         {
             using (var command = _context.Database.GetDbConnection().CreateCommand())
             {
-                command.CommandText = "SELECT COUNT(DISTINCT Skill_id) FROM Skill_position WHERE State > 0";
+                command.CommandText = "SELECT COUNT(*) FROM Skill WHERE State = N'Active'";
                 command.CommandType = System.Data.CommandType.Text;
 
                 _context.Database.OpenConnection();
@@ -100,6 +105,11 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             }
         }
 
+        /// <summary>
+        /// Détail du KPI : chaque compétence active et le nombre de postes qui l'exigent.
+        /// Les compétences encore absentes des matrices remontent à 0, ce qui rend visible
+        /// le travail de paramétrage restant.
+        /// </summary>
         public async Task<List<SkillRepertoryDetailDto>> GetSkillRepertoryDetailsAsync()
         {
             var results = new List<SkillRepertoryDetailDto>();
@@ -107,10 +117,10 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             using (var command = _context.Database.GetDbConnection().CreateCommand())
             {
                 command.CommandText = @"
-                    SELECT s.Skill_id, s.Skill_name AS SkillName, COUNT(sp.Position_id) AS PositionCount
-                    FROM Skill_position sp
-                    JOIN Skill s ON s.Skill_id = sp.Skill_id
-                    WHERE sp.State > 0
+                    SELECT s.Skill_id, ISNULL(s.Skill_name, N'') AS SkillName, COUNT(sp.Position_id) AS PositionCount
+                    FROM Skill s
+                    LEFT JOIN Skill_position sp ON sp.Skill_id = s.Skill_id AND sp.State > 0
+                    WHERE s.State = N'Active'
                     GROUP BY s.Skill_id, s.Skill_name
                     ORDER BY s.Skill_name";
 
@@ -145,8 +155,8 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                                 p.position_name, 
                                 s.Skill_id, 
                                 s.Skill_name, 
-                                CONCAT(cr.Required_level, ' %') AS RequiredLevel,
-                                CONCAT(FORMAT(ROUND(cr.AverageLevel, 2), 'N2'), ' %') AS AverageLevel
+                                CONCAT(cr.Expected_level, ' / 4') AS RequiredLevel,
+                                CONCAT(FORMAT(ROUND(cr.AverageLevel, 2), 'N2'), ' / 4') AS AverageLevel
                             FROM v_coverage_ratios cr 
                             JOIN position p ON cr.Position_id = p.Position_id
                             JOIN skill s ON s.Skill_id = cr.Skill_id";

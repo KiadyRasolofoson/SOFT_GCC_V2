@@ -8,6 +8,7 @@ import {
   WishEvolutionDetails,
 } from '../../core/wish-evolution.models';
 import { WishEvolutionService } from '../../core/wish-evolution.service';
+import { SkillReferentialService } from '../skill-referential/skill-referential.service';
 import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccStatusTag, StatusKind } from '../../ui/gcc-status-tag';
@@ -143,6 +144,8 @@ import { GccStatusTag, StatusKind } from '../../ui/gcc-status-tag';
                   <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-[0.08em] text-slate-500">
                     <th class="px-2 py-2 font-semibold">ID</th>
                     <th class="px-2 py-2 font-semibold">Compétence</th>
+                    <th class="px-2 py-2 font-semibold">Attendu</th>
+                    <th class="px-2 py-2 font-semibold">Acquis</th>
                     <th class="px-2 py-2 font-semibold">État</th>
                   </tr>
                 </thead>
@@ -151,8 +154,10 @@ import { GccStatusTag, StatusKind } from '../../ui/gcc-status-tag';
                     <tr class="border-b border-slate-100 text-sm text-slate-700">
                       <td class="px-2 py-2">{{ item.skillId }}</td>
                       <td class="px-2 py-2 font-medium text-navy">{{ item.skillName }}</td>
+                      <td class="px-2 py-2">{{ item.expectedRank }}/4</td>
+                      <td class="px-2 py-2">{{ item.acquiredRank == null ? '—' : item.acquiredRank + '/4' }}</td>
                       <td class="px-2 py-2">
-                        <gcc-status-tag [status]="item.state === 'validé' ? 'ok' : 'gap'" />
+                        <gcc-status-tag [status]="skillStateStatus(item.state)" [label]="skillStateLabel(item.state)" />
                       </td>
                     </tr>
                   }
@@ -236,6 +241,7 @@ export class WishEvolutionDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(WishEvolutionService);
+  private readonly skillApi = inject(SkillReferentialService);
 
   private readonly routeId = Number(this.route.snapshot.paramMap.get('wishEvolutionId')) || 0;
 
@@ -277,14 +283,15 @@ export class WishEvolutionDetailPage {
 
       this.details.set(details);
 
-      const [skillPosition, employeeSkills, suggestions] = await Promise.all([
-        details.wishPositionId ? this.service.getSkillPosition(details.wishPositionId) : Promise.resolve([]),
-        details.employeeId ? this.service.getEmployeeSkills(details.employeeId) : Promise.resolve([]),
+      const [gaps, suggestions] = await Promise.all([
+        details.employeeId
+          ? this.skillApi.getEmployeeGaps(details.employeeId, details.wishPositionId)
+          : Promise.resolve({ items: [] }),
         details.employeeId ? this.service.getSuggestions(details.employeeId) : Promise.resolve([]),
       ]);
 
       this.suggestions.set(suggestions);
-      this.skillNecessary.set(this.buildSkillNecessary(skillPosition, employeeSkills));
+      this.skillNecessary.set(this.buildSkillNecessary(gaps.items ?? []));
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Erreur lors du chargement de la demande.');
       this.details.set(null);
@@ -377,16 +384,27 @@ export class WishEvolutionDetailPage {
     }).format(date);
   }
 
-  private buildSkillNecessary(
-    skillPosition: { skillId: number; skillName: string }[],
-    employeeSkills: { skillId: number }[],
-  ): SkillNecessaryItem[] {
-    const employeeSkillIds = new Set(employeeSkills.map((row) => Number(row.skillId)));
+  skillStateStatus(state: SkillNecessaryItem['state']): StatusKind {
+    if (state === 'ok') return 'ok';
+    if (state === 'missing') return 'refused';
+    return 'gap';
+  }
 
-    return skillPosition.map((row) => ({
+  skillStateLabel(state: SkillNecessaryItem['state']): string {
+    if (state === 'ok') return 'À niveau';
+    if (state === 'missing') return 'Manquant';
+    return 'Écart';
+  }
+
+  private buildSkillNecessary(
+    items: { skillId: number; skillName: string; expectedRank: number; acquiredRank: number | null; status: string }[],
+  ): SkillNecessaryItem[] {
+    return items.map((row) => ({
       skillId: row.skillId,
       skillName: row.skillName,
-      state: employeeSkillIds.has(Number(row.skillId)) ? 'validé' : 'non validé',
+      expectedRank: row.expectedRank,
+      acquiredRank: row.acquiredRank,
+      state: row.status === 'ok' || row.status === 'gap' || row.status === 'missing' ? row.status : row.acquiredRank == null ? 'missing' : row.acquiredRank >= row.expectedRank ? 'ok' : 'gap',
     }));
   }
 }

@@ -107,5 +107,7 @@ export interface SuggestionPositionItem {
 export interface SkillNecessaryItem {
   skillId: number;
   skillName: string;
-  state: 'validé' | 'non validé';
+  expectedRank: number;
+  acquiredRank: number | null;
+  state: 'ok' | 'gap' | 'missing';
 }

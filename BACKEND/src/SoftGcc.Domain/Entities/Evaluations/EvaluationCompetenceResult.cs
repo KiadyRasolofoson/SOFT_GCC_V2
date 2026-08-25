@@ -29,6 +29,9 @@ namespace SoftGcc.Domain.Entities.Evaluations
         public DateTime CreatedAt { get; set; }
         
         public int State { get; set; }
+
+        [Column("Skill_version_id")]
+        public int? SkillVersionId { get; set; }
         
         [ForeignKey("EvaluationId")]
         public virtual Evaluation Evaluation { get; set; } = null!;
