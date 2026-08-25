@@ -26,7 +26,7 @@ export interface DepartmentDetail {
 
 export interface DepartmentDetailResult {
   employees: DepartmentEmployeeItem[];
-  department: DepartmentDetail;
+  department: DepartmentDetail | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -43,7 +43,7 @@ export class DepartmentDetailService {
 
     return {
       employees: Array.isArray(employees) ? employees : [],
-      department: department ?? {},
+      department: department ?? null,
     };
   }
 

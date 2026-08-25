@@ -1,16 +1,15 @@
-@import 'tailwindcss';
-@import '@angular/material/prebuilt-themes/azure-blue.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
+html {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Source Serif 4', ui-serif, Georgia, 'Times New Roman', serif;
-
   --color-navy: #0f172a;
   --color-indigo-pro: #1e3a8a;
   --color-accent: #6366f1;
   --color-accent-violet: #7c3aed;
   --color-canvas: #f8fafc;
-
   --color-skill-beginner-bg: #e0f2fe;
   --color-skill-beginner-fg: #0369a1;
   --color-skill-mid-bg: #d1fae5;
@@ -19,9 +18,7 @@
   --color-skill-expert-fg: #6d28d9;
   --color-gap-bg: #fef3c7;
   --color-gap-fg: #b45309;
-}
 
-html {
   --mat-sys-primary: #6366f1;
   --mat-sys-on-primary: #ffffff;
   --mat-sys-primary-container: #e0e7ff;
