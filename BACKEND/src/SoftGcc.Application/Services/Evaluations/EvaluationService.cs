@@ -445,9 +445,12 @@ namespace SoftGcc.Application.Services.Evaluations
                     Console.WriteLine("Appel du service de compétence pour l'évaluation " + evaluationId);
                     await _competenceService.CalculateAndSaveCompetenceResultsAsync(evaluationId);
                 }
+                catch (ValidationException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
-                    // Log l'erreur mais continue sans échouer la validation
                     Console.WriteLine($"Erreur lors du calcul et de la sauvegarde des résultats par compétence: {ex.Message}");
                     Console.WriteLine(ex.StackTrace);
                 }
@@ -467,7 +470,8 @@ namespace SoftGcc.Application.Services.Evaluations
        string strengths,
        string weaknesses,
             string generalEvaluation,
-            List<MultiCriteriaRatingDto>? detailedRatings = null)
+            List<MultiCriteriaRatingDto>? detailedRatings = null,
+            Dictionary<int, int>? competenceRatings = null)
         {
             var evaluation = await _evaluationRepository.GetByIdAsync(evaluationId);
             if (evaluation == null) throw new Exception($"Evaluation with ID {evaluationId} not found.");
@@ -547,16 +551,18 @@ namespace SoftGcc.Application.Services.Evaluations
                 }
             }
             
-            // Calculer et sauvegarder les résultats par compétence
+            // Calculer et sauvegarder les résultats par compétence (rangs 1–4, pas OverallScore)
             try
             {
-                // Utiliser l'instance injectée du service de compétence ici
                 if (_competenceService != null)
-                    await _competenceService.CalculateAndSaveCompetenceResultsAsync(evaluationId);
+                    await _competenceService.CalculateAndSaveCompetenceResultsAsync(evaluationId, competenceRatings);
+            }
+            catch (ValidationException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                // On log l'erreur mais on ne la propage pas pour ne pas bloquer l'enregistrement des résultats
                 Console.WriteLine($"Erreur lors du calcul des résultats par compétence : {ex.Message}");
             }
 
@@ -579,7 +585,8 @@ namespace SoftGcc.Application.Services.Evaluations
                 dto.Strengths ?? string.Empty,
                 dto.Weaknesses ?? string.Empty,
                 dto.GeneralEvaluation ?? string.Empty,
-                dto.DetailedRatings
+                dto.DetailedRatings,
+                dto.CompetenceRatings
             );
         }
 
@@ -1304,7 +1311,9 @@ namespace SoftGcc.Application.Services.Evaluations
         {
             // Get selected questions with question data
             var selectedRows = await _dataService.ExecuteReaderAsync(@"
-                SELECT esq.QuestionId, eq.question, eq.CompetenceLineId, eq.ResponseTypeId,
+                SELECT esq.QuestionId, eq.question,
+                       CASE WHEN esq.CompetenceLineId > 0 THEN esq.CompetenceLineId ELSE eq.CompetenceLineId END AS CompetenceLineId,
+                       eq.ResponseTypeId,
                        er.ResponseValue, er.IsCorrect, er.ResponseId
                 FROM Evaluation_Selected_Questions esq
                 INNER JOIN Evaluation_questions eq ON esq.QuestionId = eq.Question_id

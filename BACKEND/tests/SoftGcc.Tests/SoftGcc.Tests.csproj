@@ -24,4 +24,8 @@
     <ProjectReference Include="..\..\src\SoftGcc.Infrastructure\SoftGcc.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\src\SoftGcc.Application\Services\Evaluations\EvaluationCompetenceService.cs" Link="Fixtures\EvaluationCompetenceService.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

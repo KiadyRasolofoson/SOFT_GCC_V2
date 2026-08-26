@@ -50,6 +50,21 @@ public class EvaluationCompetenceController : ControllerBase
             }
         }
 
+        /// Résumé de maîtrise 1–4 pour les listes (notation / historique).
+        [HttpGet("summaries")]
+        public async Task<IActionResult> GetMasterySummaries([FromQuery] int[]? evaluationIds)
+        {
+            try
+            {
+                var summaries = await _competenceService.GetMasterySummariesAsync(evaluationIds ?? []);
+                return Ok(summaries);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
         /// Récupère les résultats de compétences pour une évaluation spécifique
         [HttpGet("evaluation/{evaluationId}")]
         public async Task<IActionResult> GetEvaluationCompetenceResults(int evaluationId)

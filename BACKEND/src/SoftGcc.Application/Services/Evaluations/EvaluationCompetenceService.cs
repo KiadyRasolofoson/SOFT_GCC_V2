@@ -1,12 +1,8 @@
-using SoftGcc.Application.Dtos.EvaluationsDto;
+using SoftGcc.Application.SkillReferential;
 using SoftGcc.Domain.Entities.Evaluations;
-using SoftGcc.Domain.Entities.salary_skills;
-using SoftGcc.Domain.Entities.wish_evolution;
+using SoftGcc.Domain.Exceptions;
 using SoftGcc.Domain.Interfaces.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using SoftGcc.Domain.SkillReferential;
 
 namespace SoftGcc.Application.Services.Evaluations
 {
@@ -19,48 +15,45 @@ namespace SoftGcc.Application.Services.Evaluations
             _dataService = dataService;
         }
 
-        /// Calcule et enregistre les résultats par compétence pour une évaluation
-        public async Task<bool> CalculateAndSaveCompetenceResultsAsync(int evaluationId)
+        /// <summary>
+        /// Enregistre le rang de maîtrise 1–4 de chaque compétence notée.
+        /// Ne recopie jamais <c>Evaluations.OverallScore</c> (note de campagne /5).
+        /// </summary>
+        public Task<bool> CalculateAndSaveCompetenceResultsAsync(int evaluationId) =>
+            CalculateAndSaveCompetenceResultsAsync(evaluationId, null);
+
+        public async Task<bool> CalculateAndSaveCompetenceResultsAsync(
+            int evaluationId,
+            IReadOnlyDictionary<int, int>? competenceRatings)
         {
             try
             {
                 Console.WriteLine($"Début du calcul des résultats par compétence pour l'évaluation {evaluationId}");
 
-                // 1. Récupérer l'évaluation avec l'employé associé
                 var evaluation = await _dataService.GetEvaluationWithUserAsync(evaluationId);
-
                 if (evaluation == null)
                 {
                     throw new Exception($"Évaluation avec ID {evaluationId} non trouvée.");
                 }
 
                 int employeeId = evaluation.EmployeeId;
-                decimal overallScore = evaluation.OverallScore ?? 0;
+                var ratings = NormalizeRatings(competenceRatings);
+                foreach (var pair in ratings)
+                {
+                    CompetencyScale.EnsureValid(pair.Value, $"CompetenceRatings[{pair.Key}]");
+                }
 
-                Console.WriteLine($"Score global de l'évaluation: {overallScore}");
-
-                // 2. Récupérer les questions sélectionnées pour cette évaluation et leurs compétences associées
                 var selectedQuestionsData = await _dataService.ExecuteReaderAsync(
                     "SELECT * FROM Evaluation_Selected_Questions WHERE EvaluationId = @p0", evaluationId);
 
-                var selectedQuestions = selectedQuestionsData.Select(row => new EvaluationSelectedQuestions
-                {
-                    SelectedQuestionId = Convert.ToInt32(row["SelectedQuestionId"]),
-                    EvaluationId = Convert.ToInt32(row["EvaluationId"]),
-                    QuestionId = Convert.ToInt32(row["QuestionId"]),
-                    CompetenceLineId = row.ContainsKey("CompetenceLineId") && row["CompetenceLineId"] != DBNull.Value
-                        ? Convert.ToInt32(row["CompetenceLineId"]) : 0
-                }).ToList();
-
-                if (selectedQuestions == null || !selectedQuestions.Any())
+                if (selectedQuestionsData == null || selectedQuestionsData.Count == 0)
                 {
                     Console.WriteLine($"Aucune question sélectionnée trouvée pour l'évaluation {evaluationId}");
                     return false;
                 }
 
-                // 3. Extraire les IDs de compétence distincts (ignorer 0 = non renseigné)
-                var distinctCompetences = selectedQuestions
-                    .Select(sq => sq.CompetenceLineId)
+                var distinctCompetences = selectedQuestionsData
+                    .Select(row => ReadInt(row, "CompetenceLineId") ?? 0)
                     .Where(id => id > 0)
                     .Distinct()
                     .ToList();
@@ -68,42 +61,69 @@ namespace SoftGcc.Application.Services.Evaluations
                 Console.WriteLine($"Nombre de compétences distinctes: {distinctCompetences.Count}");
 
                 var existingCompetenceRows = await _dataService.ExecuteReaderAsync(
-                    "SELECT ResultId, CompetenceLineId FROM Evaluation_Competence_Results WHERE EvaluationId = @p0",
+                    "SELECT ResultId, CompetenceLineId, Score FROM Evaluation_Competence_Results WHERE EvaluationId = @p0",
                     evaluationId);
                 var existingByCompetence = existingCompetenceRows
                     .GroupBy(r => Convert.ToInt32(r["CompetenceLineId"]))
-                    .ToDictionary(g => g.Key, g => Convert.ToInt32(g.First()["ResultId"]));
+                    .ToDictionary(
+                        g => g.Key,
+                        g => (
+                            ResultId: Convert.ToInt32(g.First()["ResultId"]),
+                            Score: Convert.ToDecimal(g.First()["Score"])));
 
-                // 4. Upsert SQL (pas d'AddRange EF : navigations obligatoires → « Key: employeeId »)
+                var skillLinks = await LoadSkillLinksAsync(distinctCompetences);
+
                 var now = DateTime.UtcNow;
                 foreach (var competenceId in distinctCompetences)
                 {
-                    Console.WriteLine($"Enregistrement du résultat pour la compétence ID: {competenceId}");
+                    int rank;
+                    if (ratings.TryGetValue(competenceId, out var incomingRank))
+                    {
+                        rank = incomingRank;
+                    }
+                    else if (existingByCompetence.TryGetValue(competenceId, out var existing)
+                             && TryGetRank(existing.Score, out rank))
+                    {
+                        // Rejouer un rang 1–4 déjà enregistré (validation sans nouveau payload).
+                    }
+                    else
+                    {
+                        continue;
+                    }
 
-                    if (existingByCompetence.TryGetValue(competenceId, out var resultId))
+                    CompetencyScale.EnsureValid(rank, "Score");
+                    var skillVersionParam = ToDbValue(
+                        skillLinks.TryGetValue(competenceId, out var link) ? link.SkillVersionId : null);
+
+                    Console.WriteLine($"Enregistrement du rang {rank} pour la compétence ID: {competenceId}");
+
+                    if (existingByCompetence.TryGetValue(competenceId, out var existingRow))
                     {
                         await _dataService.ExecuteNonQueryAsync(@"
                             UPDATE Evaluation_Competence_Results
-                            SET Score = @p0, EmployeeId = @p1, State = 1
-                            WHERE ResultId = @p2",
-                            overallScore, employeeId, resultId);
+                            SET Score = @p0, EmployeeId = @p1, State = 1, Skill_version_id = @p2
+                            WHERE ResultId = @p3",
+                            rank, employeeId, skillVersionParam, existingRow.ResultId);
                     }
                     else
                     {
                         await _dataService.ExecuteNonQueryAsync(@"
                             INSERT INTO Evaluation_Competence_Results
-                                (EvaluationId, EmployeeId, CompetenceLineId, Score, Comments, CreatedAt, State)
-                            VALUES (@p0, @p1, @p2, @p3, @p4, @p5, 1)",
-                            evaluationId, employeeId, competenceId, overallScore, string.Empty, now);
+                                (EvaluationId, EmployeeId, CompetenceLineId, Score, Comments, CreatedAt, State, Skill_version_id)
+                            VALUES (@p0, @p1, @p2, @p3, @p4, @p5, 1, @p6)",
+                            evaluationId, employeeId, competenceId, rank, string.Empty, now, skillVersionParam);
                     }
                 }
 
                 Console.WriteLine("Calcul et sauvegarde des résultats par compétence terminés avec succès");
 
-                // 5. Mise à jour des compétences des employés
                 await UpdateEmployeeSkillsAfterEvaluation(evaluationId);
 
                 return true;
+            }
+            catch (ValidationException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -113,14 +133,95 @@ namespace SoftGcc.Application.Services.Evaluations
         }
 
         /// <summary>
-        /// Campaign 1–5 scores remain performance ratings. They must not be copied onto
-        /// Employee_skill as a percentage (overallScore times twenty) nor as a referential rank.
-        /// Auto-positioning 1–4 on the job matrix is out of scope for this module.
+        /// Écrit <c>Employee_skill.Acquired_level</c> (rang 1–4) pour les skills notés.
+        /// Ne touche pas <c>Level</c> (pourcentage legacy) et ignore les compétences hors évaluation.
         /// </summary>
-        public Task UpdateEmployeeSkillsAfterEvaluation(int evaluationId)
+        public async Task UpdateEmployeeSkillsAfterEvaluation(int evaluationId)
         {
-            _ = evaluationId;
-            return Task.CompletedTask;
+            var evaluation = await _dataService.GetEvaluationWithUserAsync(evaluationId);
+            if (evaluation == null)
+            {
+                Console.WriteLine($"Évaluation {evaluationId} introuvable — Employee_skill non mis à jour.");
+                return;
+            }
+
+            int employeeId = evaluation.EmployeeId;
+            var resultsData = await _dataService.ExecuteReaderAsync(
+                "SELECT CompetenceLineId, Score, Skill_version_id FROM Evaluation_Competence_Results WHERE EvaluationId = @p0",
+                evaluationId);
+
+            var scored = new List<(int CompetenceLineId, int Rank, int? SkillVersionId)>();
+            foreach (var row in resultsData)
+            {
+                var competenceLineId = Convert.ToInt32(row["CompetenceLineId"]);
+                if (!TryGetRank(Convert.ToDecimal(row["Score"]), out var rank))
+                {
+                    continue;
+                }
+
+                scored.Add((competenceLineId, rank, ReadInt(row, "Skill_version_id")));
+            }
+
+            if (scored.Count == 0)
+            {
+                return;
+            }
+
+            var skillLinks = await LoadSkillLinksAsync(scored.Select(s => s.CompetenceLineId).Distinct().ToList());
+            var existingSkillRows = await _dataService.ExecuteReaderAsync(
+                "SELECT Employee_skill_id, Skill_id FROM Employee_skill WHERE Employee_id = @p0",
+                employeeId);
+            var existingBySkill = existingSkillRows
+                .GroupBy(r => Convert.ToInt32(r["Skill_id"]))
+                .ToDictionary(g => g.Key, g => Convert.ToInt32(g.First()["Employee_skill_id"]));
+
+            var now = DateTime.UtcNow;
+            var updatedSkillIds = new HashSet<int>();
+            foreach (var item in scored)
+            {
+                if (!skillLinks.TryGetValue(item.CompetenceLineId, out var link) || link.SkillId is null or <= 0)
+                {
+                    Console.WriteLine(
+                        $"Compétence {item.CompetenceLineId} sans SkillPositionId/Skill_id — Employee_skill ignoré.");
+                    continue;
+                }
+
+                if (link.DomainSkillId is null or <= 0)
+                {
+                    Console.WriteLine(
+                        $"Compétence {item.CompetenceLineId} sans Domain_skill_id — Employee_skill ignoré.");
+                    continue;
+                }
+
+                if (!updatedSkillIds.Add(link.SkillId.Value))
+                {
+                    continue;
+                }
+
+                var versionParam = ToDbValue(item.SkillVersionId ?? link.SkillVersionId);
+                if (existingBySkill.TryGetValue(link.SkillId.Value, out var employeeSkillId))
+                {
+                    await _dataService.ExecuteNonQueryAsync(@"
+                        UPDATE Employee_skill
+                        SET Acquired_level = @p0, Source = @p1, Updated_date = @p2, Skill_version_id = @p3
+                        WHERE Employee_skill_id = @p4",
+                        item.Rank, EmployeeSkillSource.Evaluation, now, versionParam, employeeSkillId);
+                }
+                else
+                {
+                    await _dataService.ExecuteNonQueryAsync(@"
+                        INSERT INTO Employee_skill
+                            (Domain_skill_id, Skill_id, Level, Acquired_level, Skill_version_id, Source, State, Creation_date, Updated_date, Employee_id)
+                        VALUES (@p0, @p1, 0, @p2, @p3, @p4, 1, @p5, @p5, @p6)",
+                        link.DomainSkillId.Value,
+                        link.SkillId.Value,
+                        item.Rank,
+                        versionParam,
+                        EmployeeSkillSource.Evaluation,
+                        now,
+                        employeeId);
+                }
+            }
         }
 
         public async Task<List<CompetenceResultDto>> GetUserCompetenceResultsAsync(int employeeId)
@@ -173,16 +274,14 @@ namespace SoftGcc.Application.Services.Evaluations
                     var evalRow = evaluationsData.FirstOrDefault(r => Convert.ToInt32(r["EvaluationId"]) == result.EvaluationId);
                     var skillName = compRow?.GetValueOrDefault("SkillName")?.ToString() ?? "Inconnu";
 
-                    return new CompetenceResultDto
-                    {
-                        CompetenceId = result.CompetenceLineId,
-                        CompetenceName = skillName,
-                        Description = compRow?.GetValueOrDefault("Description")?.ToString() ?? "",
-                        Score = result.Score,
-                        EvaluationId = result.EvaluationId,
-                        EvaluationDate = evalRow != null && evalRow["EndDate"] != DBNull.Value
-                            ? Convert.ToDateTime(evalRow["EndDate"]) : DateTime.MinValue
-                    };
+                    return MapCompetenceResult(
+                        result.CompetenceLineId,
+                        skillName,
+                        compRow?.GetValueOrDefault("Description")?.ToString() ?? "",
+                        result.Score,
+                        result.EvaluationId,
+                        evalRow != null && evalRow["EndDate"] != DBNull.Value
+                            ? Convert.ToDateTime(evalRow["EndDate"]) : DateTime.MinValue);
                 }).ToList();
 
                 return resultDtos;
@@ -213,25 +312,6 @@ namespace SoftGcc.Application.Services.Evaluations
                     Score = Convert.ToDecimal(row["Score"])
                 }).ToList();
 
-                // Si aucun résultat n'existe, calculer les résultats automatiquement
-                if (results == null || !results.Any())
-                {
-                    Console.WriteLine($"Aucun résultat trouvé pour l'évaluation {evaluationId}, calcul automatique...");
-                    await CalculateAndSaveCompetenceResultsAsync(evaluationId);
-                    
-                    // Récupérer les résultats fraîchement calculés
-                    resultsData = await _dataService.ExecuteReaderAsync(
-                        "SELECT * FROM Evaluation_Competence_Results WHERE EvaluationId = @p0", evaluationId);
-                    results = resultsData.Select(row => new EvaluationCompetenceResult
-                    {
-                        ResultId = Convert.ToInt32(row["ResultId"]),
-                        EvaluationId = Convert.ToInt32(row["EvaluationId"]),
-                        EmployeeId = Convert.ToInt32(row["EmployeeId"]),
-                        CompetenceLineId = Convert.ToInt32(row["CompetenceLineId"]),
-                        Score = Convert.ToDecimal(row["Score"])
-                    }).ToList();
-                }
-
                 if (results == null || !results.Any())
                 {
                     return new List<CompetenceResultDto>();
@@ -256,15 +336,13 @@ namespace SoftGcc.Application.Services.Evaluations
                 {
                     var compRow = competenceLinesData.FirstOrDefault(c => Convert.ToInt32(c["CompetenceLineId"]) == r.CompetenceLineId);
                     var skillName = compRow?.GetValueOrDefault("SkillName")?.ToString() ?? "Inconnu";
-                    return new CompetenceResultDto
-                    {
-                        CompetenceId = r.CompetenceLineId,
-                        CompetenceName = skillName,
-                        Description = skillName,
-                        Score = r.Score,
-                        EvaluationId = evaluationId,
-                        EvaluationDate = evaluationEndDate
-                    };
+                    return MapCompetenceResult(
+                        r.CompetenceLineId,
+                        skillName,
+                        skillName,
+                        r.Score,
+                        evaluationId,
+                        evaluationEndDate);
                 }).ToList();
 
                 return resultDtos;
@@ -346,6 +424,151 @@ namespace SoftGcc.Application.Services.Evaluations
                 throw;
             }
         }
+
+        public async Task<List<CompetenceMasterySummaryDto>> GetMasterySummariesAsync(IReadOnlyList<int> evaluationIds)
+        {
+            var ids = evaluationIds.Where(id => id > 0).Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return [];
+            }
+
+            var placeholders = string.Join(",", ids.Select((_, i) => $"@p{i}"));
+            var rows = await _dataService.ExecuteReaderAsync(
+                $"SELECT EvaluationId, Score FROM Evaluation_Competence_Results WHERE EvaluationId IN ({placeholders})",
+                ids.Cast<object>().ToArray());
+
+            var byEval = rows
+                .GroupBy(row => Convert.ToInt32(row["EvaluationId"]))
+                .ToDictionary(
+                    group => group.Key,
+                    group =>
+                    {
+                        var ranks = group
+                            .Select(row => CompetencyScale.RankFromStoredScore(Convert.ToDecimal(row["Score"])))
+                            .Where(rank => rank.HasValue)
+                            .Select(rank => rank!.Value)
+                            .ToList();
+                        return (RatedCount: ranks.Count, DominantRank: DominantRank(ranks));
+                    });
+
+            return ids.Select(id =>
+            {
+                byEval.TryGetValue(id, out var summary);
+                return new CompetenceMasterySummaryDto
+                {
+                    EvaluationId = id,
+                    RatedCount = summary.RatedCount,
+                    DominantRank = summary.DominantRank
+                };
+            }).ToList();
+        }
+
+        internal static CompetenceResultDto MapCompetenceResult(
+            int competenceId,
+            string competenceName,
+            string description,
+            decimal score,
+            int evaluationId,
+            DateTime evaluationDate)
+        {
+            var acquired = CompetencyScale.RankFromStoredScore(score);
+            return new CompetenceResultDto
+            {
+                CompetenceId = competenceId,
+                CompetenceName = competenceName,
+                Description = description,
+                Score = score,
+                AcquiredLevel = acquired,
+                AcquiredLevelLabel = acquired is { } rank ? CompetencyScale.Label(rank) : null,
+                EvaluationId = evaluationId,
+                EvaluationDate = evaluationDate
+            };
+        }
+
+        private static int? DominantRank(IReadOnlyList<int> ranks)
+        {
+            if (ranks.Count == 0)
+            {
+                return null;
+            }
+
+            return ranks
+                .GroupBy(rank => rank)
+                .OrderByDescending(group => group.Count())
+                .ThenByDescending(group => group.Key)
+                .Select(group => (int?)group.Key)
+                .First();
+        }
+
+        private static Dictionary<int, int> NormalizeRatings(IReadOnlyDictionary<int, int>? ratings)
+        {
+            if (ratings == null || ratings.Count == 0)
+            {
+                return new Dictionary<int, int>();
+            }
+
+            return ratings
+                .Where(pair => pair.Key > 0)
+                .GroupBy(pair => pair.Key)
+                .ToDictionary(group => group.Key, group => group.First().Value);
+        }
+
+        private static bool TryGetRank(decimal score, out int rank)
+        {
+            rank = (int)decimal.Truncate(score);
+            return score == rank && CompetencyScale.IsValid(rank);
+        }
+
+        private static int? ReadInt(IReadOnlyDictionary<string, object> row, string key)
+        {
+            if (!row.TryGetValue(key, out var value) || value is null || value == DBNull.Value)
+            {
+                return null;
+            }
+
+            return Convert.ToInt32(value);
+        }
+
+        private static object ToDbValue(int? value) => value.HasValue ? value.Value : DBNull.Value;
+
+        private async Task<Dictionary<int, CompetenceSkillLink>> LoadSkillLinksAsync(IReadOnlyList<int> competenceLineIds)
+        {
+            var result = new Dictionary<int, CompetenceSkillLink>();
+            if (competenceLineIds.Count == 0)
+            {
+                return result;
+            }
+
+            var placeholders = string.Join(",", competenceLineIds.Select((_, i) => $"@p{i}"));
+            var rows = await _dataService.ExecuteReaderAsync($@"
+                SELECT cl.CompetenceLineId, cl.SkillPositionId, sp.Skill_id, sf.Domain_skill_id,
+                       (
+                           SELECT TOP 1 sv.Skill_version_id
+                           FROM Skill_version sv
+                           WHERE sv.Skill_id = sp.Skill_id AND sv.Valid_to IS NULL
+                           ORDER BY sv.Version DESC
+                       ) AS Skill_version_id
+                FROM Competence_Lines cl
+                LEFT JOIN Skill_position sp ON cl.SkillPositionId = sp.Skill_position_id
+                LEFT JOIN Skill s ON sp.Skill_id = s.Skill_id
+                LEFT JOIN Skill_family sf ON s.Family_id = sf.Family_id
+                WHERE cl.CompetenceLineId IN ({placeholders})",
+                competenceLineIds.Cast<object>().ToArray());
+
+            foreach (var row in rows)
+            {
+                var competenceLineId = Convert.ToInt32(row["CompetenceLineId"]);
+                result[competenceLineId] = new CompetenceSkillLink(
+                    ReadInt(row, "Skill_id"),
+                    ReadInt(row, "Domain_skill_id"),
+                    ReadInt(row, "Skill_version_id"));
+            }
+
+            return result;
+        }
+
+        private sealed record CompetenceSkillLink(int? SkillId, int? DomainSkillId, int? SkillVersionId);
     }
 
     // DTOs pour les résultats de compétence
@@ -354,9 +577,20 @@ namespace SoftGcc.Application.Services.Evaluations
         public int CompetenceId { get; set; }
         public string CompetenceName { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        /// <summary>Rang de maîtrise 1–4. Ne pas afficher en / 5.</summary>
         public decimal Score { get; set; }
+        /// <summary>Rang CompetencyScale, null si Score n’est pas un entier 1–4.</summary>
+        public int? AcquiredLevel { get; set; }
+        public string? AcquiredLevelLabel { get; set; }
         public int EvaluationId { get; set; }
         public DateTime EvaluationDate { get; set; }
+    }
+
+    public class CompetenceMasterySummaryDto
+    {
+        public int EvaluationId { get; set; }
+        public int RatedCount { get; set; }
+        public int? DominantRank { get; set; }
     }
 
     public class CompetenceResultHistoryDto
