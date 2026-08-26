@@ -1,7 +1,9 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using SoftGcc.Domain.Enums;
+using SoftGcc.Application.Authorization;
 using SoftGcc.Application.Common.Interfaces;
 
 namespace SoftGcc.Application.Authorization.Handlers
@@ -27,7 +29,12 @@ namespace SoftGcc.Application.Authorization.Handlers
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, CanViewEvaluationRequirement requirement)
         {
-            // 1. Extraire userId du JWT
+            var evaluationId = GetEvaluationIdFromRoute(context);
+
+            if (await TrySucceedPortalTokenAsync(context, requirement, evaluationId))
+                return;
+
+            // 1. Extraire userId du JWT RH
             var userIdClaim = context.User.FindFirst("userId")?.Value;
             if (string.IsNullOrEmpty(userIdClaim))
             {
@@ -36,9 +43,6 @@ namespace SoftGcc.Application.Authorization.Handlers
             }
 
             var userId = int.Parse(userIdClaim);
-
-            // 2. Extraire evaluationId de la route
-            var evaluationId = GetEvaluationIdFromRoute(context);
             if (evaluationId == null)
             {
                 // Pas d'ID d'évaluation dans la route → on laisse passer (le contrôleur gérera)
@@ -113,6 +117,65 @@ namespace SoftGcc.Application.Authorization.Handlers
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// JWT temporaire du portail salarié : claims <c>sub</c> = employeeId et <c>evaluationId</c>.
+        /// </summary>
+        private async Task<bool> TrySucceedPortalTokenAsync(
+            AuthorizationHandlerContext context,
+            CanViewEvaluationRequirement requirement,
+            int? routeEvaluationId)
+        {
+            var portalEmployeeId = GetPortalEmployeeId(context.User);
+            var portalEvaluationClaim = context.User.FindFirst("evaluationId")?.Value;
+            if (portalEmployeeId is null || string.IsNullOrWhiteSpace(portalEvaluationClaim))
+                return false;
+
+            if (!int.TryParse(portalEvaluationClaim, out var portalEvaluationId))
+            {
+                context.Fail();
+                return true;
+            }
+
+            if (routeEvaluationId is null)
+            {
+                context.Succeed(requirement);
+                return true;
+            }
+
+            if (portalEvaluationId != routeEvaluationId.Value)
+            {
+                context.Fail();
+                return true;
+            }
+
+            var evaluation = await _context.Evaluations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.EvaluationId == routeEvaluationId.Value);
+
+            if (evaluation == null)
+            {
+                context.Succeed(requirement);
+                return true;
+            }
+
+            if (evaluation.EmployeeId == portalEmployeeId.Value)
+            {
+                context.Succeed(requirement);
+                return true;
+            }
+
+            context.Fail();
+            return true;
+        }
+
+        private static int? GetPortalEmployeeId(ClaimsPrincipal user)
+        {
+            var raw = user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? user.FindFirst("sub")?.Value;
+            return int.TryParse(raw, out var employeeId) && employeeId > 0 ? employeeId : null;
         }
     }
 }

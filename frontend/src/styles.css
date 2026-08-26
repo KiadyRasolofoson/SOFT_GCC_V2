@@ -263,6 +263,93 @@ body {
   font-family: var(--font-sans) !important;
 }
 
+.gcc-portal-stepper .mat-horizontal-stepper-header-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  margin: 0 -0.25rem;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.gcc-portal-stepper .mat-horizontal-stepper-header {
+  flex: 0 0 auto;
+  min-width: 3.5rem;
+  height: 4.5rem;
+  padding: 0 0.5rem;
+}
+
+.gcc-portal-stepper .mat-step-label {
+  min-width: 0;
+}
+
+.gcc-portal-stepper .mat-step-text-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.gcc-portal-stepper .mat-stepper-horizontal-line {
+  min-width: 0.75rem;
+  margin: 0 -0.35rem;
+}
+
+.gcc-portal-stepper .mat-horizontal-content-container {
+  padding: 1rem 0 0;
+}
+
+.gcc-portal-choice.mat-mdc-radio-button {
+  display: flex;
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.gcc-portal-choice.mat-mdc-radio-button .mdc-form-field {
+  width: 100%;
+  align-items: flex-start;
+}
+
+.gcc-portal-choice.mat-mdc-radio-button .mdc-label {
+  white-space: normal;
+  padding-top: 0.15rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #0f172a;
+}
+
+.gcc-portal-choice.mat-mdc-radio-button:hover {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.gcc-portal-choice.mat-mdc-radio-checked {
+  border-color: #6366f1;
+  background: #eef2ff;
+  box-shadow: 0 0 0 3px rgb(99 102 241 / 0.15);
+}
+
+@media (max-width: 639px) {
+  .gcc-portal-stepper .mat-horizontal-stepper-header {
+    min-width: 2.75rem;
+    height: 4.25rem;
+    padding: 0 0.25rem;
+  }
+
+  .gcc-portal-stepper .mat-horizontal-content-container {
+    padding-top: 0.75rem;
+  }
+}
+
 .mat-mdc-paginator,
 .mat-mdc-paginator * {
   font-family: var(--font-sans) !important;
