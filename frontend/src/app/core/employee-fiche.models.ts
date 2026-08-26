@@ -34,4 +34,7 @@ export interface EmployeeSkillGapItem {
   required: SkillLevel;
   acquired: SkillLevel;
   missing?: boolean;
+  critical?: boolean;
+  status?: 'ok' | 'gap' | 'missing';
+  domainName?: string | null;
 }

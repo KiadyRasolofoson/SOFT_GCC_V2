@@ -279,21 +279,30 @@ import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-c
             }
           </article>
 
-          @if (skillGaps().length) {
-            <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 class="mb-3 text-base font-semibold text-navy">Synthèse des écarts</h2>
-              <div class="space-y-3">
-                @for (item of skillGaps(); track item.label) {
+          <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 class="mb-1 text-base font-semibold text-navy">Synthèse des écarts</h2>
+            @if (profile()?.positionName) {
+              <p class="mb-3 text-xs text-slate-500">Poste actuel · {{ profile()?.positionName }}</p>
+            }
+            @if (sortedSkillGaps().length) {
+              <div class="max-h-96 space-y-3 overflow-y-auto overscroll-contain pr-1">
+                @for (item of sortedSkillGaps(); track item.label) {
                   <gcc-skill-gap
                     [skill]="item.label"
                     [required]="item.required"
                     [acquired]="item.acquired"
                     [missing]="item.missing === true"
+                    [critical]="item.critical === true"
                   />
                 }
               </div>
-            </article>
-          }
+            } @else {
+              <gcc-empty-state
+                title="Aucun écart"
+                message="Aucun écart à afficher : pas de poste actuel avec matrice, ou acquis au niveau attendu."
+              />
+            }
+          </article>
         </aside>
       </section>
 
@@ -317,6 +326,14 @@ export class EmployeeSkillsPanelComponent {
   readonly profile = input<EmployeeFicheProfile | null>(null);
   readonly skillsChanged = output<void>();
   readonly skillLevelFromRank = skillLevelFromRank;
+
+  /** Écarts triés : compétences critiques en premier, puis par nom. */
+  readonly sortedSkillGaps = computed(() =>
+    [...this.skillGaps()].sort((a, b) => {
+      if (a.critical !== b.critical) return a.critical ? -1 : 1;
+      return a.label.localeCompare(b.label);
+    }),
+  );
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);

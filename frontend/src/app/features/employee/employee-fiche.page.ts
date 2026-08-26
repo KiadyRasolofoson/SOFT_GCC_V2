@@ -239,6 +239,9 @@ export class EmployeeFichePage {
           required: skillLevelFromRank(item.expectedRank),
           acquired: skillLevelFromRank(item.acquiredRank),
           missing: item.acquiredRank == null,
+          critical: item.requirementKind === 'Critical',
+          status: item.status as 'ok' | 'gap' | 'missing',
+          domainName: item.domainName ?? null,
         })),
       );
     } catch {
