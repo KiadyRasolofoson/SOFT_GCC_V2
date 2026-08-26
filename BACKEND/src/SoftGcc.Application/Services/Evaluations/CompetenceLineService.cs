@@ -59,6 +59,7 @@ namespace SoftGcc.Application.Services.Evaluations
 
         public async Task<CompetenceLine> CreateAsync(CompetenceLine competenceLine)
         {
+            await EnsureMatrixLinkAsync(competenceLine.SkillPositionId);
             competenceLine.State = 1;
             await _dataService.CreateCompetenceLineAsync(competenceLine);
             return competenceLine;
@@ -70,12 +71,28 @@ namespace SoftGcc.Application.Services.Evaluations
             if (existingCompetenceLine == null)
                 throw new NotFoundException("Ligne de compétence", competenceLine.CompetenceLineId);
 
+            await EnsureMatrixLinkAsync(competenceLine.SkillPositionId);
+
             existingCompetenceLine.SkillPositionId = competenceLine.SkillPositionId;
             existingCompetenceLine.Description = competenceLine.Description;
             existingCompetenceLine.State = competenceLine.State;
             
             await _dataService.UpdateCompetenceLineAsync(existingCompetenceLine);
             return existingCompetenceLine;
+        }
+
+        /// <summary>
+        /// Règle A1.3 : une ligne de questionnaire doit référencer une compétence ACTIVE de la matrice
+        /// (<c>Skill_position</c>, <c>State &gt; 0</c>). Sinon, on n'évalue pas une compétence absente du poste.
+        /// </summary>
+        private async Task EnsureMatrixLinkAsync(int skillPositionId)
+        {
+            var matrixRow = await _dataService.GetSkillPositionByIdAsync(skillPositionId);
+            if (matrixRow is null || matrixRow.State <= 0)
+            {
+                throw new ValidationException(
+                    "La ligne de compétence doit référencer une compétence active de la matrice poste (SkillPositionId).");
+            }
         }
 
         public async Task DeleteAsync(int id)

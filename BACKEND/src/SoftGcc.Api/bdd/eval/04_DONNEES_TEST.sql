@@ -434,37 +434,36 @@ WHERE rp.role_id = 1;
 
 
 
-INSERT INTO Competence_Lines (PositionId, CompetenceName, Description, state)
-VALUES 
-    (1, 'Java/J2EE', 'D�veloppement d''applications Java et frameworks associ�s (Spring, Hibernate)', 1),
-    (1, 'PHP/Symfony', 'D�veloppement d''applications en PHP et Symfony', 1),
-    (1, 'JavaScript/React', 'D�veloppement frontend avec JavaScript et React', 1),
-    (1, 'WordPress/CMS', 'D�veloppement et personnalisation de sites WordPress', 1),
-    (1, 'CSS/SASS', 'Ma�trise des feuilles de style et pr�processeurs', 1),
-    (1, 'DevOps/CI-CD', 'Int�gration continue et d�ploiement automatis�', 1);
+-- Lignes de compétence alignées sur la matrice (A1.3) : SkillPositionId résolu depuis Skill_position.
+-- Règle : une compétence de poste notée = une ligne de la matrice. Une compétence absente de la
+-- matrice n'a pas de ligne de questionnaire (elle doit d'abord être ajoutée à la matrice poste).
+INSERT INTO Competence_Lines (SkillPositionId, Description, state)
+SELECT sp.Skill_position_id, s.Skill_name, 1
+FROM Skill_position sp
+JOIN Skill s ON sp.Skill_id = s.Skill_id
+WHERE sp.Position_id = 1
+  AND s.Skill_name IN (N'Java/J2EE', N'PHP/Symfony', N'JavaScript/React', N'WordPress/CMS', N'CSS/SASS', N'DevOps/CI-CD');
 
-	INSERT INTO Competence_Lines (PositionId, CompetenceName, Description, state)
-VALUES 
-    (2, 'Support Utilisateur', 'Assistance technique aux utilisateurs', 1),
-    (2, 'Maintenance Mat�rielle', 'Maintenance et d�pannage des �quipements', 1),
-    (2, 'Gestion R�seau', 'Configuration et surveillance des r�seaux', 1),
-    (2, 'S�curit� Informatique', 'Protection des syst�mes et donn�es', 1);
+INSERT INTO Competence_Lines (SkillPositionId, Description, state)
+SELECT sp.Skill_position_id, s.Skill_name, 1
+FROM Skill_position sp
+JOIN Skill s ON sp.Skill_id = s.Skill_id
+WHERE sp.Position_id = 2
+  AND s.Skill_name IN (N'Support Utilisateur', N'Maintenance Matérielle', N'Gestion Réseau', N'Sécurité Informatique');
 
+INSERT INTO Competence_Lines (SkillPositionId, Description, state)
+SELECT sp.Skill_position_id, s.Skill_name, 1
+FROM Skill_position sp
+JOIN Skill s ON sp.Skill_id = s.Skill_id
+WHERE sp.Position_id = 3
+  AND s.Skill_name IN (N'SEO/SEM', N'Réseaux Sociaux', N'Analyse de Données', N'Gestion d''équipe', N'Planification Budgétaire');
 
-	INSERT INTO Competence_Lines (PositionId, CompetenceName, Description, state)
-VALUES 
-    (3, 'SEO/SEM', 'Optimisation pour les moteurs de recherche et publicit�', 1),
-    (3, 'R�seaux Sociaux', 'Gestion des communaut�s et campagnes sociales', 1),
-    (3, 'Analyse de Donn�es', 'Collecte et analyse des donn�es marketing', 1),
-    (3, 'Gestion d''�quipe', 'Management des �quipes marketing', 1),
-    (3, 'Planification Budg�taire', 'Allocation et suivi des ressources financi�res', 1);
-
-	INSERT INTO Competence_Lines (PositionId, CompetenceName, Description, state)
-VALUES 
-    (4, 'Tests Manuels', 'Ex�cution de sc�narios de test manuels', 1),
-    (4, 'Automatisation Selenium', 'D�veloppement de tests automatis�s avec Selenium', 1),
-    (4, 'Tests de Performance', '�valuation des performances des applications', 1),
-    (4, 'Tests de S�curit�', 'Identification des vuln�rabilit�s', 1);
+INSERT INTO Competence_Lines (SkillPositionId, Description, state)
+SELECT sp.Skill_position_id, s.Skill_name, 1
+FROM Skill_position sp
+JOIN Skill s ON sp.Skill_id = s.Skill_id
+WHERE sp.Position_id = 4
+  AND s.Skill_name IN (N'Tests Manuels', N'Automatisation Selenium', N'Tests de Performance', N'Tests de Sécurité');
 
 	INSERT INTO Competence_Trainings (CompetenceLineId, TrainingName, Description, Duration, Provider, Level, state)
 VALUES

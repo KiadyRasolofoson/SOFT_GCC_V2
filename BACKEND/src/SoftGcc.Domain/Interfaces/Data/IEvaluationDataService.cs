@@ -1,6 +1,7 @@
 using SoftGcc.Domain.Entities.Evaluations;
 using SoftGcc.Domain.Entities.crud_career;
 using SoftGcc.Domain.Entities.salary_skills;
+using SoftGcc.Domain.Entities.wish_evolution;
 
 namespace SoftGcc.Domain.Interfaces.Data
 {
@@ -54,6 +55,7 @@ namespace SoftGcc.Domain.Interfaces.Data
         Task<CompetenceLine?> GetCompetenceLineByIdAsync(int id);
         Task<List<CompetenceLine>> GetCompetenceLinesByPositionIdAsync(int positionId);
         Task<List<CompetenceLine>> GetCompetenceLinesBySkillPositionIdAsync(int skillPositionId);
+        Task<SkillPosition?> GetSkillPositionByIdAsync(int skillPositionId);
         Task CreateCompetenceLineAsync(CompetenceLine competenceLine);
         Task UpdateCompetenceLineAsync(CompetenceLine competenceLine);
         Task DeleteCompetenceLineAsync(int id);

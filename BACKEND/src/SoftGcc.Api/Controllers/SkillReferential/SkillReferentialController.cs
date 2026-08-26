@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SoftGcc.Application.Authorization;
+using SoftGcc.Application.Positions.Dtos;
 using SoftGcc.Application.SkillReferential;
 using SoftGcc.Application.SkillReferential.Dtos;
 
@@ -169,6 +170,15 @@ public sealed class SkillReferentialController : ControllerBase
     {
         await _service.ArchiveFamilyAsync(id, cancellationToken);
         return NoContent();
+    }
+
+    [HttpGet("positions/{positionId:int}")]
+    [RequirePermission("VIEW_SKILL_SETTINGS", "MANAGE_SKILL_SETTINGS", "PUBLISH_SKILL_REFERENTIAL")]
+    public async Task<ActionResult<PositionDetailDto>> GetPositionDetail(
+        int positionId,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _service.GetPositionDetailAsync(positionId, cancellationToken));
     }
 
     [HttpGet("positions/{positionId:int}/skills")]

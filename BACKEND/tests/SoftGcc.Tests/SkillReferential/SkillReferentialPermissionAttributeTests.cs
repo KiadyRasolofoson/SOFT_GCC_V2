@@ -47,6 +47,19 @@ public class SkillReferentialPermissionAttributeTests
     }
 
     [Fact]
+    public void GetPositionDetail_AllowsViewAndManage()
+    {
+        var method = typeof(SkillReferentialController).GetMethod(nameof(SkillReferentialController.GetPositionDetail));
+        Assert.NotNull(method);
+        var attribute = method!.GetCustomAttributes(typeof(RequirePermissionAttribute), false)
+            .Cast<RequirePermissionAttribute>()
+            .Single();
+
+        Assert.Contains("VIEW_SKILL_SETTINGS", attribute.Policy);
+        Assert.Contains("MANAGE_SKILL_SETTINGS", attribute.Policy);
+    }
+
+    [Fact]
     public void SuggestCode_AllowsView()
     {
         var method = typeof(SkillReferentialController).GetMethod(nameof(SkillReferentialController.SuggestCode));
