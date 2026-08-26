@@ -1,6 +1,6 @@
 using MediatR;
-using SoftGcc.Domain.Entities.crud_career;
+using SoftGcc.Application.Positions.Dtos;
 
 namespace SoftGcc.Application.Positions.Queries.GetPositionById;
 
-public sealed record GetPositionByIdQuery(int Id) : IRequest<Position?>;
+public sealed record GetPositionByIdQuery(int Id) : IRequest<PositionDetailDto?>;

@@ -457,6 +457,12 @@ public sealed class SkillReferentialService : ISkillReferentialService
         int positionId,
         CancellationToken cancellationToken = default)
     {
+        var positionExists = await _db.Position.AnyAsync(p => p.PositionId == positionId, cancellationToken);
+        if (!positionExists)
+        {
+            throw new NotFoundException("Poste", positionId);
+        }
+
         var rows = await _db.SkillPosition
             .AsNoTracking()
             .Include(sp => sp.Skill)
