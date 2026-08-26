@@ -83,6 +83,11 @@ LEFT JOIN v_employee_position ep ON e.Employee_id = ep.Employee_id
 LEFT JOIN Evaluations ev ON e.Employee_id = ev.employeeId
 LEFT JOIN Evaluation_type et ON ev.evaluationType_id = et.Evaluation_type_id 
 WHERE ev.state = 20
+  AND ev.Evaluations_id = (
+      SELECT MAX(ev2.Evaluations_id)
+      FROM Evaluations ev2
+      WHERE ev2.employeeId = e.Employee_id AND ev2.state = 20
+  )
 ');
 
 PRINT '   ✓ Vue VEmployeeDetails créée';
