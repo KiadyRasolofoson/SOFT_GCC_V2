@@ -17,6 +17,9 @@ public sealed class PositionDetailDto
 
     public int? DepartmentId { get; set; }
 
+    /// <summary>Libellé du département (résolu depuis <c>Department</c>).</summary>
+    public string? DepartmentName { get; set; }
+
     public int? ProfessionalCategoryId { get; set; }
 
     public int? LegalClassId { get; set; }

@@ -4,6 +4,7 @@ using SoftGcc.Application.Positions.Queries.GetPositionById;
 using SoftGcc.Application.SkillReferential;
 using SoftGcc.Application.SkillReferential.Dtos;
 using SoftGcc.Domain.Entities.crud_career;
+using SoftGcc.Domain.Entities.salary_skills;
 using SoftGcc.Domain.Interfaces;
 using Xunit;
 
@@ -17,8 +18,9 @@ public class PositionHandlersTests
         var repository = new Mock<IGenericRepository<Position>>();
         repository.Setup(r => r.GetById(42)).ReturnsAsync((Position?)null);
 
+        var departments = new Mock<IGenericRepository<Department>>();
         var skillReferential = new Mock<ISkillReferentialService>();
-        var handler = new GetPositionByIdQueryHandler(repository.Object, skillReferential.Object);
+        var handler = new GetPositionByIdQueryHandler(repository.Object, departments.Object, skillReferential.Object);
         var result = await handler.Handle(new GetPositionByIdQuery(42), CancellationToken.None);
 
         Assert.Null(result);
@@ -33,6 +35,13 @@ public class PositionHandlersTests
             PositionId = 7,
             PositionName = "Développeur",
             DepartmentId = 2
+        });
+
+        var departments = new Mock<IGenericRepository<Department>>();
+        departments.Setup(d => d.GetById(2)).ReturnsAsync(new Department
+        {
+            DepartmentId = 2,
+            Name = "Informatique"
         });
 
         var matrix = new List<PositionSkillItemDto>
@@ -54,11 +63,12 @@ public class PositionHandlersTests
             .Setup(s => s.GetPositionSkillsAsync(7, It.IsAny<CancellationToken>()))
             .ReturnsAsync(matrix);
 
-        var handler = new GetPositionByIdQueryHandler(repository.Object, skillReferential.Object);
+        var handler = new GetPositionByIdQueryHandler(repository.Object, departments.Object, skillReferential.Object);
         var result = await handler.Handle(new GetPositionByIdQuery(7), CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal("Développeur", result!.PositionName);
+        Assert.Equal("Informatique", result.DepartmentName);
         var skill = Assert.Single(result.Skills);
         Assert.Equal(3, skill.ExpectedLevel);
         Assert.Equal("Critical", skill.RequirementKind);

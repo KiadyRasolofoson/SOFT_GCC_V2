@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SoftGcc.Application.Common.Interfaces;
+using SoftGcc.Application.Positions.Dtos;
 using SoftGcc.Application.SkillReferential.Dtos;
 using SoftGcc.Domain.Entities.history;
 using SoftGcc.Domain.Entities.salary_skills;
@@ -451,6 +452,39 @@ public sealed class SkillReferentialService : ISkillReferentialService
             ?? throw new NotFoundException("Famille", familyId);
         entity.State = SkillLifecycle.Archived;
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<PositionDetailDto> GetPositionDetailAsync(
+        int positionId,
+        CancellationToken cancellationToken = default)
+    {
+        var position = await _db.Position
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.PositionId == positionId, cancellationToken)
+            ?? throw new NotFoundException("Poste", positionId);
+
+        string? departmentName = null;
+        if (position.DepartmentId is int departmentId)
+        {
+            departmentName = await _db.Department
+                .AsNoTracking()
+                .Where(d => d.DepartmentId == departmentId)
+                .Select(d => d.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        var skills = await GetPositionSkillsAsync(positionId, cancellationToken);
+
+        return new PositionDetailDto
+        {
+            PositionId = position.PositionId,
+            PositionName = position.PositionName,
+            DepartmentId = position.DepartmentId,
+            DepartmentName = departmentName,
+            ProfessionalCategoryId = position.ProfessionalCategoryId,
+            LegalClassId = position.LegalClassId,
+            Skills = skills.ToList()
+        };
     }
 
     public async Task<IReadOnlyList<PositionSkillItemDto>> GetPositionSkillsAsync(

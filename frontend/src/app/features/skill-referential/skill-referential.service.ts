@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   EmployeeSkillGapResponse,
+  PositionDetail,
   PositionSkillItem,
   SkillCatalogNode,
   SkillDetail,
@@ -103,6 +104,10 @@ export class SkillReferentialService {
 
   getPositionSkills(positionId: number): Promise<PositionSkillItem[]> {
     return firstValueFrom(this.http.get<PositionSkillItem[]>(`${this.base}/positions/${positionId}/skills`));
+  }
+
+  getPositionDetail(positionId: number): Promise<PositionDetail> {
+    return firstValueFrom(this.http.get<PositionDetail>(`${this.base}/positions/${positionId}`));
   }
 
   upsertPositionSkills(

@@ -12,6 +12,7 @@ import { GccSkillBadge, skillLevelFromRank } from '../../ui/gcc-skill-badge';
 import { GccStatusTag } from '../../ui/gcc-status-tag';
 import {
   flattenCatalog,
+  PositionDetail,
   PositionSkillItem,
   REQUIREMENT_KIND_OPTIONS,
   requirementKindLabel,
@@ -26,10 +27,10 @@ import { SkillReferentialService } from './skill-referential.service';
   imports: [FormsModule, GccPageHeader, GccSelect, GccSkillBadge, GccStatusTag, GccEmptyState, MatButtonModule, MatIconModule],
   template: `
     <gcc-page-header
-      title="Compétences du poste"
-      subtitle="Niveau attendu 1–4, criticité et poids. Les lignes retirées sont archivées, pas supprimées."
-      icon="grid_view"
-      [crumbs]="crumbs"
+      [title]="headerTitle()"
+      [subtitle]="headerSubtitle()"
+      icon="work"
+      [crumbs]="crumbs()"
       secondaryLabel="Tous les postes"
       secondaryIcon="arrow_back"
       (secondaryAction)="router.navigate(['/soft-gcc/parametres/referentiel-competences/postes'])"
@@ -40,6 +41,26 @@ import { SkillReferentialService } from './skill-referential.service';
 
     @if (error()) {
       <p class="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error() }}</p>
+    }
+
+    @if (position(); as p) {
+      <div class="mb-4 flex flex-wrap items-center gap-x-8 gap-y-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div class="min-w-0">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Poste</p>
+          <p class="mt-0.5 text-lg font-semibold text-navy">{{ p.positionName || '—' }}</p>
+        </div>
+        @if (p.departmentName) {
+          <div class="min-w-0">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Département</p>
+            <p class="mt-0.5 text-sm font-medium text-slate-600">{{ p.departmentName }}</p>
+          </div>
+        }
+        @if (canManage()) {
+          <p class="ml-auto max-w-xs text-right text-xs leading-relaxed text-slate-400">
+            Vous corrigez ici les niveaux attendus (1–4) utilisés par l'évaluation.
+          </p>
+        }
+      </div>
     }
 
     @if (canManage()) {
@@ -112,7 +133,18 @@ export class SkillMatrixPage {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(SkillReferentialService);
   private readonly auth = inject(AuthService);
-  readonly crumbs = [{ label: 'Accueil' }, { label: 'Référentiel' }, { label: 'Matrice' }];
+  readonly crumbs = computed(() => [
+    { label: 'Accueil' },
+    { label: 'Référentiel' },
+    { label: 'Postes' },
+    { label: this.position()?.positionName || 'Fiche poste' },
+  ]);
+  readonly headerTitle = computed(() => this.position()?.positionName || 'Compétences du poste');
+  readonly headerSubtitle = computed(() => {
+    const dept = this.position()?.departmentName;
+    const base = 'Niveau attendu 1–4, criticité et poids. Les lignes retirées sont archivées, pas supprimées.';
+    return dept ? `Fiche poste · ${dept}. ${base}` : base;
+  });
   readonly rankOptions = SKILL_RANK_OPTIONS;
   readonly kindOptions = REQUIREMENT_KIND_OPTIONS;
   readonly skillLevelFromRank = skillLevelFromRank;
@@ -120,6 +152,7 @@ export class SkillMatrixPage {
   readonly requirementKindStatus = requirementKindStatus;
   readonly rows = signal<PositionSkillItem[]>([]);
   readonly catalog = signal<SkillListItem[]>([]);
+  readonly position = signal<PositionDetail | null>(null);
   readonly pickedSkill = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly positionId = Number(this.route.snapshot.paramMap.get('positionId'));
@@ -145,6 +178,15 @@ export class SkillMatrixPage {
     ]);
     this.rows.set(matrix);
     this.catalog.set(flattenCatalog(catalog));
+    await this.loadIdentity();
+  }
+
+  private async loadIdentity(): Promise<void> {
+    try {
+      this.position.set(await this.api.getPositionDetail(this.positionId));
+    } catch {
+      // La matrice reste accessible même si la fiche poste (identité) ne charge pas.
+    }
   }
 
   add(): void {

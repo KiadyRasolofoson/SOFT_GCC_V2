@@ -102,6 +102,16 @@ export interface PositionSkillItem {
   state: number;
 }
 
+export interface PositionDetail {
+  positionId: number;
+  positionName: string | null;
+  departmentId: number | null;
+  departmentName: string | null;
+  professionalCategoryId: number | null;
+  legalClassId: number | null;
+  skills: PositionSkillItem[];
+}
+
 export interface SkillGapItem {
   skillId: number;
   skillName: string;

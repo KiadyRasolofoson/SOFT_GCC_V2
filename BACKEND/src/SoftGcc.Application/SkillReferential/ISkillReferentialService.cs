@@ -1,3 +1,4 @@
+using SoftGcc.Application.Positions.Dtos;
 using SoftGcc.Application.SkillReferential.Dtos;
 
 namespace SoftGcc.Application.SkillReferential;
@@ -28,6 +29,9 @@ public interface ISkillReferentialService
 
     Task<IReadOnlyList<PositionSkillItemDto>> GetPositionSkillsAsync(int positionId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PositionSkillItemDto>> UpsertPositionSkillsAsync(int positionId, IReadOnlyList<PositionSkillUpsertDto> items, CancellationToken cancellationToken = default);
+
+    /// <summary>Fiche poste : identité + matrice (niveaux attendus 1-4, criticité, poids) — source unique <c>Skill_position</c>.</summary>
+    Task<PositionDetailDto> GetPositionDetailAsync(int positionId, CancellationToken cancellationToken = default);
 
     Task<EmployeeSkillGapDto> GetEmployeeGapsAsync(int employeeId, int? positionId, CancellationToken cancellationToken = default);
     Task<double> GetCoverageRatioAsync(CancellationToken cancellationToken = default);
