@@ -10,7 +10,16 @@ import { GccStatusTag } from './gcc-status-tag';
   template: `
     <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
       <div class="min-w-0 flex-1">
-        <p class="font-medium text-navy">{{ skill() }}</p>
+        <div class="flex flex-wrap items-center gap-2">
+          <p class="font-medium text-navy">{{ skill() }}</p>
+          @if (critical()) {
+            <span
+              class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-600"
+            >
+              Critique
+            </span>
+          }
+        </div>
         <p class="text-xs text-slate-500">Requis {{ requiredLabel() }} · Acquis {{ acquiredLabel() }}</p>
         <mat-progress-bar class="mt-2" mode="determinate" [value]="percent()" />
       </div>
@@ -34,6 +43,7 @@ export class GccSkillGap {
   required = input<SkillLevel>('expert');
   acquired = input<SkillLevel>('intermediate');
   missing = input(false);
+  critical = input(false);
 
   acquiredLabel() {
     return this.missing() ? 'Non renseigné' : skillLevelLabel(this.acquired());

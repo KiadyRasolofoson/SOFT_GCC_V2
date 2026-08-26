@@ -12,6 +12,7 @@ import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccKpiCard } from '../../ui/gcc-kpi-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccSearchableSelect } from '../../ui/gcc-searchable-select';
+import { GccSkillBadge, skillLevelFromRank } from '../../ui/gcc-skill-badge';
 import { GccStatusTag, StatusKind } from '../../ui/gcc-status-tag';
 import { GccSelectOption } from '../../ui/gcc.types';
 import { downloadBulletinPdf, previewBulletinPdf } from './bulletin-pdf.util';
@@ -26,6 +27,7 @@ import { downloadBulletinPdf, previewBulletinPdf } from './bulletin-pdf.util';
     GccPageHeader,
     GccSearchableSelect,
     GccKpiCard,
+    GccSkillBadge,
     GccStatusTag,
     GccEmptyState,
     MatButtonModule,
@@ -156,16 +158,14 @@ import { downloadBulletinPdf, previewBulletinPdf } from './bulletin-pdf.util';
                     <tr class="border-b border-slate-100 text-sm text-slate-700">
                       <td class="px-2 py-2 font-medium text-navy">{{ skill.skillName }}</td>
                       <td class="px-2 py-2">
-                        <div class="flex items-center gap-2">
-                          <div class="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                              class="h-full rounded-full"
-                              [style.width.%]="levelWidth(skill.level)"
-                              [style.background]="levelColor(skill.level)"
-                            ></div>
+                        @if ((skill.level ?? 0) > 0) {
+                          <div class="flex items-center gap-2">
+                            <gcc-skill-badge [level]="skillLevelFromRank(skill.level)" />
+                            <span class="text-xs tabular-nums text-slate-400">{{ roundedLevel(skill.level) }}/4</span>
                           </div>
-                          <span class="text-xs font-semibold text-navy">{{ roundedLevel(skill.level) }}/4</span>
-                        </div>
+                        } @else {
+                          <span class="text-xs text-slate-400">Non renseigné</span>
+                        }
                       </td>
                       <td class="px-2 py-2 text-slate-500">{{ skill.expectedLevel || '—' }}/4</td>
                       <td class="px-2 py-2">
@@ -197,6 +197,7 @@ import { downloadBulletinPdf, previewBulletinPdf } from './bulletin-pdf.util';
 export class BulletinCompetencePage {
   private readonly service = inject(BulletinCompetenceService);
   private readonly dialog = inject(MatDialog);
+  readonly skillLevelFromRank = skillLevelFromRank;
 
   readonly crumbs = [{ label: 'Accueil' }, { label: 'Évaluations' }, { label: 'Bulletin de compétences' }];
 
@@ -257,6 +258,11 @@ export class BulletinCompetencePage {
     this.selectedEmployeeLabel.set(
       employee ? `${employee.firstName ?? ''} ${employee.name ?? ''} (${employee.registrationNumber ?? 'N/A'})`.trim() : '',
     );
+
+    // Affiche directement le bulletin en bas, sans cliquer sur « Visualiser » ni « Télécharger ».
+    if (Number.isFinite(id)) {
+      void this.loadBulletinData();
+    }
   }
 
   async loadBulletinData(): Promise<BulletinResponse | null> {
@@ -328,17 +334,6 @@ export class BulletinCompetencePage {
 
   roundedLevel(level: number): number {
     return Math.round(level || 0);
-  }
-
-  levelWidth(level: number): number {
-    return Math.min((level || 0) * 25, 100);
-  }
-
-  levelColor(level: number): string {
-    if (level >= 4) return '#27ae60';
-    if (level >= 3) return '#047857';
-    if (level >= 2) return '#f39c12';
-    return '#c0392b';
   }
 
   skillStatus(classification: string | null | undefined): { status: StatusKind; label: string } {
