@@ -1,5 +1,9 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard, moduleGuard } from './core/auth.guard';
+import {
+  evaluationPortalGuard,
+  evaluationPortalGuestGuard,
+} from './features/evaluation-portal/evaluation-portal.guard';
 import { LoginPage } from './features/auth/login.page';
 import { CareerListPage } from './features/career/career-list.page';
 import { CareerPlanCreatePage } from './features/career/career-plan-create.page';
@@ -22,10 +26,48 @@ import { WishEvolutionEditPage } from './features/wish-evolution/wish-evolution-
 import { WishEvolutionListPage } from './features/wish-evolution/wish-evolution-list.page';
 import { UnauthorizedPage } from './features/unauthorized/unauthorized.page';
 import { GccAppShell } from './layouts/gcc-app-shell';
+import { GccPortalShell } from './layouts/gcc-portal-shell';
 
 export const routes: Routes = [
   { path: 'login', component: LoginPage, canActivate: [guestGuard] },
   { path: 'unauthorized', component: UnauthorizedPage, canActivate: [authGuard] },
+  {
+    path: 'soft-gcc/evaluation',
+    component: GccPortalShell,
+    children: [
+      {
+        path: 'connexion',
+        loadComponent: () =>
+          import('./features/evaluation-portal/evaluation-login.page').then(
+            (m) => m.EvaluationLoginPage,
+          ),
+        canActivate: [evaluationPortalGuestGuard],
+      },
+      {
+        path: 'questionnaire',
+        loadComponent: () =>
+          import('./features/evaluation-portal/evaluation-wizard.page').then(
+            (m) => m.EvaluationWizardPage,
+          ),
+        canActivate: [evaluationPortalGuard],
+      },
+      {
+        path: 'confirmation',
+        loadComponent: () =>
+          import('./features/evaluation-portal/evaluation-confirmation.page').then(
+            (m) => m.EvaluationConfirmationPage,
+          ),
+      },
+      { path: '', pathMatch: 'full', redirectTo: 'connexion' },
+    ],
+  },
+  { path: 'EvaluationLogin', redirectTo: '/soft-gcc/evaluation/connexion', pathMatch: 'full' },
+  { path: 'employee-evaluation', redirectTo: '/soft-gcc/evaluation/questionnaire', pathMatch: 'full' },
+  {
+    path: 'EvaluationConfirmation',
+    redirectTo: '/soft-gcc/evaluation/confirmation',
+    pathMatch: 'full',
+  },
   {
     path: '',
     component: GccAppShell,

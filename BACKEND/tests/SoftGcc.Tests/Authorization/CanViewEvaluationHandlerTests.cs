@@ -306,5 +306,87 @@ namespace SoftGcc.Tests.Authorization
             // Assert
             Assert.True(authContext.HasFailed);
         }
+
+        [Fact]
+        public async Task PortalJwtMatchingEmployeeAndEvaluation_ShouldSucceed()
+        {
+            var dbName = Guid.NewGuid().ToString();
+            await using var context = CreateDbContext(dbName);
+
+            context.Evaluations.Add(new Evaluation
+            {
+                EvaluationId = 1,
+                EmployeeId = 100,
+                EvaluationTypeId = 1,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddMonths(1),
+                Supervisors = new List<EvaluationSupervisors>()
+            });
+            await context.SaveChangesAsync();
+
+            var mockHierarchy = CreateHierarchyMock(managerUserId: 2, managedEmployeeId: 100);
+            var handler = new CanViewEvaluationHandler(context, mockHierarchy.Object);
+            var user = CreatePortalUser(employeeId: 100, evaluationId: 1);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.RouteValues["id"] = "1";
+
+            var authContext = new AuthorizationHandlerContext(
+                new[] { new CanViewEvaluationRequirement() }, user, httpContext);
+
+            await handler.HandleAsync(authContext);
+
+            Assert.True(authContext.HasSucceeded);
+        }
+
+        [Fact]
+        public async Task PortalJwtWrongEvaluation_ShouldFail()
+        {
+            var dbName = Guid.NewGuid().ToString();
+            await using var context = CreateDbContext(dbName);
+
+            context.Evaluations.Add(new Evaluation
+            {
+                EvaluationId = 1,
+                EmployeeId = 100,
+                EvaluationTypeId = 1,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddMonths(1),
+                Supervisors = new List<EvaluationSupervisors>()
+            });
+            context.Evaluations.Add(new Evaluation
+            {
+                EvaluationId = 2,
+                EmployeeId = 200,
+                EvaluationTypeId = 1,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddMonths(1),
+                Supervisors = new List<EvaluationSupervisors>()
+            });
+            await context.SaveChangesAsync();
+
+            var mockHierarchy = CreateHierarchyMock(managerUserId: 2, managedEmployeeId: 100);
+            var handler = new CanViewEvaluationHandler(context, mockHierarchy.Object);
+            var user = CreatePortalUser(employeeId: 100, evaluationId: 1);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.RouteValues["id"] = "2";
+
+            var authContext = new AuthorizationHandlerContext(
+                new[] { new CanViewEvaluationRequirement() }, user, httpContext);
+
+            await handler.HandleAsync(authContext);
+
+            Assert.True(authContext.HasFailed);
+        }
+
+        private static ClaimsPrincipal CreatePortalUser(int employeeId, int evaluationId)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim("sub", employeeId.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, employeeId.ToString()),
+                new Claim("evaluationId", evaluationId.ToString())
+            };
+            return new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"));
+        }
     }
 }

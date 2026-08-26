@@ -1,4 +1,5 @@
 ﻿using SoftGcc.Domain.Entities.Evaluations;
+using SoftGcc.Domain.Enums;
 using SoftGcc.Domain.Interfaces;
 using SoftGcc.Domain.Interfaces.Data;
 
@@ -66,6 +67,9 @@ namespace SoftGcc.Application.Services.Evaluations
 
             var evaluation = await _evaluationRepository.GetByIdAsync(evaluationId);
             if (evaluation == null) return false;
+
+            if (evaluation.state >= (int)EvaluationStatus.Terminee)
+                return true;
 
             evaluation.state = 10;
             await _evaluationRepository.UpdateAsync(evaluation);
