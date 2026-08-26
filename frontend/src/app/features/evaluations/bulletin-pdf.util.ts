@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BulletinResponse } from '../../core/bulletin-competence.service';
+import { skillLevelFromRank, skillLevelLabel } from '../../ui/gcc-skill-badge';
 
 /**
  * Génération du Bulletin de Compétences Individuel (miroir React bulletinCompetencesPdfGenerator.js).
@@ -180,12 +181,17 @@ export function generateBulletinPdf(data: BulletinResponse, onProgress?: (pct: n
         y += 6;
 
         const tableHeaders = [['Compétence', 'Niveau', 'Progression', 'Dernière mise à jour']];
-        const tableData = section.items.map((skill) => [
-          skill.skillName,
-          skill.classificationLabel,
-          `${Math.round(skill.level || 0)}/4 (attendu ${skill.expectedLevel ?? '—'}/4)`,
-          skill.lastUpdated ? new Date(skill.lastUpdated).toLocaleDateString('fr-FR') : 'N/A',
-        ]);
+        const tableData = section.items.map((skill) => {
+          const level = Math.round(skill.level || 0);
+          // Niveau de maîtrise en libellé référentiel 1-4 (Notions → Expert), plus en % ni en / 5.
+          const levelLabel = level > 0 ? skillLevelLabel(skillLevelFromRank(level)) : 'Non renseigné';
+          return [
+            skill.skillName,
+            levelLabel,
+            `${level}/4 (attendu ${skill.expectedLevel ?? '—'}/4)`,
+            skill.lastUpdated ? new Date(skill.lastUpdated).toLocaleDateString('fr-FR') : 'N/A',
+          ];
+        });
 
         autoTable(doc, {
           head: tableHeaders,

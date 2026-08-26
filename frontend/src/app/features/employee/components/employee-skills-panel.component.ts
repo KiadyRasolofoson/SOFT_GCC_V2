@@ -88,7 +88,7 @@ import { CrudKind, EmployeeSkillsCrudDialogComponent } from './employee-skills-c
                                 @if (row['acquiredLevel']) {
                                   <gcc-skill-badge [level]="skillLevelFromRank(row['acquiredLevel'])" />
                                 } @else {
-                                  {{ formatLevel(row['level']) }}
+                                  <span class="text-xs text-slate-400">Non renseigné</span>
                                 }
                               </td>
                               @let skillTag = skillStatus(row['state']);
