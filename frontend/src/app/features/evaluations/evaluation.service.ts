@@ -52,6 +52,8 @@ import {
   TrainingSuggestion,
   UpdateInterviewPayload,
   UpdateObjectiveStatusPayload,
+  CompetenceResult,
+  CompetenceMasterySummary,
   emptyHistoryStats,
   emptyObjectivesStats,
 } from './evaluation.models';
@@ -98,8 +100,8 @@ export class EvaluationService {
   }
 
   getSelectedQuestions(evaluationId: number): Observable<SelectedQuestion[]> {
-    return this.http.get<SelectedQuestion[]>(
-      `${this.api}/Evaluation/evaluation/${evaluationId}/selected-questions`,
+    return this.http.get<unknown>(`${this.api}/Evaluation/evaluation/${evaluationId}/selected-questions`).pipe(
+      map((raw) => this.normalizeSelectedQuestions(raw)),
     );
   }
 
@@ -122,6 +124,26 @@ export class EvaluationService {
 
   saveResults(payload: EvaluationResultsPayload): Observable<unknown> {
     return this.http.post(`${this.api}/Evaluation/save-evaluation-results`, payload);
+  }
+
+  getCompetenceResults(evaluationId: number): Observable<CompetenceResult[]> {
+    return this.http.get<unknown>(`${this.api}/EvaluationCompetence/evaluation/${evaluationId}`).pipe(
+      map((raw) => this.normalizeCompetenceResults(raw)),
+      catchError(() => of([])),
+    );
+  }
+
+  getMasterySummaries(evaluationIds: number[]): Observable<CompetenceMasterySummary[]> {
+    const ids = [...new Set(evaluationIds.filter((id) => Number.isFinite(id) && id > 0))];
+    if (!ids.length) return of([]);
+    let params = new HttpParams();
+    for (const id of ids) {
+      params = params.append('evaluationIds', String(id));
+    }
+    return this.http.get<unknown>(`${this.api}/EvaluationCompetence/summaries`, { params }).pipe(
+      map((raw) => this.normalizeMasterySummaries(raw)),
+      catchError(() => of([])),
+    );
   }
 
   validateEvaluation(payload: EvaluationValidationPayload): Observable<unknown> {
@@ -570,6 +592,62 @@ export class EvaluationService {
         };
       })
       .filter((row) => row.id > 0);
+  }
+
+  private normalizeSelectedQuestions(raw: unknown): SelectedQuestion[] {
+    const rows = Array.isArray(raw) ? raw : [];
+    return rows
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        const competence = this.pick(row, 'competenceLineId', 'CompetenceLineId');
+        return {
+          questionId: this.asNumber(this.pick(row, 'questionId', 'QuestionId')) ?? 0,
+          questionText: this.asString(this.pick(row, 'questionText', 'QuestionText', 'question', 'Question')) ?? '',
+          competenceLineId: competence == null || competence === '' ? null : this.asNumber(competence),
+          competenceName: this.asString(this.pick(row, 'competenceName', 'CompetenceName')) ?? '',
+          responseType: this.asString(this.pick(row, 'responseType', 'ResponseType')),
+          responseValue: this.asString(this.pick(row, 'responseValue', 'ResponseValue')),
+          isCorrect: Boolean(this.pick(row, 'isCorrect', 'IsCorrect')),
+          maxTimeInMinutes: this.asNumber(this.pick(row, 'maxTimeInMinutes', 'MaxTimeInMinutes')) ?? 15,
+        };
+      })
+      .filter((item) => item.questionId > 0);
+  }
+
+  private normalizeCompetenceResults(raw: unknown): CompetenceResult[] {
+    const rows = Array.isArray(raw) ? raw : [];
+    return rows
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        const score = this.asNumber(this.pick(row, 'score', 'Score')) ?? 0;
+        const acquired = this.asNumber(this.pick(row, 'acquiredLevel', 'AcquiredLevel'));
+        return {
+          competenceId: this.asNumber(this.pick(row, 'competenceId', 'CompetenceId', 'competenceLineId', 'CompetenceLineId')) ?? 0,
+          competenceName: this.asString(this.pick(row, 'competenceName', 'CompetenceName')) ?? '',
+          description: this.asString(this.pick(row, 'description', 'Description')) ?? '',
+          score,
+          acquiredLevel: acquired,
+          acquiredLevelLabel: this.asString(this.pick(row, 'acquiredLevelLabel', 'AcquiredLevelLabel')),
+          evaluationId: this.asNumber(this.pick(row, 'evaluationId', 'EvaluationId')) ?? 0,
+          evaluationDate: this.asString(this.pick(row, 'evaluationDate', 'EvaluationDate')),
+        };
+      })
+      .filter((item) => item.competenceId > 0);
+  }
+
+  private normalizeMasterySummaries(raw: unknown): CompetenceMasterySummary[] {
+    const rows = Array.isArray(raw) ? raw : [];
+    return rows
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        const dominant = this.asNumber(this.pick(row, 'dominantRank', 'DominantRank'));
+        return {
+          evaluationId: this.asNumber(this.pick(row, 'evaluationId', 'EvaluationId')) ?? 0,
+          ratedCount: this.asNumber(this.pick(row, 'ratedCount', 'RatedCount')) ?? 0,
+          dominantRank: dominant,
+        };
+      })
+      .filter((item) => item.evaluationId > 0);
   }
 
   private normalizeIdMap<T>(raw: Record<string, T> | null | undefined): Record<number, T> {

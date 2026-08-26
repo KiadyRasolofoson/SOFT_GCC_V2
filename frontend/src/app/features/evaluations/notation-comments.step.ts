@@ -15,7 +15,7 @@ import { averageOf, NotationRemarks, ratingLabel } from './evaluation.models';
           <div>
             <h2 class="text-base font-bold text-navy">Synthèse & Commentaires d’évaluation</h2>
             <p class="text-xs text-slate-500 font-medium mt-0.5">
-              Formulez votre appréciation qualitative pour étayer la notation globale.
+              Formulez votre appréciation qualitative pour étayer la note de performance (/ 5).
             </p>
           </div>
           <span
@@ -29,9 +29,9 @@ import { averageOf, NotationRemarks, ratingLabel } from './evaluation.models';
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <gcc-kpi-card
-            label="Note moyenne consolidée"
+            label="Note de performance"
             [value]="averageDisplay()"
-            [hint]="'Niveau ' + ratingLabel(average())"
+            hint="Moyenne des questions / 5"
             tone="accent"
             icon="auto_awesome"
           />

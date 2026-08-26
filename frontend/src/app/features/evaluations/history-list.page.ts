@@ -13,9 +13,12 @@ import { GccKpiCard } from '../../ui/gcc-kpi-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccSelect } from '../../ui/gcc-select';
 import { GccStatusTag } from '../../ui/gcc-status-tag';
+import { GccSkillBadge, skillLevelFromRank } from '../../ui/gcc-skill-badge';
 import { GccSelectOption } from '../../ui/gcc.types';
 import {
+  CompetenceMasterySummary,
   EvaluationHistoryRow,
+  formatPerformance,
   formatScore,
   HistoryGlobalStats,
   HistoryListQuery,
@@ -43,6 +46,7 @@ type HistoryView = 'dossiers' | 'analyse';
     GccSelect,
     GccKpiCard,
     GccStatusTag,
+    GccSkillBadge,
     GccEmptyState,
     MatTableModule,
     MatPaginatorModule,
@@ -52,7 +56,7 @@ type HistoryView = 'dossiers' | 'analyse';
   template: `
     <gcc-page-header
       title="Historique d’évaluations"
-      subtitle="Retrouvez les dossiers, comparez les scores et suivez l’évolution des performances dans le temps."
+      subtitle="Retrouvez les dossiers, comparez les notes de performance (/ 5) et les niveaux de maîtrise."
       icon="history"
       [crumbs]="crumbs"
       secondaryLabel="Exporter PDF"
@@ -72,9 +76,9 @@ type HistoryView = 'dossiers' | 'analyse';
         icon="folder_open"
       />
       <gcc-kpi-card
-        label="Score moyen"
-        [value]="formatScore(stats().averageScore, 2) + ' / 5'"
-        [hint]="scoreHint()"
+        label="Score moyen de performance"
+        [value]="formatPerformance(stats().averageScore, 2)"
+        [hint]="scoreHint() + ' · / 5'"
         [tone]="stats().averageScore >= 4 ? 'up' : stats().averageScore >= 3 ? 'accent' : 'down'"
         icon="star"
       />
@@ -204,7 +208,7 @@ type HistoryView = 'dossiers' | 'analyse';
             </ng-container>
 
             <ng-container matColumnDef="score">
-              <th mat-header-cell *matHeaderCellDef>Score</th>
+              <th mat-header-cell *matHeaderCellDef>Performance</th>
               <td mat-cell *matCellDef="let row">
                 <div class="min-w-36">
                   <div class="mb-1 flex items-center justify-between gap-2">
@@ -212,7 +216,7 @@ type HistoryView = 'dossiers' | 'analyse';
                       class="inline-flex items-center gap-1 rounded-xl px-2 py-0.5 text-[11px] font-extrabold tabular"
                       [class]="scoreBadgeClass(row.overallScore)"
                     >
-                      {{ formatScore(row.overallScore) }} / 5
+                      {{ formatPerformance(row.overallScore) }}
                     </span>
                     <span class="text-[10px] font-semibold text-slate-400">{{ ratingLabel(row.overallScore ?? 0) }}</span>
                   </div>
@@ -224,6 +228,28 @@ type HistoryView = 'dossiers' | 'analyse';
                     ></div>
                   </div>
                 </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="mastery">
+              <th mat-header-cell *matHeaderCellDef>Maîtrise</th>
+              <td mat-cell *matCellDef="let row">
+                @if (masteryOf(row.evaluationId); as mastery) {
+                  @if (mastery.ratedCount > 0) {
+                    <div class="flex flex-col items-start gap-1 py-1">
+                      <span class="text-[11px] font-semibold text-slate-500">
+                        {{ mastery.ratedCount }} compétence{{ mastery.ratedCount > 1 ? 's' : '' }}
+                      </span>
+                      @if (mastery.dominantRank != null) {
+                        <gcc-skill-badge [level]="skillLevelFromRank(mastery.dominantRank)" />
+                      }
+                    </div>
+                  } @else {
+                    <span class="text-xs font-medium text-slate-400">—</span>
+                  }
+                } @else {
+                  <span class="text-xs font-medium text-slate-400">—</span>
+                }
               </td>
             </ng-container>
 
@@ -289,7 +315,7 @@ type HistoryView = 'dossiers' | 'analyse';
             <div class="mb-5 flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <h3 class="text-base font-bold text-navy">Évolution annuelle</h3>
-                <p class="text-xs text-slate-500">Score moyen / 5 et volume de dossiers par année</p>
+                <p class="text-xs text-slate-500">Note de performance moyenne / 5 et volume de dossiers par année</p>
               </div>
               <span class="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-accent">
                 {{ yearly().length }} année(s)
@@ -304,7 +330,7 @@ type HistoryView = 'dossiers' | 'analyse';
                     <div
                       class="mx-auto w-full max-w-12 rounded-t-xl bg-gradient-to-t from-indigo-600 to-accent shadow-xs"
                       [style.height.%]="scoreFillPercent(item.averageScore)"
-                      [title]="'Score ' + formatScore(item.averageScore) + ' · ' + item.evaluationCount + ' dossiers'"
+                      [title]="'Performance ' + formatPerformance(item.averageScore) + ' · ' + item.evaluationCount + ' dossiers'"
                     ></div>
                   </div>
                   <div class="text-center">
@@ -377,7 +403,7 @@ type HistoryView = 'dossiers' | 'analyse';
             <div class="mb-5 flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <h3 class="text-base font-bold text-navy">Performance par département</h3>
-                <p class="text-xs text-slate-500">Score moyen et volume de dossiers</p>
+                <p class="text-xs text-slate-500">Note de performance moyenne / 5 et volume de dossiers</p>
               </div>
             </div>
 
@@ -395,7 +421,7 @@ type HistoryView = 'dossiers' | 'analyse';
                           class="rounded-md px-1.5 py-0.5 text-[11px] font-bold"
                           [class]="dept.averageScore >= 4 ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'"
                         >
-                          {{ formatScore(dept.averageScore) }} / 5
+                          {{ formatPerformance(dept.averageScore) }}
                         </span>
                       </div>
                     </div>
@@ -453,7 +479,7 @@ export class HistoryListPage implements OnInit {
   private readonly search$ = new Subject<string>();
 
   readonly crumbs = [{ label: 'Évaluations' }, { label: 'Historique' }];
-  readonly columns = ['employee', 'type', 'period', 'score', 'status', 'action'];
+  readonly columns = ['employee', 'type', 'period', 'score', 'mastery', 'status', 'action'];
   readonly yearOptions: GccSelectOption[] = [
     { label: 'Toutes les années', value: 'all' },
     ...Array.from({ length: 6 }, (_, i) => {
@@ -475,6 +501,7 @@ export class HistoryListPage implements OnInit {
   readonly exporting = signal(false);
   readonly error = signal<string | null>(null);
   readonly rows = signal<EvaluationHistoryRow[]>([]);
+  readonly masteryByEval = signal<Map<number, CompetenceMasterySummary>>(new Map());
   readonly stats = signal<HistoryGlobalStats>(emptyHistoryStats());
   readonly yearly = signal<HistoryYearlyPerformance[]>([]);
   readonly typeOptions = signal<GccSelectOption[]>([{ label: 'Tous les types', value: 'all' }]);
@@ -529,6 +556,8 @@ export class HistoryListPage implements OnInit {
   readonly initialsOf = initialsOf;
   readonly historyStatusMeta = historyStatusMeta;
   readonly formatScore = formatScore;
+  readonly formatPerformance = formatPerformance;
+  readonly skillLevelFromRank = skillLevelFromRank;
   readonly ratingLabel = ratingLabel;
   readonly scoreBadgeClass = scoreBadgeClass;
   readonly scoreFillPercent = scoreFillPercent;
@@ -639,6 +668,27 @@ export class HistoryListPage implements OnInit {
     return `${(Number(value) || 0).toFixed(1)} %`;
   }
 
+  masteryOf(evaluationId: number | null | undefined): CompetenceMasterySummary | null {
+    if (!evaluationId) return null;
+    return this.masteryByEval().get(evaluationId) ?? null;
+  }
+
+  private loadMasterySummaries(evaluationIds: number[]): void {
+    const ids = evaluationIds.filter((id) => id > 0);
+    if (!ids.length) {
+      this.masteryByEval.set(new Map());
+      return;
+    }
+    this.evaluations.getMasterySummaries(ids).subscribe({
+      next: (items) => {
+        const map = new Map<number, CompetenceMasterySummary>();
+        for (const item of items) map.set(item.evaluationId, item);
+        this.masteryByEval.set(map);
+      },
+      error: () => this.masteryByEval.set(new Map()),
+    });
+  }
+
   private loadRows(): void {
     this.loading.set(true);
     this.error.set(null);
@@ -650,9 +700,11 @@ export class HistoryListPage implements OnInit {
       })
       .subscribe({
         next: (data) => {
-          this.rows.set(this.evaluations.unwrapHistoryRows(data));
+          const rows = this.evaluations.unwrapHistoryRows(data);
+          this.rows.set(rows);
           this.totalPages.set(data.totalPages ?? data.TotalPages ?? 0);
           this.loading.set(false);
+          this.loadMasterySummaries(rows.map((row) => row.evaluationId));
         },
         error: () => {
           this.error.set('Vérifiez vos droits (consultation des évaluations) ou réessayez.');

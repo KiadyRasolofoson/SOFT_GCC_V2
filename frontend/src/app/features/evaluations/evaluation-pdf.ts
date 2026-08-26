@@ -1,6 +1,14 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { EvaluationDetails, NotationValidation, ratingLabel, SelectedQuestion, TrainingSuggestion } from './evaluation.models';
+import {
+  competenceMasteryRows,
+  competencyScaleLabel,
+  EvaluationDetails,
+  NotationValidation,
+  ratingLabel,
+  SelectedQuestion,
+  TrainingSuggestion,
+} from './evaluation.models';
 
 export interface EvaluationPdfData {
   evaluation: EvaluationDetails;
@@ -8,6 +16,7 @@ export interface EvaluationPdfData {
   ratings: Record<number, number>;
   comments: Record<number, string>;
   average: number;
+  competenceRatings?: Record<number, number>;
   validation: NotationValidation;
   suggestions: TrainingSuggestion[];
   strengths: string;
@@ -41,7 +50,7 @@ export function buildEvaluationPdf(data: EvaluationPdfData): jsPDF {
 
   doc.setFontSize(16);
   doc.setTextColor(...NAVY);
-  doc.text('Fiche d’évaluation des compétences', pageWidth / 2, y, { align: 'center' });
+  doc.text('Fiche d’évaluation', pageWidth / 2, y, { align: 'center' });
   y += 8;
   doc.setFontSize(11);
   doc.setTextColor(...ACCENT);
@@ -56,7 +65,7 @@ export function buildEvaluationPdf(data: EvaluationPdfData): jsPDF {
   doc.text(`Employé : ${data.evaluation.employeeName}`, margin + 6, y + 8);
   doc.text(`Poste : ${data.evaluation.position || '—'}`, margin + 6, y + 16);
   doc.text(`Département : ${data.evaluation.department || '—'}`, margin + 6, y + 24);
-  doc.text(`Note moyenne : ${data.average.toFixed(2)} / 5  (${ratingLabel(data.average)})`, pageWidth / 2 + 8, y + 16);
+  doc.text(`Note de performance : ${data.average.toFixed(2)} / 5  (${ratingLabel(data.average)})`, pageWidth / 2 + 8, y + 16);
   y += 38;
 
   const rows = data.questions.map((question, index) => [
@@ -69,7 +78,7 @@ export function buildEvaluationPdf(data: EvaluationPdfData): jsPDF {
 
   autoTable(doc, {
     startY: y,
-    head: [['#', 'Question', 'Compétence', 'Note', 'Commentaire']],
+    head: [['#', 'Question', 'Compétence', 'Note / 5', 'Commentaire']],
     body: rows,
     styles: { fontSize: 8, textColor: NAVY, cellPadding: 3 },
     headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -91,6 +100,33 @@ export function buildEvaluationPdf(data: EvaluationPdfData): jsPDF {
       y = margin;
     }
   };
+
+  const masteryRows = competenceMasteryRows(data.questions, data.competenceRatings ?? {});
+  if (masteryRows.length) {
+    ensureSpace(28);
+    doc.setFontSize(12);
+    doc.setTextColor(...NAVY);
+    doc.text('Niveaux de maîtrise', margin, y);
+    y += 4;
+    autoTable(doc, {
+      startY: y,
+      head: [['Compétence', 'Rang 1–4', 'Libellé']],
+      body: masteryRows.map((row) => [
+        row.name,
+        row.rank != null ? String(row.rank) : '—',
+        row.rank != null ? competencyScaleLabel(row.rank) : 'Non noté',
+      ]),
+      styles: { fontSize: 8, textColor: NAVY, cellPadding: 3 },
+      headStyles: { fillColor: ACCENT, textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        1: { cellWidth: 24 },
+        2: { cellWidth: 36 },
+      },
+      margin: { left: margin, right: margin },
+    });
+    y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 12;
+  }
 
   ensureSpace(40);
   doc.setFontSize(12);

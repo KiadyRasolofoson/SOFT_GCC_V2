@@ -4,8 +4,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { GccEmptyState } from '../../ui/gcc-empty-state';
+import { GccSkillBadge, skillLevelFromRank } from '../../ui/gcc-skill-badge';
 import { GccStatusTag } from '../../ui/gcc-status-tag';
 import {
+  COMPETENCY_SCALE_RANKS,
   lookupById,
   QuestionOption,
   ratingLabel,
@@ -17,7 +19,7 @@ const STARS = [1, 2, 3, 4, 5];
 
 @Component({
   selector: 'app-notation-questions-step',
-  imports: [FormsModule, MatButtonModule, MatIconModule, MatProgressBarModule, GccStatusTag, GccEmptyState],
+  imports: [FormsModule, MatButtonModule, MatIconModule, MatProgressBarModule, GccStatusTag, GccEmptyState, GccSkillBadge],
   template: `
     <div class="flex flex-col gap-8">
       <!-- Sticky / Fixed Top Progress & Summary Banner -->
@@ -28,20 +30,30 @@ const STARS = [1, 2, 3, 4, 5];
               <mat-icon class="!h-5 !w-5 !text-[20px]">quiz</mat-icon>
             </div>
             <div>
-              <h2 class="text-sm font-bold text-navy">Évaluation des compétences</h2>
+              <h2 class="text-sm font-bold text-navy">Notation : performance et maîtrise</h2>
               <p class="text-xs text-slate-500 font-medium">
-                {{ ratedCount() }} sur {{ questions().length }} questions notées
+                Étoiles /5 par question · rang 1–4 par compétence (CompetencyScale)
               </p>
             </div>
           </div>
 
-          <div class="flex items-center gap-4">
-            <div class="text-right">
-              <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Moyenne live</p>
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="rounded-xl border border-amber-100 bg-amber-50/80 px-3 py-2 text-right">
+              <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Note de performance</p>
               <span class="inline-flex items-center gap-1 text-sm font-extrabold tabular text-navy">
                 <mat-icon class="!h-4 !w-4 !text-[16px] text-amber-400">star</mat-icon>
                 {{ averageLabel() }}
               </span>
+              <p class="mt-0.5 text-[10px] font-medium text-slate-400">
+                {{ ratedCount() }} / {{ questions().length }} questions
+              </p>
+            </div>
+            <div class="rounded-xl border border-indigo-100 bg-indigo-50/80 px-3 py-2 text-right">
+              <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Niveaux de maîtrise</p>
+              <p class="text-sm font-extrabold tabular text-navy">
+                {{ ratedCompetenceCount() }} / {{ competenceCount() }} compétences notées
+              </p>
+              <p class="mt-0.5 text-[10px] font-medium text-slate-400">Échelle 1–4 · pas une moyenne /5</p>
             </div>
             <div class="min-w-36 w-44 sm:w-52">
               <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-1">
@@ -61,7 +73,7 @@ const STARS = [1, 2, 3, 4, 5];
         />
       } @else {
         <div class="flex flex-col gap-6 pt-1">
-          @for (group of groups(); track group.name) {
+          @for (group of groups(); track group.key) {
             <section class="space-y-3">
               <div class="flex items-center gap-2.5 px-1">
                 <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 text-accent text-xs font-bold">
@@ -70,6 +82,45 @@ const STARS = [1, 2, 3, 4, 5];
                 <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">{{ group.name }}</h3>
                 <div class="h-px flex-1 bg-slate-200/80"></div>
               </div>
+
+              @if (group.competenceLineId > 0) {
+                <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Maîtrise de la compétence</p>
+                      <p class="mt-0.5 text-sm font-semibold text-navy">{{ group.name }}</p>
+                      <p class="mt-1 text-xs text-slate-500">Échelle unique 1–4 — un rang pour toutes les questions de ce groupe.</p>
+                    </div>
+                    @if (competenceRatings()[group.competenceLineId] != null) {
+                      <gcc-skill-badge [level]="skillLevelFromRank(competenceRatings()[group.competenceLineId])" />
+                    } @else {
+                      <gcc-status-tag status="pending" label="Niveau requis" />
+                    }
+                  </div>
+                  <div
+                    class="mt-3 flex flex-wrap gap-2"
+                    role="radiogroup"
+                    [attr.aria-label]="'Maîtrise ' + group.name"
+                  >
+                    @for (item of competencyRanks; track item.rank) {
+                      <button
+                        type="button"
+                        class="rounded-full border p-0.5 transition disabled:cursor-not-allowed disabled:opacity-60"
+                        [class]="
+                          competenceRatings()[group.competenceLineId] === item.rank
+                            ? 'border-accent ring-2 ring-accent/30'
+                            : 'border-transparent hover:border-slate-200'
+                        "
+                        [disabled]="readonly()"
+                        [attr.aria-pressed]="competenceRatings()[group.competenceLineId] === item.rank"
+                        (click)="setCompetenceRank(group.competenceLineId, item.rank)"
+                      >
+                        <gcc-skill-badge [level]="skillLevelFromRank(item.rank)" />
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
 
               <div class="space-y-4">
                 @for (question of group.items; track question.questionId) {
@@ -217,29 +268,46 @@ export class NotationQuestionsStep {
   questions = input.required<SelectedQuestion[]>();
   ratings = model<Record<number, number>>({});
   comments = model<Record<number, string>>({});
+  competenceRatings = model<Record<number, number>>({});
   references = input<Record<number, ReferenceAnswer>>({});
   options = input<Record<number, QuestionOption[]>>({});
   evaluationTypeId = input<number | null>(null);
   readonly = input(false);
 
   readonly stars = STARS;
+  readonly competencyRanks = COMPETENCY_SCALE_RANKS;
   readonly ratingLabel = ratingLabel;
+  readonly skillLevelFromRank = skillLevelFromRank;
   readonly expanded = signal<Record<number, boolean>>({});
 
   readonly groups = computed(() => {
-    const map = new Map<string, SelectedQuestion[]>();
+    const map = new Map<string, { key: string; competenceLineId: number; name: string; items: SelectedQuestion[] }>();
     for (const question of this.questions()) {
-      const name = question.competenceName?.trim() || 'Autres compétences';
-      const list = map.get(name) ?? [];
-      list.push(question);
-      map.set(name, list);
+      const lineId = Number(question.competenceLineId) > 0 ? Number(question.competenceLineId) : 0;
+      const name = question.competenceName?.trim() || (lineId ? `Compétence #${lineId}` : 'Autres compétences');
+      const key = lineId > 0 ? `id:${lineId}` : `name:${name}`;
+      const group = map.get(key) ?? { key, competenceLineId: lineId, name, items: [] };
+      group.items.push(question);
+      map.set(key, group);
     }
-    return [...map.entries()].map(([name, items]) => ({ name, items }));
+    return [...map.values()];
   });
 
   readonly ratedCount = computed(() =>
     this.questions().filter((question) => this.ratings()[question.questionId] != null).length,
   );
+
+  readonly competenceCount = computed(
+    () => this.groups().filter((group) => group.competenceLineId > 0).length,
+  );
+
+  readonly ratedCompetenceCount = computed(() => {
+    const ratings = this.competenceRatings();
+    return this.groups().filter((group) => {
+      const rank = Number(ratings[group.competenceLineId]);
+      return group.competenceLineId > 0 && Number.isInteger(rank) && rank >= 1 && rank <= 4;
+    }).length;
+  });
 
   readonly progress = computed(() => {
     const total = this.questions().length;
@@ -262,6 +330,11 @@ export class NotationQuestionsStep {
   setRating(questionId: number, rating: number): void {
     if (this.readonly()) return;
     this.ratings.update((current) => ({ ...current, [questionId]: rating }));
+  }
+
+  setCompetenceRank(competenceLineId: number, rank: number): void {
+    if (this.readonly() || competenceLineId <= 0) return;
+    this.competenceRatings.update((current) => ({ ...current, [competenceLineId]: rank }));
   }
 
   setComment(questionId: number, comment: string): void {
@@ -318,7 +391,7 @@ export class NotationQuestionsStep {
         const overall = parsed['OverallRating'] ?? parsed['overallRating'];
         const comment = parsed['Comment'] ?? parsed['comment'];
         if (overall != null && Number(overall) > 0) {
-          const parts: string[] = [`Note globale : ${overall}/5`];
+          const parts: string[] = [`Note de performance : ${overall}/5`];
           if (comment && String(comment).trim()) parts.push(`Commentaire : ${String(comment).trim()}`);
           return parts.join('\n');
         }

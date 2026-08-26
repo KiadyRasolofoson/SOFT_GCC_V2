@@ -10,15 +10,20 @@ import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccIdentityCard } from '../../ui/gcc-identity-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccStatusTag } from '../../ui/gcc-status-tag';
+import { GccSkillBadge, skillLevelFromRank } from '../../ui/gcc-skill-badge';
 import {
+  CompetenceResult,
   EvaluationHistoryDetail,
   HistoryQuestionDetail,
   SelectedQuestion,
+  competencyScaleLabel,
+  formatPerformance,
   formatScore,
   historyEmployeeName,
   historyInterviewStatusMeta,
   historyStatusMeta,
   initialsOf,
+  masteryRankOf,
   ratingLabel,
   scoreBadgeClass,
   scoreFillPercent,
@@ -33,6 +38,7 @@ import { EvaluationService } from './evaluation.service';
     GccPageHeader,
     GccIdentityCard,
     GccStatusTag,
+    GccSkillBadge,
     GccEmptyState,
     MatTabsModule,
     MatButtonModule,
@@ -114,7 +120,7 @@ import { EvaluationService } from './evaluation.service';
         </article>
 
         <article class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Note globale</p>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Note de performance</p>
           <div class="mt-3 flex items-end gap-3">
             <p class="text-4xl font-extrabold tabular tracking-tight text-navy">
               {{ formatScore(current.overallScore) }}
@@ -177,6 +183,7 @@ import { EvaluationService } from './evaluation.service';
                   message="Le questionnaire n’a pas été archivé sur ce dossier, ou les notes n’ont pas encore été saisies."
                 />
               } @else {
+                <p class="mb-3 text-xs font-medium text-slate-500">Notes questions de la campagne · échelle / 5. Pas des rangs de maîtrise.</p>
                 <div class="space-y-3">
                   @for (item of questions(); track $index) {
                     <article class="rounded-xl border border-slate-200 bg-white p-4">
@@ -199,9 +206,45 @@ import { EvaluationService } from './evaluation.service';
                           [class]="scoreBadgeClass(item.score)"
                         >
                           <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">star</mat-icon>
-                          {{ formatScore(item.score) }} / 5
+                          {{ formatPerformance(item.score) }}
                         </span>
                       </div>
+                    </article>
+                  }
+                </div>
+              }
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Maîtrise">
+            <div class="pt-5">
+              @if (!masteryRows().length) {
+                <gcc-empty-state
+                  title="Aucun niveau de maîtrise"
+                  message="Aucune compétence n’a encore été notée sur l’échelle 1–4 pour ce dossier."
+                />
+              } @else {
+                <p class="mb-3 text-xs font-medium text-slate-500">
+                  Rang CompetencyScale 1–4 (Notions / Application / Maîtrise / Expert). Jamais affiché en / 5.
+                </p>
+                <div class="space-y-2.5">
+                  @for (item of masteryRows(); track item.competenceId) {
+                    <article class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4">
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold text-navy">{{ item.competenceName || 'Compétence' }}</p>
+                        <p class="text-[11px] font-medium text-slate-400">
+                          @if (item.rank != null) {
+                            Rang {{ item.rank }} · {{ competencyScaleLabel(item.rank) }}
+                          } @else {
+                            Score stocké non interprétable comme rang 1–4
+                          }
+                        </p>
+                      </div>
+                      @if (item.rank != null) {
+                        <gcc-skill-badge [level]="skillLevelFromRank(item.rank)" />
+                      } @else {
+                        <span class="text-xs font-medium text-slate-400">—</span>
+                      }
                     </article>
                   }
                 </div>
@@ -266,6 +309,7 @@ export class HistoryDetailPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly detail = signal<EvaluationHistoryDetail | null>(null);
   readonly selectedQuestions = signal<SelectedQuestion[]>([]);
+  readonly competenceResults = signal<CompetenceResult[]>([]);
 
   readonly employeeName = computed(() => {
     const current = this.detail();
@@ -279,11 +323,20 @@ export class HistoryDetailPage implements OnInit {
   ]);
 
   readonly questions = computed(() => this.mergeQuestions(this.detail(), this.selectedQuestions()));
+  readonly masteryRows = computed(() =>
+    this.competenceResults().map((item) => ({
+      ...item,
+      rank: masteryRankOf(item),
+    })),
+  );
 
   readonly historyStatusMeta = historyStatusMeta;
   readonly historyInterviewStatusMeta = historyInterviewStatusMeta;
   readonly initialsOf = initialsOf;
   readonly formatScore = formatScore;
+  readonly formatPerformance = formatPerformance;
+  readonly competencyScaleLabel = competencyScaleLabel;
+  readonly skillLevelFromRank = skillLevelFromRank;
   readonly ratingLabel = ratingLabel;
   readonly scoreBadgeClass = scoreBadgeClass;
   readonly scoreFillPercent = scoreFillPercent;
@@ -300,8 +353,9 @@ export class HistoryDetailPage implements OnInit {
     forkJoin({
       detail: this.evaluations.getHistoryDetail(evaluationId),
       questions: this.evaluations.getSelectedQuestions(evaluationId).pipe(catchError(() => of([]))),
+      competences: this.evaluations.getCompetenceResults(evaluationId).pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ detail, questions }) => {
+      next: ({ detail, questions, competences }) => {
         if (!detail) {
           this.error.set('Ce dossier n’existe pas ou vous n’avez pas les droits pour le consulter.');
           this.loading.set(false);
@@ -309,6 +363,7 @@ export class HistoryDetailPage implements OnInit {
         }
         this.detail.set(detail);
         this.selectedQuestions.set(questions);
+        this.competenceResults.set(competences);
         this.loading.set(false);
       },
       error: () => {
