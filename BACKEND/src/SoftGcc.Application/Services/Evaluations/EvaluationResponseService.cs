@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using SoftGcc.Application.Dtos.EvaluationsDto;
 using SoftGcc.Application.Interfaces;
 using SoftGcc.Domain.Entities.Evaluations;
@@ -15,6 +14,9 @@ namespace SoftGcc.Application.Services.Evaluations
         
         private readonly IGenericRepository<Evaluation> _evaluationRepository;
         private readonly IGenericRepository<EvaluationQuestion> _questionRepository;
+
+        // SQL Server datetime rejects values before 1753-01-01 (DateTime.MinValue).
+        private static readonly DateTime SqlDatetimeMin = new(1753, 1, 1);
 
         public EvaluationResponseService(
             IEvaluationDataService dataService,
@@ -40,6 +42,14 @@ namespace SoftGcc.Application.Services.Evaluations
             if (question == null)
                 throw new Exception($"Question avec l'ID {responseDto.QuestionId} non trouvée");
 
+            var existing = await GetResponseAsync(evaluationId, responseDto.QuestionId);
+            if (existing is { ResponseId: > 0 })
+            {
+                await UpdateResponseAsync(existing.ResponseId, responseDto);
+                return await GetRequiredResponseAsync(evaluationId, responseDto.QuestionId);
+            }
+
+            var now = DateTime.UtcNow;
             var response = new EvaluationResponses
             {
                 EvaluationId = evaluationId,
@@ -47,15 +57,14 @@ namespace SoftGcc.Application.Services.Evaluations
                 ResponseType = responseDto.ResponseType,
                 ResponseValue = responseDto.ResponseValue,
                 TimeSpent = responseDto.TimeSpent,
-                StartTime = responseDto.StartTime,
-                EndTime = responseDto.EndTime,
+                StartTime = ToSqlDatetime(responseDto.StartTime, now),
+                EndTime = ToSqlDatetime(responseDto.EndTime, now),
+                CreatedAt = now,
                 IsCorrect = responseDto.IsCorrect,
                 State = 1 // Actif
             };
 
             await _responseRepository.CreateAsync(response);
-            await _dataService.SaveChangesAsync();
-
             return response;
         }
 
@@ -105,10 +114,13 @@ namespace SoftGcc.Application.Services.Evaluations
             if (response == null)
                 throw new NotFoundException("Réponse", responseId);
 
+            var now = DateTime.UtcNow;
             response.ResponseType = responseDto.ResponseType;
             response.ResponseValue = responseDto.ResponseValue;
             response.TimeSpent = responseDto.TimeSpent;
-            response.EndTime = responseDto.EndTime;
+            response.EndTime = ToSqlDatetime(responseDto.EndTime, now);
+            if (response.StartTime < SqlDatetimeMin)
+                response.StartTime = ToSqlDatetime(responseDto.StartTime, now);
             response.IsCorrect = responseDto.IsCorrect;
 
             await _responseRepository.UpdateAsync(response);
@@ -190,11 +202,11 @@ namespace SoftGcc.Application.Services.Evaluations
             }
             else
             {
-                var progressId = Convert.ToInt32(progressRows[0]["progressId"]);
+                var progressId = ReadInt32(progressRows[0], "Progress_id", "ProgressId", "progressId");
                 await _dataService.ExecuteNonQueryAsync(@"
                     UPDATE Evaluation_progress 
                     SET answeredQuestions = @p0, progressPercentage = @p1, lastUpdate = @p2 
-                    WHERE progressId = @p3",
+                    WHERE Progress_id = @p3",
                     progress.AnsweredQuestions, progress.ProgressPercentage, DateTime.UtcNow, progressId);
             }
         }
@@ -218,13 +230,15 @@ namespace SoftGcc.Application.Services.Evaluations
             EvaluationResponses response;
             if (existingRows.Count == 0)
             {
+                var now = DateTime.UtcNow;
                 response = new EvaluationResponses
                 {
                     EvaluationId = evaluationId,
                     QuestionId = questionId,
                     TimeSpent = timeSpent,
-                    StartTime = DateTime.UtcNow,
-                    EndTime = DateTime.UtcNow,
+                    StartTime = now,
+                    EndTime = now,
+                    CreatedAt = now,
                     State = 1
                 };
                 await _responseRepository.CreateAsync(response);
@@ -349,6 +363,24 @@ namespace SoftGcc.Application.Services.Evaluations
 
             return options.GroupBy(opt => opt.QuestionId)
                 .ToDictionary(g => g.Key, g => g.ToList());
+        }
+
+        private static DateTime ToSqlDatetime(DateTime value, DateTime fallback)
+        {
+            return value < SqlDatetimeMin ? fallback : value;
+        }
+
+        private static int ReadInt32(Dictionary<string, object> row, params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                var value = ReadColumn(row, key);
+                if (value is not null)
+                    return Convert.ToInt32(value);
+            }
+
+            throw new InvalidOperationException(
+                $"Colonne introuvable parmi : {string.Join(", ", keys)}.");
         }
 
         private static object? ReadColumn(Dictionary<string, object> row, string name)

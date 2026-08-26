@@ -1510,37 +1510,47 @@ namespace SoftGcc.Application.Services.Evaluations
                     "UPDATE TemporaryAccounts SET IsUsed = 1 WHERE TempAccountId = @p0", tempAccountId);
             }
 
-            // Récupérer l'employé associé
-            var employeeRows = await _dataService.ExecuteReaderAsync(
-                "SELECT FirstName, Name, Email FROM Employee WHERE Employee_id = @p0", evaluation.EmployeeId);
-            string employeeName = "Un employé";
-            if (employeeRows.Count > 0)
+            // Notifications superviseurs : ne pas faire échouer la soumission si l'e-mail ou le mapping SQL casse.
+            try
             {
-                employeeName = $"{employeeRows[0]["FirstName"]} {employeeRows[0]["Name"]}";
-            }
-
-            // Récupérer le type d'évaluation
-            var evalType = await _evaluationTypeRepository.GetByIdAsync(evaluation.EvaluationTypeId);
-            string evaluationTypeName = evalType?.Designation ?? "Évaluation";
-
-            // Récupérer les superviseurs et envoyer des notifications
-            var supervisorRows = await _dataService.ExecuteReaderAsync(@"
-                SELECT u.Email, u.FirstName, u.LastName 
-                FROM EvaluationSupervisors es
-                INNER JOIN Users u ON es.SupervisorId = u.UserId
-                WHERE es.EvaluationId = @p0", evaluationId);
-
-            foreach (var supervisor in supervisorRows)
-            {
-                var email = supervisor["Email"]?.ToString();
-                if (!string.IsNullOrEmpty(email))
+                var employeeRows = await _dataService.ExecuteReaderAsync(
+                    "SELECT FirstName, Name, Email FROM Employee WHERE Employee_id = @p0", evaluation.EmployeeId);
+                string employeeName = "Un employé";
+                if (employeeRows.Count > 0)
                 {
+                    var firstName = employeeRows[0].GetValueOrDefault("FirstName")?.ToString() ?? "";
+                    var lastName = employeeRows[0].GetValueOrDefault("Name")?.ToString()
+                                   ?? employeeRows[0].GetValueOrDefault("LastName")?.ToString()
+                                   ?? "";
+                    employeeName = $"{firstName} {lastName}".Trim();
+                    if (string.IsNullOrEmpty(employeeName))
+                        employeeName = "Un employé";
+                }
+
+                var evalType = await _evaluationTypeRepository.GetByIdAsync(evaluation.EvaluationTypeId);
+                string evaluationTypeName = evalType?.Designation ?? "Évaluation";
+
+                var supervisorRows = await _dataService.ExecuteReaderAsync(@"
+                    SELECT u.Email, u.first_name AS FirstName, u.last_name AS LastName
+                    FROM EvaluationSupervisors es
+                    INNER JOIN users u ON es.SupervisorId = u.UserId
+                    WHERE es.EvaluationId = @p0", evaluationId);
+
+                foreach (var supervisor in supervisorRows)
+                {
+                    var email = supervisor.GetValueOrDefault("Email")?.ToString();
+                    if (string.IsNullOrEmpty(email))
+                        continue;
+
+                    var supervisorFirst = supervisor.GetValueOrDefault("FirstName")?.ToString() ?? "";
+                    var supervisorLast = supervisor.GetValueOrDefault("LastName")?.ToString() ?? "";
+
                     try
                     {
                         await _emailService.SendEmailAsync(
                             email,
                             $"{evaluationTypeName} - Évaluation soumise",
-                            $"Bonjour {supervisor["FirstName"]} {supervisor["LastName"]},<br><br>" +
+                            $"Bonjour {supervisorFirst} {supervisorLast},<br><br>" +
                             $"Nous vous informons que {employeeName} a soumis son {evaluationTypeName.ToLower()}.<br><br>" +
                             $"<strong>Date de soumission :</strong> {submission.CompletionDate.ToShortDateString()}<br>" +
                             $"<strong>Période d'évaluation :</strong> Du {evaluation.StartDate.ToShortDateString()} au {evaluation.EndDate.ToShortDateString()}<br><br>" +
@@ -1555,6 +1565,10 @@ namespace SoftGcc.Application.Services.Evaluations
                         Console.WriteLine($"Erreur lors de l'envoi de l'email au superviseur: {ex.Message}");
                     }
                 }
+            }
+            catch (Exception notifyEx)
+            {
+                Console.WriteLine($"Erreur lors des notifications de soumission: {notifyEx.Message}");
             }
         }
 

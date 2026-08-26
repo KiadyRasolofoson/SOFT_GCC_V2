@@ -28,7 +28,7 @@ namespace SoftGcc.Domain.Entities.Evaluations
         [Column("State")]
         public int State { get; set; }
         [Column("CreatedAt")]
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [ForeignKey("EvaluationId")]
         public Evaluation Evaluation { get; set; } = null!;
