@@ -145,9 +145,11 @@ BEGIN
         UserId INT PRIMARY KEY IDENTITY(1,1),
         last_name NVARCHAR(255) NOT NULL,
         first_name NVARCHAR(255) NOT NULL,
+        username NVARCHAR(255) NULL,
         email NVARCHAR(255) NOT NULL,
         password NVARCHAR(255) NOT NULL,
         role_id INT NOT NULL,
+        employee_id INT NULL,
         departmentid INT,
         positionId INT,
         creation_date DATE NOT NULL DEFAULT GETUTCDATE(),
@@ -156,6 +158,7 @@ BEGIN
         deleted_by INT,
         state INT,
         FOREIGN KEY (role_id) REFERENCES Roles(Role_id),
+        FOREIGN KEY (employee_id) REFERENCES Employee(Employee_id),
         FOREIGN KEY (departmentid) REFERENCES Department(Department_id),
         FOREIGN KEY (positionId) REFERENCES Position(Position_id)
     );

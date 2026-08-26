@@ -18,6 +18,7 @@ appsettings.*.json
 src/SoftGcc.Api/appsettings.json
 src/SoftGcc.Api/appsettings.*.json
 !src/SoftGcc.Api/appsettings.example.json
+!src/SoftGcc.Api/appsettings.Windows.json
 
 # Dossiers de packages
 packages/

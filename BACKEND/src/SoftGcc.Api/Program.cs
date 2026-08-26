@@ -8,8 +8,21 @@ using SoftGcc.Application;
 using SoftGcc.Application.Authorization;
 using SoftGcc.Application.Common.Interfaces;
 using SoftGcc.Infrastructure;
+using SoftGcc.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (OperatingSystem.IsWindows())
+{
+    builder.Configuration
+        .AddJsonFile("appsettings.Windows.json", optional: true, reloadOnChange: true)
+        .AddEnvironmentVariables();
+}
+
+if (string.IsNullOrWhiteSpace(builder.Configuration["ConnectionStrings:DefaultConnection"]))
+{
+    throw new InvalidOperationException(DatabaseInitializer.MissingConnectionMessage());
+}
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -136,6 +149,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+await DatabaseInitializer.InitializeAsync(app.Services, app.Configuration, app.Environment);
 
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 

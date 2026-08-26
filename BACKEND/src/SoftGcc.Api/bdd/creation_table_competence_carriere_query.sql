@@ -28,7 +28,8 @@ INSERT INTO Civilite(Civilite_name) VALUES ('Monsieur'), ('Madame');
 CREATE TABLE Department (
     Department_id INT PRIMARY KEY IDENTITY(1,1),
     Department_name NVARCHAR(50),
-    Photo VARBINARY(MAX) NULL
+    Photo VARBINARY(MAX) NULL,
+    state INT NULL
 );
 
 -- Creation de la table employe(id, matricule, nom, prenom, date_embauche) simule
@@ -124,6 +125,8 @@ CREATE TABLE Employee_education (
 	Degree_id INT NOT NULL REFERENCES Degree(Degree_id),
 	School_ID INT NOT NULL REFERENCES School(School_id),
 	Year INT,
+	Start_date DATE NULL,
+	Ending_date DATE NULL,
 	State INT,
 	Creation_date DATETIME,
 	Updated_date DATETIME,
@@ -166,6 +169,9 @@ CREATE TABLE Employee_skill (
 	Domain_skill_id INT NOT NULL REFERENCES Domain_skill(Domain_skill_id),
 	Skill_id INT NOT NULL REFERENCES Skill(Skill_id),
 	Level DOUBLE PRECISION NOT NULL,
+	Acquired_level INT NULL,
+	Skill_version_id INT NULL,
+	Source NVARCHAR(32) NULL,
 	State INT,
 	Creation_date DATETIME,
 	Updated_date DATETIME,
@@ -191,6 +197,7 @@ CREATE TABLE Employee_other_formation (
 CREATE TABLE Position (
 	Position_id INT PRIMARY KEY IDENTITY(1,1),
 	position_name NVARCHAR(100) NOT NULL,
+	state INT NULL
 );
 
 -- Creation de la table type_affectation(id, designation)
@@ -377,7 +384,7 @@ INSERT INTO Retirement_parameter (Woman_age, Man_age) VALUES (60, 60);
 -- Creation de la table 
 CREATE TABLE Wish_type (
 	Wish_type_id INT PRIMARY KEY IDENTITY(1,1),
-	designation NVARCHAR(250) NOT NULL,
+	designation NVARCHAR(250) NOT NULL
 );
 
 --INSERT INTO Wish_type (designation) VALUES ('Evolution'), ('Changement de departement');
@@ -409,6 +416,9 @@ CREATE TABLE Skill_position (
 	Position_id INT NOT NULL REFERENCES Position(Position_id),
 	Skill_id INT NOT NULL REFERENCES Skill(Skill_id),
 	Required_level DOUBLE PRECISION NULL,
+	Expected_level INT NULL,
+	Requirement_kind NVARCHAR(32) NULL,
+	Weight DECIMAL(9,4) NOT NULL CONSTRAINT DF_Skill_position_Weight DEFAULT 1,
 	State INT,
 	Creation_date DATETIME,
 	Updated_date DATETIME

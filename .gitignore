@@ -110,6 +110,7 @@ BACKEND/appsettings.*.json
 BACKEND/src/SoftGcc.Api/appsettings.json
 BACKEND/src/SoftGcc.Api/appsettings.*.json
 !BACKEND/src/SoftGcc.Api/appsettings.example.json
+!BACKEND/src/SoftGcc.Api/appsettings.Windows.json
 BACKEND/src/SoftGcc.Api/keys/private.key
 
 # === Node (root) ===

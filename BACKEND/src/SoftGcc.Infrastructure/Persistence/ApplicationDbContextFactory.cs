@@ -10,15 +10,29 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         var apiPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "SoftGcc.Api");
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.Exists(apiPath) ? apiPath : Directory.GetCurrentDirectory())
+        var basePath = Directory.Exists(apiPath) ? apiPath : Directory.GetCurrentDirectory();
+        var configurationBuilder = new ConfigurationBuilder()
+            .SetBasePath(basePath)
             .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddJsonFile("appsettings.Development.json", optional: true);
+
+        if (OperatingSystem.IsWindows())
+        {
+            configurationBuilder.AddJsonFile("appsettings.Windows.json", optional: true);
+        }
+
+        var configuration = configurationBuilder
             .AddEnvironmentVariables()
             .Build();
 
-        var connectionString = configuration["ConnectionStrings:DefaultConnection"]
-            ?? "Server=localhost;Database=Soft_GCC;Trusted_Connection=True;TrustServerCertificate=True;";
+        var connectionString = configuration["ConnectionStrings:DefaultConnection"];
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                OperatingSystem.IsWindows()
+                    ? "ConnectionStrings:DefaultConnection est manquante. Vérifiez appsettings.Windows.json (authentification Windows)."
+                    : "Les chaînes de connexion SQL Server (authentification Windows) ne sont chargées que sous Windows. Définissez ConnectionStrings__DefaultConnection si besoin.");
+        }
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlServer(connectionString, sql =>
