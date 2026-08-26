@@ -148,6 +148,7 @@ def main() -> int:
             continue
         if args.dry_run:
             print(f"  + famille (dry-run) {domain_name} / {family_name}")
+            family_ids[(domain_id, family_name)] = 0
             created_families += 1
             continue
         created = api.call(
@@ -187,11 +188,14 @@ def main() -> int:
         if args.dry_run:
             updated += 1
             continue
-        api.call("PUT", f"/skill-referential/skills/{existing['skillId']}", payload)
-        updated += 1
-        if existing.get("state") != "Active" or args.republish:
-            api.call("POST", f"/skill-referential/skills/{existing['skillId']}/publish", {})
-            published += 1
+        try:
+            api.call("PUT", f"/skill-referential/skills/{existing['skillId']}", payload)
+            updated += 1
+            if existing.get("state") != "Active" or args.republish:
+                api.call("POST", f"/skill-referential/skills/{existing['skillId']}/publish", {})
+                published += 1
+        except RuntimeError as error:
+            print(f"  ! {skill_name} : {error}")
 
     archived = 0
     for skill_name in ARCHIVE_SKILLS:
@@ -204,7 +208,11 @@ def main() -> int:
     matrix_positions, matrix_rows = 0, 0
     if not args.skip_matrix:
         catalog = flatten_catalog(api.call("GET", "/skill-referential/catalog"))
-        positions = api.call("GET", "/Position")
+        try:
+            positions = api.call("GET", "/Position")
+        except RuntimeError as error:
+            print(f"  ! matrice ignorée (GET /Position) : {error}")
+            positions = []
         for position in positions:
             position_id = position.get("positionId") or position.get("PositionId")
             position_name = position.get("positionName") or position.get("PositionName") or ""

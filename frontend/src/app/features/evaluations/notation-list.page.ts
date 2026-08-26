@@ -14,10 +14,13 @@ import { GccKpiCard } from '../../ui/gcc-kpi-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccSelect } from '../../ui/gcc-select';
 import { GccStatusTag } from '../../ui/gcc-status-tag';
+import { GccSkillBadge, skillLevelFromRank } from '../../ui/gcc-skill-badge';
 import { GccSelectOption } from '../../ui/gcc.types';
 import {
+  CompetenceMasterySummary,
   EmployeeNotationRow,
   employeeFullName,
+  formatPerformance,
   initialsOf,
   notationStatus,
   NotationStatistics,
@@ -34,6 +37,7 @@ import { EvaluationService } from './evaluation.service';
     GccSelect,
     GccKpiCard,
     GccStatusTag,
+    GccSkillBadge,
     GccEmptyState,
     MatTableModule,
     MatPaginatorModule,
@@ -44,7 +48,7 @@ import { EvaluationService } from './evaluation.service';
   template: `
     <gcc-page-header
       title="Notation d’évaluation"
-      subtitle="Superviser les évaluations des salariés, attribuer les notes de compétences et valider les rapports."
+      subtitle="Superviser les évaluations, saisir la note de performance (/ 5) et les niveaux de maîtrise (1–4)."
       icon="fact_check"
       [crumbs]="crumbs"
     />
@@ -183,9 +187,9 @@ import { EvaluationService } from './evaluation.service';
             </td>
           </ng-container>
 
-          <!-- Score Column -->
+          <!-- Performance Column -->
           <ng-container matColumnDef="score">
-            <th mat-header-cell *matHeaderCellDef>Note finale</th>
+            <th mat-header-cell *matHeaderCellDef>Performance</th>
             <td mat-cell *matCellDef="let row">
               @if (row.overallScore != null) {
                 <span
@@ -193,10 +197,32 @@ import { EvaluationService } from './evaluation.service';
                   [class]="scoreBadgeClass(row.overallScore)"
                 >
                   <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">star</mat-icon>
-                  {{ row.overallScore.toFixed(1) }} / 5
+                  {{ formatPerformance(row.overallScore) }}
                 </span>
               } @else {
-                <span class="text-xs text-slate-400 font-medium">—</span>
+                <span class="text-xs font-medium text-slate-400">—</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="mastery">
+            <th mat-header-cell *matHeaderCellDef>Maîtrise</th>
+            <td mat-cell *matCellDef="let row">
+              @if (masteryOf(row.evaluationId); as mastery) {
+                @if (mastery.ratedCount > 0) {
+                  <div class="flex flex-col items-start gap-1 py-1">
+                    <span class="text-[11px] font-semibold text-slate-500">
+                      {{ mastery.ratedCount }} compétence{{ mastery.ratedCount > 1 ? 's' : '' }}
+                    </span>
+                    @if (mastery.dominantRank != null) {
+                      <gcc-skill-badge [level]="skillLevelFromRank(mastery.dominantRank)" />
+                    }
+                  </div>
+                } @else {
+                  <span class="text-xs font-medium text-slate-400">—</span>
+                }
+              } @else {
+                <span class="text-xs font-medium text-slate-400">—</span>
               }
             </td>
           </ng-container>
@@ -255,7 +281,7 @@ export class NotationListPage implements OnInit {
   private readonly search$ = new Subject<string>();
 
   readonly crumbs = [{ label: 'Évaluations' }, { label: 'Notation' }];
-  readonly columns = ['employee', 'position', 'department', 'type', 'date', 'score', 'status', 'action'];
+  readonly columns = ['employee', 'position', 'department', 'type', 'date', 'score', 'mastery', 'status', 'action'];
   readonly statusOptions: GccSelectOption[] = [
     { label: 'Tous les statuts', value: 'all' },
     { label: 'À noter', value: 'toGrade' },
@@ -276,6 +302,7 @@ export class NotationListPage implements OnInit {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly allRows = signal<EmployeeNotationRow[]>([]);
+  readonly masteryByEval = signal<Map<number, CompetenceMasterySummary>>(new Map());
   readonly positionOptions = signal<GccSelectOption[]>([{ label: 'Tous les postes', value: 'all' }]);
   readonly departmentOptions = signal<GccSelectOption[]>([{ label: 'Tous les départements', value: 'all' }]);
   readonly stats = signal<NotationStatistics>({ totalCount: 0, noneCount: 0, toGradeCount: 0, expertCount: 0, validatedCount: 0 });
@@ -305,6 +332,8 @@ export class NotationListPage implements OnInit {
   readonly employeeFullName = employeeFullName;
   readonly initialsOf = initialsOf;
   readonly notationStatus = notationStatus;
+  readonly formatPerformance = formatPerformance;
+  readonly skillLevelFromRank = skillLevelFromRank;
 
   private searchPrimed = false;
 
@@ -396,9 +425,11 @@ export class NotationListPage implements OnInit {
       })
       .subscribe({
         next: (data) => {
-          this.allRows.set(data.employees ?? []);
+          const employees = data.employees ?? [];
+          this.allRows.set(employees);
           this.totalPages.set(data.totalPages ?? 0);
           this.loading.set(false);
+          this.loadMasterySummaries(employees.map((row) => row.evaluationId));
         },
         error: () => {
           this.error.set('Vérifiez vos droits (liste employés / évaluations) ou réessayez.');
@@ -420,6 +451,27 @@ export class NotationListPage implements OnInit {
         next: (stats) => this.stats.set(stats),
         error: () => undefined,
       });
+  }
+
+  masteryOf(evaluationId: number | null | undefined): CompetenceMasterySummary | null {
+    if (!evaluationId) return null;
+    return this.masteryByEval().get(evaluationId) ?? null;
+  }
+
+  private loadMasterySummaries(evaluationIds: Array<number | null | undefined>): void {
+    const ids = evaluationIds.filter((id): id is number => typeof id === 'number' && id > 0);
+    if (!ids.length) {
+      this.masteryByEval.set(new Map());
+      return;
+    }
+    this.evaluations.getMasterySummaries(ids).subscribe({
+      next: (items) => {
+        const map = new Map<number, CompetenceMasterySummary>();
+        for (const item of items) map.set(item.evaluationId, item);
+        this.masteryByEval.set(map);
+      },
+      error: () => this.masteryByEval.set(new Map()),
+    });
   }
 
   isValidated(row: EmployeeNotationRow): boolean {

@@ -16,8 +16,12 @@ namespace SoftGcc.Application.Dtos.EvaluationsDto
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<MultiCriteriaRatingDto>? DetailedRatings { get; set; }
 
-        /// Score global de l'évaluation
+        /// Score global de l'évaluation (performance de campagne, moyenne questions /5).
+        /// Distinct des rangs de maîtrise 1–4.
         public decimal OverallScore { get; set; }
+
+        /// Rang de maîtrise 1–4 par CompetenceLineId (échelle CompetencyScale).
+        public Dictionary<int, int> CompetenceRatings { get; set; } = new Dictionary<int, int>();
 
         /// Points forts identifiés
         public string? Strengths { get; set; }

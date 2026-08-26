@@ -98,7 +98,39 @@ export interface EvaluationResultsPayload {
   strengths: string;
   weaknesses: string;
   generalEvaluation: string;
+  competenceRatings: Record<number, number>;
 }
+
+export interface CompetenceResult {
+  competenceId: number;
+  competenceName: string;
+  description: string;
+  /** Rang de maîtrise 1–4. Ne jamais formater en / 5. */
+  score: number;
+  acquiredLevel: number | null;
+  acquiredLevelLabel: string | null;
+  evaluationId: number;
+  evaluationDate: string | null;
+}
+
+export interface CompetenceMasterySummary {
+  evaluationId: number;
+  ratedCount: number;
+  dominantRank: number | null;
+}
+
+export interface CompetenceMasteryRow {
+  competenceLineId: number;
+  name: string;
+  rank: number | null;
+}
+
+export const COMPETENCY_SCALE_RANKS = [
+  { rank: 1, label: 'Notions' },
+  { rank: 2, label: 'Application' },
+  { rank: 3, label: 'Maîtrise' },
+  { rank: 4, label: 'Expert' },
+] as const;
 
 export interface EvaluationValidationPayload {
   evaluationId: number;
@@ -841,6 +873,47 @@ export function historyInterviewStatusMeta(status: number | null | undefined): H
 export function formatScore(score: number | null | undefined, digits = 1): string {
   if (score == null || Number.isNaN(Number(score))) return '—';
   return Number(score).toFixed(digits);
+}
+
+/** Note de campagne uniquement. Ne pas utiliser pour un rang de maîtrise 1–4. */
+export function formatPerformance(score: number | null | undefined, digits = 1): string {
+  if (score == null || Number.isNaN(Number(score))) return '—';
+  return `${Number(score).toFixed(digits)} / 5`;
+}
+
+export function isMasteryRank(value: number | null | undefined): boolean {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= 4;
+}
+
+export function competencyScaleLabel(rank: number | null | undefined): string {
+  const found = COMPETENCY_SCALE_RANKS.find((item) => item.rank === rank);
+  return found?.label ?? '—';
+}
+
+/** Rang 1–4 depuis un résultat compétence. Ignore un OverallScore de campagne (ex. 4.2). */
+export function masteryRankOf(result: Pick<CompetenceResult, 'acquiredLevel' | 'score'>): number | null {
+  if (isMasteryRank(result.acquiredLevel)) return Number(result.acquiredLevel);
+  return isMasteryRank(result.score) ? Number(result.score) : null;
+}
+
+export function competenceMasteryRows(
+  questions: Array<{ competenceLineId?: number | null; competenceName?: string | null }>,
+  ratings: Record<number, number>,
+): CompetenceMasteryRow[] {
+  const map = new Map<number, CompetenceMasteryRow>();
+  for (const question of questions) {
+    const id = Number(question.competenceLineId);
+    if (!Number.isFinite(id) || id <= 0) continue;
+    if (map.has(id)) continue;
+    const rank = Number(ratings[id]);
+    map.set(id, {
+      competenceLineId: id,
+      name: question.competenceName?.trim() || `Compétence #${id}`,
+      rank: isMasteryRank(rank) ? rank : null,
+    });
+  }
+  return [...map.values()];
 }
 
 export function scoreFillPercent(score: number | null | undefined): number {

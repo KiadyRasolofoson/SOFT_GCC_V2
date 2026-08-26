@@ -12,8 +12,10 @@ import { GccPageHeader } from '../../ui/gcc-page-header';
 import { downloadEvaluationPdf, evaluationPdfBlob } from './evaluation-pdf';
 import {
   averageOf,
+  CompetenceResult,
   EvaluationDetails,
   initialsOf,
+  masteryRankOf,
   NotationRemarks,
   NotationValidation,
   QuestionOption,
@@ -131,11 +133,15 @@ import { PdfPreviewDialog } from './pdf-preview.dialog';
           (selectedIndexChange)="stepIndex.set($event)"
         >
           <!-- Step 1: Notation -->
-          <mat-step label="Notation des questions" [completed]="allRated()">
+          <mat-step label="Notation des questions" [completed]="canProceedQuestions()">
             <app-notation-questions-step
               [questions]="questions()"
-              [(ratings)]="ratings"
-              [(comments)]="comments"
+              [ratings]="ratings()"
+              (ratingsChange)="ratings.set($event)"
+              [comments]="comments()"
+              (commentsChange)="comments.set($event)"
+              [competenceRatings]="competenceRatings()"
+              (competenceRatingsChange)="competenceRatings.set($event)"
               [references]="references()"
               [options]="options()"
               [evaluationTypeId]="evalData.evaluationTypeId"
@@ -145,16 +151,29 @@ import { PdfPreviewDialog } from './pdf-preview.dialog';
               <button mat-stroked-button class="gcc-btn-secondary !rounded-xl" type="button" (click)="cancel()">
                 Annuler
               </button>
-              <button
-                mat-flat-button
-                class="gcc-btn-primary !rounded-xl shadow-xs hover:shadow-md"
-                type="button"
-                [disabled]="!allRated()"
-                (click)="goStep(1)"
-              >
-                Étape 2 : Commentaires
-                <mat-icon iconPositionEnd class="!ml-1">arrow_forward</mat-icon>
-              </button>
+              <div class="flex flex-col items-end gap-1">
+                @if (!readonly() && !canProceedQuestions()) {
+                  <p class="max-w-sm text-right text-xs font-medium text-amber-800">
+                    @if (!allRated() && !allCompetencesRated()) {
+                      Notez chaque question sur 5 et attribuez un niveau 1–4 à chaque compétence.
+                    } @else if (!allRated()) {
+                      Notez chaque question sur 5 (étoiles).
+                    } @else {
+                      Choisissez un niveau 1–4 (Notions à Expert) pour chaque compétence, au-dessus des questions.
+                    }
+                  </p>
+                }
+                <button
+                  mat-flat-button
+                  class="gcc-btn-primary !rounded-xl shadow-xs hover:shadow-md"
+                  type="button"
+                  [disabled]="!readonly() && !canProceedQuestions()"
+                  (click)="goStep(1)"
+                >
+                  Étape 2 : Commentaires
+                  <mat-icon iconPositionEnd class="!ml-1">arrow_forward</mat-icon>
+                </button>
+              </div>
             </div>
           </mat-step>
 
@@ -183,6 +202,8 @@ import { PdfPreviewDialog } from './pdf-preview.dialog';
           <mat-step label="Validation & Rapport PDF">
             <app-notation-validation-step
               [ratings]="ratings()"
+              [questions]="questions()"
+              [competenceRatings]="competenceRatings()"
               [average]="averageDisplay()"
               [suggestions]="suggestions()"
               [(validation)]="validation"
@@ -235,6 +256,7 @@ export class NotationWizardPage implements OnInit {
   readonly questions = signal<SelectedQuestion[]>([]);
   readonly ratings = signal<Record<number, number>>({});
   readonly comments = signal<Record<number, string>>({});
+  readonly competenceRatings = signal<Record<number, number>>({});
   readonly references = signal<Record<number, ReferenceAnswer>>({});
   readonly options = signal<Record<number, QuestionOption[]>>({});
   readonly suggestions = signal<TrainingSuggestion[]>([]);
@@ -252,6 +274,18 @@ export class NotationWizardPage implements OnInit {
     const ratings = this.ratings();
     return items.every((question) => ratings[question.questionId] != null);
   });
+
+  readonly allCompetencesRated = computed(() => {
+    const requiredIds = this.competenceLineIds(this.questions());
+    if (!requiredIds.length) return true;
+    const ranks = this.competenceRatings();
+    return requiredIds.every((id) => {
+      const rank = Number(ranks[id]);
+      return Number.isInteger(rank) && rank >= 1 && rank <= 4;
+    });
+  });
+
+  readonly canProceedQuestions = computed(() => this.allRated() && this.allCompetencesRated());
 
   readonly averageDisplay = computed(() => averageOf(this.ratings()).toFixed(2));
 
@@ -296,6 +330,10 @@ export class NotationWizardPage implements OnInit {
       this.goStep(2);
       return;
     }
+    if (!this.canProceedQuestions()) {
+      this.saveError.set('Notez chaque question et attribuez un rang de maîtrise 1–4 à chaque compétence.');
+      return;
+    }
     this.saving.set(true);
     this.saveError.set(null);
     this.evaluations.saveResults(this.buildResults()).subscribe({
@@ -317,6 +355,7 @@ export class NotationWizardPage implements OnInit {
     const data = this.validation();
     if (data.serviceApproved && !data.serviceDate) return false;
     if (data.dgApproved && !data.dgDate) return false;
+    if (!this.canProceedQuestions()) return false;
     return true;
   }
 
@@ -387,13 +426,15 @@ export class NotationWizardPage implements OnInit {
       evaluation: this.evaluations.getEvaluation(evaluationId),
       questions: this.evaluations.getSelectedQuestions(evaluationId),
       options: this.evaluations.getQuestionOptions(evaluationId),
+      competenceResults: this.evaluations.getCompetenceResults(evaluationId).pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ evaluation, questions, options }) => {
+      next: ({ evaluation, questions, options, competenceResults }) => {
         const unique = this.uniqueQuestions(questions);
         this.evaluation.set(evaluation);
         this.questions.set(unique);
         this.options.set(options);
         this.hydrateRatings(unique);
+        this.hydrateCompetenceRatings(competenceResults);
         this.loading.set(false);
         const ids = unique.map((question) => question.questionId);
         this.evaluations.getReferenceAnswers(ids).subscribe((references) => this.references.set(references));
@@ -416,9 +457,16 @@ export class NotationWizardPage implements OnInit {
     const seen = new Set<number>();
     const next: SelectedQuestion[] = [];
     for (const item of items) {
-      if (seen.has(item.questionId)) continue;
-      seen.add(item.questionId);
-      next.push(item);
+      const raw = item as SelectedQuestion & { CompetenceLineId?: number | null; QuestionId?: number };
+      const questionId = item.questionId || raw.QuestionId || 0;
+      if (!questionId || seen.has(questionId)) continue;
+      seen.add(questionId);
+      const line = item.competenceLineId ?? raw.CompetenceLineId;
+      next.push({
+        ...item,
+        questionId,
+        competenceLineId: line != null && Number(line) > 0 ? Number(line) : null,
+      });
     }
     return next;
   }
@@ -433,6 +481,21 @@ export class NotationWizardPage implements OnInit {
     }
     this.ratings.set(ratings);
     this.comments.set(comments);
+  }
+
+  private hydrateCompetenceRatings(results: CompetenceResult[]): void {
+    const ranks: Record<number, number> = {};
+    for (const result of results) {
+      const rank = masteryRankOf(result);
+      if (result.competenceId > 0 && rank != null) {
+        ranks[result.competenceId] = rank;
+      }
+    }
+    this.competenceRatings.set(ranks);
+  }
+
+  private competenceLineIds(questions: SelectedQuestion[]): number[] {
+    return [...new Set(questions.map((question) => Number(question.competenceLineId)).filter((id) => id > 0))];
   }
 
   private parseExisting(question: SelectedQuestion): { score?: number; comment: string } {
@@ -469,6 +532,7 @@ export class NotationWizardPage implements OnInit {
       strengths: remarks.strengths,
       weaknesses: remarks.weaknesses,
       generalEvaluation: remarks.generalEvaluation,
+      competenceRatings: this.competenceRatings(),
       detailedRatings: this.questions().map((question) => ({
         questionId: question.questionId,
         overallRating: ratings[question.questionId] ?? 0,
@@ -484,6 +548,7 @@ export class NotationWizardPage implements OnInit {
       ratings: this.ratings(),
       comments: this.comments(),
       average: averageOf(this.ratings()),
+      competenceRatings: this.competenceRatings(),
       validation: this.validation(),
       suggestions: this.suggestions(),
       strengths: this.remarks().strengths,

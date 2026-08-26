@@ -68,4 +68,14 @@ public static class CompetencyScale
         4 => "expert",
         _ => "beginner"
     };
+
+    /// <summary>
+    /// Rang 1–4 si <paramref name="score"/> est un entier de l’échelle.
+    /// Un OverallScore de campagne (ex. 4.2) n’est pas un rang.
+    /// </summary>
+    public static int? RankFromStoredScore(decimal score)
+    {
+        var rank = (int)decimal.Truncate(score);
+        return score == rank && IsValid(rank) ? rank : null;
+    }
 }
