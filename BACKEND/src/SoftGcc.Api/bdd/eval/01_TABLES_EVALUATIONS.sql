@@ -107,14 +107,15 @@ IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Competence_Lines')
 BEGIN
     CREATE TABLE Competence_Lines (
         CompetenceLineId INT PRIMARY KEY IDENTITY(1,1),
-        PositionId INT NOT NULL,
-        CompetenceName NVARCHAR(100) NOT NULL, 
+        -- Pont vers la matrice emploi-compétences (A1.3) : une ligne de questionnaire
+        -- = une ligne active de Skill_position. PositionId/CompetenceName (legacy) supprimés.
+        SkillPositionId INT NOT NULL,
         Description NVARCHAR(255),
-        SkillPositionId INT,
         state INT,
-        FOREIGN KEY (PositionId) REFERENCES Position(Position_id)
+        CONSTRAINT FK_CompetenceLines_SkillPosition
+            FOREIGN KEY (SkillPositionId) REFERENCES Skill_position(Skill_position_id)
     );
-    PRINT '   ✓ Table Competence_Lines créée';
+    PRINT '   ✓ Table Competence_Lines créée (alignée sur Skill_position)';
 END
 ELSE PRINT '   - Table Competence_Lines existe déjà';
 

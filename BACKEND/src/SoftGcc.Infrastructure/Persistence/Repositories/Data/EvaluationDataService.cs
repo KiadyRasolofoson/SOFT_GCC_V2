@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SoftGcc.Domain.Entities.Evaluations;
 using SoftGcc.Domain.Entities.crud_career;
 using SoftGcc.Domain.Entities.salary_skills;
+using SoftGcc.Domain.Entities.wish_evolution;
 using SoftGcc.Domain.Interfaces.Data;
 using SoftGcc.Infrastructure.Persistence;
 
@@ -314,6 +315,13 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             return await _context.competenceLines
                 .Where(cl => cl.SkillPositionId == skillPositionId)
                 .ToListAsync();
+        }
+
+        public async Task<SkillPosition?> GetSkillPositionByIdAsync(int skillPositionId)
+        {
+            return await _context.SkillPosition
+                .AsNoTracking()
+                .FirstOrDefaultAsync(sp => sp.SkillPositionId == skillPositionId);
         }
 
         public async Task CreateCompetenceLineAsync(CompetenceLine competenceLine)
