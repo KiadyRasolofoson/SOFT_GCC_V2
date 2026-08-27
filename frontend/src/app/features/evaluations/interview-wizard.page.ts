@@ -7,14 +7,17 @@ import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { skillLevelFromRank } from '../../ui/gcc-skill-badge';
 import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccPageHeader } from '../../ui/gcc-page-header';
+import type { EmployeeSkillGapResponse } from '../skill-referential/skill-referential.models';
 import {
   emptyInterviewNotes,
   EvaluationDetails,
   initialsOf,
   InterviewNotes,
   InterviewRecord,
+  InterviewSkillGapItem,
   parseInterviewNotes,
 } from './evaluation.models';
 import { EvaluationService } from './evaluation.service';
@@ -111,7 +114,12 @@ import { InterviewSummaryStep } from './interview-summary.step';
           (selectedIndexChange)="stepIndex.set($event)"
         >
           <mat-step label="Cadre" [completed]="contextReady()">
-            <app-interview-context-step [(notes)]="notes" />
+            <app-interview-context-step
+              [(notes)]="notes"
+              [skillGaps]="skillGaps()"
+              [gapsLoading]="gapsLoading()"
+              [gapsError]="gapsError()"
+            />
             <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
               <button mat-stroked-button class="gcc-btn-secondary !rounded-xl" type="button" (click)="goList()">
                 Annuler
@@ -124,7 +132,12 @@ import { InterviewSummaryStep } from './interview-summary.step';
           </mat-step>
 
           <mat-step label="Bilan" [completed]="reviewReady()">
-            <app-interview-review-step [(notes)]="notes" />
+            <app-interview-review-step
+              [(notes)]="notes"
+              [skillGaps]="skillGaps()"
+              [gapsLoading]="gapsLoading()"
+              [gapsError]="gapsError()"
+            />
             <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
               <button mat-stroked-button class="gcc-btn-secondary !rounded-xl" type="button" (click)="goStep(0)">
                 <mat-icon class="!mr-1">arrow_back</mat-icon>
@@ -200,6 +213,9 @@ export class InterviewWizardPage implements OnInit, OnDestroy {
   readonly interview = signal<InterviewRecord | null>(null);
   readonly evaluation = signal<EvaluationDetails | null>(null);
   readonly notes = signal<InterviewNotes>(emptyInterviewNotes());
+  readonly skillGaps = signal<InterviewSkillGapItem[]>([]);
+  readonly gapsLoading = signal(false);
+  readonly gapsError = signal<string | null>(null);
   readonly fileName = signal('');
   readonly previewUrl = signal<SafeResourceUrl | null>(null);
   private objectUrl: string | null = null;
@@ -303,8 +319,12 @@ export class InterviewWizardPage implements OnInit, OnDestroy {
           next: ({ evaluation }) => {
             this.evaluation.set(evaluation);
             this.loading.set(false);
+            this.loadSkillGaps(interviewId);
           },
-          error: () => this.loading.set(false),
+          error: () => {
+            this.loading.set(false);
+            this.loadSkillGaps(interviewId);
+          },
         });
       },
       error: () => {
@@ -312,6 +332,38 @@ export class InterviewWizardPage implements OnInit, OnDestroy {
         this.loading.set(false);
       },
     });
+  }
+
+  private loadSkillGaps(interviewId: number): void {
+    this.gapsLoading.set(true);
+    this.gapsError.set(null);
+    this.evaluations.getInterviewSkillGaps(interviewId).subscribe({
+      next: (response) => {
+        this.skillGaps.set(this.mapGaps(response));
+        this.gapsLoading.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.skillGaps.set([]);
+        this.gapsLoading.set(false);
+        if (err.status === 403) {
+          this.gapsError.set('Écarts non disponibles pour votre profil — le compte-rendu reste saisissable.');
+        } else {
+          this.gapsError.set('Impossible de charger les écarts de poste — poursuivez le compte-rendu.');
+        }
+      },
+    });
+  }
+
+  private mapGaps(response: EmployeeSkillGapResponse): InterviewSkillGapItem[] {
+    return (response.items ?? []).map((item) => ({
+      label: item.skillName,
+      required: skillLevelFromRank(item.expectedRank),
+      acquired: skillLevelFromRank(item.acquiredRank),
+      missing: item.acquiredRank == null || item.status === 'missing',
+      critical: item.requirementKind === 'Critical',
+      status: item.status,
+      domainName: item.domainName ?? null,
+    }));
   }
 
   private revokePreview(): void {

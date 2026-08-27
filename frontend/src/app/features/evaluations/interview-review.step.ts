@@ -1,12 +1,21 @@
-import { Component, model } from '@angular/core';
+import { Component, input, model } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { InterviewNotes } from './evaluation.models';
+import { InterviewNotes, InterviewSkillGapItem } from './evaluation.models';
+import { InterviewSkillGapsPanel } from './interview-skill-gaps.panel';
 
 @Component({
   selector: 'app-interview-review-step',
-  imports: [FormsModule, MatIconModule],
+  imports: [FormsModule, MatIconModule, InterviewSkillGapsPanel],
   template: `
+    <div class="mb-5">
+      <app-interview-skill-gaps-panel
+        [gaps]="skillGaps()"
+        [loading]="gapsLoading()"
+        [error]="gapsError()"
+      />
+    </div>
+
     <div class="grid gap-5 lg:grid-cols-2">
       <section class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs">
         <div class="mb-3 flex items-center gap-2.5">
@@ -88,6 +97,9 @@ import { InterviewNotes } from './evaluation.models';
 })
 export class InterviewReviewStep {
   notes = model.required<InterviewNotes>();
+  skillGaps = input<InterviewSkillGapItem[]>([]);
+  gapsLoading = input(false);
+  gapsError = input<string | null>(null);
 
   patch(
     field: 'achievements' | 'challenges' | 'previousObjectivesAchieved' | 'feedback',

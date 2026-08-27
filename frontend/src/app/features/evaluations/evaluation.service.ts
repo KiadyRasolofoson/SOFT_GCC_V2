@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import type { EmployeeSkillGapResponse } from '../skill-referential/skill-referential.models';
 import {
   CalculateDurationRequest,
   CompetenceLineOption,
@@ -350,6 +351,44 @@ export class EvaluationService {
     );
   }
 
+  getInterviewSkillGaps(interviewId: number): Observable<EmployeeSkillGapResponse> {
+    return this.http.get<unknown>(`${this.api}/EvaluationInterview/${interviewId}/skill-gaps`).pipe(
+      map((raw) => this.normalizeEmployeeSkillGaps(raw)),
+    );
+  }
+
+  private normalizeEmployeeSkillGaps(raw: unknown): EmployeeSkillGapResponse {
+    const row = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const itemsRaw = row['items'] ?? row['Items'];
+    const items = Array.isArray(itemsRaw) ? itemsRaw : [];
+    return {
+      positionId: (row['positionId'] ?? row['PositionId'] ?? null) as number | null,
+      positionName: (row['positionName'] ?? row['PositionName'] ?? null) as string | null,
+      items: items.map((entry) => {
+        const item = entry as Record<string, unknown>;
+        return {
+          skillId: Number(item['skillId'] ?? item['SkillId'] ?? 0),
+          skillName: String(item['skillName'] ?? item['SkillName'] ?? ''),
+          expectedRank: Number(item['expectedRank'] ?? item['ExpectedRank'] ?? 0),
+          acquiredRank:
+            item['acquiredRank'] != null || item['AcquiredRank'] != null
+              ? Number(item['acquiredRank'] ?? item['AcquiredRank'])
+              : null,
+          requirementKind: String(item['requirementKind'] ?? item['RequirementKind'] ?? ''),
+          skillVersionId:
+            item['skillVersionId'] != null || item['SkillVersionId'] != null
+              ? Number(item['skillVersionId'] ?? item['SkillVersionId'])
+              : null,
+          weight: Number(item['weight'] ?? item['Weight'] ?? 0),
+          gap: Boolean(item['gap'] ?? item['Gap']),
+          status: String(item['status'] ?? item['Status'] ?? ''),
+          domainId: Number(item['domainId'] ?? item['DomainId'] ?? 0),
+          domainName: String(item['domainName'] ?? item['DomainName'] ?? ''),
+        };
+      }),
+    };
+  }
+
   unwrapInterviewEmployees(data: PaginatedInterviewEmployees | null | undefined): InterviewEmployeeRow[] {
     const rows = data?.employees ?? data?.Employees ?? [];
     return rows.map((row) => this.normalizeInterviewEmployee(row));
@@ -581,6 +620,12 @@ export class EvaluationService {
       managerComments: (pick('managerComments', 'ManagerComments') as string | null) ?? null,
       directorApproval: asBool(pick('directorApproval', 'DirectorApproval')),
       directorComments: (pick('directorComments', 'DirectorComments') as string | null) ?? null,
+      employeeId: (() => {
+        const raw = pick('employeeId', 'EmployeeId');
+        if (raw == null) return null;
+        const n = Number(raw);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      })(),
     };
   }
 

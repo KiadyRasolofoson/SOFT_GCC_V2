@@ -7,10 +7,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { skillLevelFromRank } from '../../ui/gcc-skill-badge';
 import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccIdentityCard } from '../../ui/gcc-identity-card';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { GccStatusTag } from '../../ui/gcc-status-tag';
+import type { EmployeeSkillGapResponse } from '../skill-referential/skill-referential.models';
 import {
   emptyInterviewNotes,
   EvaluationDetails,
@@ -18,9 +20,11 @@ import {
   initialsOf,
   InterviewNotes,
   InterviewRecord,
+  InterviewSkillGapItem,
   parseInterviewNotes,
 } from './evaluation.models';
 import { EvaluationService } from './evaluation.service';
+import { InterviewSkillGapsPanel } from './interview-skill-gaps.panel';
 
 @Component({
   selector: 'app-interview-detail-page',
@@ -34,6 +38,7 @@ import { EvaluationService } from './evaluation.service';
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
+    InterviewSkillGapsPanel,
   ],
   template: `
     <gcc-page-header
@@ -187,6 +192,12 @@ import { EvaluationService } from './evaluation.service';
         </section>
 
         <aside class="space-y-4">
+          <app-interview-skill-gaps-panel
+            [gaps]="skillGaps()"
+            [loading]="gapsLoading()"
+            [error]="gapsError()"
+          />
+
           <section class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs">
             <h2 class="text-sm font-bold text-navy">Circuit de validation</h2>
             <div class="mt-4 space-y-3">
@@ -281,6 +292,9 @@ export class InterviewDetailPage implements OnInit {
   readonly evaluation = signal<EvaluationDetails | null>(null);
   readonly notes = signal<InterviewNotes>(emptyInterviewNotes());
   readonly comments = signal('');
+  readonly skillGaps = signal<InterviewSkillGapItem[]>([]);
+  readonly gapsLoading = signal(false);
+  readonly gapsError = signal<string | null>(null);
 
   readonly employeeName = computed(() => this.evaluation()?.employeeName?.trim() || 'Salarié');
   readonly canValidateManager = computed(() => hasFunctionalPermission(this.auth.user()?.permissions, 'VALIDATE_AS_MANAGER'));
@@ -375,8 +389,12 @@ export class InterviewDetailPage implements OnInit {
           next: (evaluation) => {
             this.evaluation.set(evaluation);
             this.loading.set(false);
+            this.loadSkillGaps(interviewId);
           },
-          error: () => this.loading.set(false),
+          error: () => {
+            this.loading.set(false);
+            this.loadSkillGaps(interviewId);
+          },
         });
       },
       error: () => {
@@ -384,5 +402,37 @@ export class InterviewDetailPage implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  private loadSkillGaps(interviewId: number): void {
+    this.gapsLoading.set(true);
+    this.gapsError.set(null);
+    this.evaluations.getInterviewSkillGaps(interviewId).subscribe({
+      next: (response) => {
+        this.skillGaps.set(this.mapGaps(response));
+        this.gapsLoading.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.skillGaps.set([]);
+        this.gapsLoading.set(false);
+        if (err.status === 403) {
+          this.gapsError.set('Écarts non disponibles pour votre profil.');
+        } else {
+          this.gapsError.set('Impossible de charger les écarts de poste.');
+        }
+      },
+    });
+  }
+
+  private mapGaps(response: EmployeeSkillGapResponse): InterviewSkillGapItem[] {
+    return (response.items ?? []).map((item) => ({
+      label: item.skillName,
+      required: skillLevelFromRank(item.expectedRank),
+      acquired: skillLevelFromRank(item.acquiredRank),
+      missing: item.acquiredRank == null || item.status === 'missing',
+      critical: item.requirementKind === 'Critical',
+      status: item.status,
+      domainName: item.domainName ?? null,
+    }));
   }
 }
