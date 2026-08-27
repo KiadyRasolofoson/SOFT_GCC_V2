@@ -1523,7 +1523,6 @@ namespace SoftGcc.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("SoftGcc.Domain.Entities.Evaluations.VEmployeeDetails", b =>
                 {
                     b.Property<string>("Department")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("EmployeeId")
@@ -1542,7 +1541,6 @@ namespace SoftGcc.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FirstName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool?>("IsDgApproved")
@@ -1552,14 +1550,12 @@ namespace SoftGcc.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("OverallScore")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Position")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("positionId")

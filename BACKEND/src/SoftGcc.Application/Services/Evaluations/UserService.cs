@@ -264,9 +264,9 @@ namespace SoftGcc.Application.Services.Evaluations
             // Appliquer les filtres
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e =>
-                    (e.FirstName + " " + e.LastName).Contains(search) ||
-                    e.FirstName.Contains(search) ||
-                    e.LastName.Contains(search));
+                    ((e.FirstName ?? "") + " " + (e.LastName ?? "")).Contains(search) ||
+                    (e.FirstName ?? "").Contains(search) ||
+                    (e.LastName ?? "").Contains(search));
             
             if (position.HasValue)
                 query = query.Where(e => e.positionId == position);
@@ -344,9 +344,9 @@ namespace SoftGcc.Application.Services.Evaluations
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e =>
-                    (e.FirstName + " " + e.LastName).Contains(search) ||
-                    e.FirstName.Contains(search) ||
-                    e.LastName.Contains(search));
+                    ((e.FirstName ?? "") + " " + (e.LastName ?? "")).Contains(search) ||
+                    (e.FirstName ?? "").Contains(search) ||
+                    (e.LastName ?? "").Contains(search));
 
             if (position.HasValue)
                 query = query.Where(e => e.positionId == position);

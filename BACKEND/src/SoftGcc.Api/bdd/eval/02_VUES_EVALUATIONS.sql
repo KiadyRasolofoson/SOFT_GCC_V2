@@ -61,12 +61,12 @@ EXEC('
 CREATE VIEW VEmployeeDetails AS
 SELECT 
     e.Employee_id AS EmployeeId,
-    e.FirstName AS FirstName,
-    e.Name AS LastName,
+    ISNULL(e.FirstName, '''') AS FirstName,
+    ISNULL(e.Name, '''') AS LastName,
     ISNULL(ep.Position_name, ''Non défini'') AS Position,
     ISNULL(ep.Position_id, 0) AS PositionId,
     NULL AS Role,
-    d.Department_name AS Department,
+    ISNULL(d.Department_name, ''Non défini'') AS Department,
     ev.Evaluations_id AS EvaluationId,
     ev.start_date AS EvaluationDate,
     ev.overallScore AS OverallScore,

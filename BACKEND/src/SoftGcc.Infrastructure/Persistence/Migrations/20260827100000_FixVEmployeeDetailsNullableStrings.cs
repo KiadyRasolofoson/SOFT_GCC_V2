@@ -5,11 +5,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SoftGcc.Infrastructure.Persistence.Migrations
 {
     /// <summary>
-    /// La liste de notation lisait VEmployeeDetails (state = 10, planifié).
-    /// Après soumission du portail le dossier passe à 20 et disparaissait de la liste.
+    /// VEmployeeDetails projetait FirstName, LastName et Department sans ISNULL.
+    /// EF lisait ces colonnes en string obligatoire → SqlNullValueException
+    /// sur GET /api/User/vemployee-details-paginated (liste de notation).
     /// </summary>
-    [Migration("20260826220000_FixVEmployeeDetailsSubmittedState")]
-    public partial class FixVEmployeeDetailsSubmittedState : Migration
+    [Migration("20260827100000_FixVEmployeeDetailsNullableStrings")]
+    public partial class FixVEmployeeDetailsNullableStrings : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -62,7 +63,7 @@ namespace SoftGcc.Infrastructure.Persistence.Migrations
                     e.Name AS LastName,
                     ISNULL(ep.Position_name, N'Non défini') AS Position,
                     ISNULL(ep.Position_id, 0) AS PositionId,
-                    NULL AS Role,
+                    CAST(NULL AS nvarchar(255)) AS Role,
                     d.Department_name AS Department,
                     ev.Evaluations_id AS EvaluationId,
                     ev.start_date AS EvaluationDate,
@@ -77,9 +78,15 @@ namespace SoftGcc.Infrastructure.Persistence.Migrations
                 FROM Employee e
                 LEFT JOIN Department d ON e.Department_id = d.Department_id
                 LEFT JOIN v_employee_position ep ON e.Employee_id = ep.Employee_id
-                LEFT JOIN Evaluations ev ON e.Employee_id = ev.employeeId
-                LEFT JOIN Evaluation_type et ON ev.evaluationType_id = et.Evaluation_type_id
-                WHERE ev.state = 10;
+                INNER JOIN Evaluations ev
+                    ON e.Employee_id = ev.employeeId
+                    AND ev.state = 20
+                    AND ev.Evaluations_id = (
+                        SELECT MAX(ev2.Evaluations_id)
+                        FROM Evaluations ev2
+                        WHERE ev2.employeeId = e.Employee_id AND ev2.state = 20
+                    )
+                LEFT JOIN Evaluation_type et ON ev.evaluationType_id = et.Evaluation_type_id;
                 """);
         }
     }
