@@ -661,6 +661,43 @@ namespace SoftGcc.Application.Services.Evaluations
             return interview;
         }
 
+        /// <summary>
+        /// Détails entretien + employeeId (via Evaluation), champ optionnel rétrocompatible.
+        /// </summary>
+        public async Task<object?> GetInterviewDetailsPayloadAsync(int interviewId)
+        {
+            var interview = await GetInterviewDetailsAsync(interviewId);
+            if (interview == null) return null;
+
+            int? employeeId = null;
+            var evaluation = await _evaluationRepository.GetByIdAsync(interview.EvaluationId);
+            if (evaluation != null)
+                employeeId = evaluation.EmployeeId;
+
+            return new
+            {
+                interview.InterviewId,
+                interview.EvaluationId,
+                interview.InterviewDate,
+                status = (int)interview.status,
+                notes = interview.notes,
+                interview.managerApproval,
+                interview.managerComments,
+                interview.directorApproval,
+                interview.directorComments,
+                employeeId
+            };
+        }
+
+        public async Task<int?> GetEmployeeIdForInterviewAsync(int interviewId)
+        {
+            var interview = await _interviewRepository.GetByIdAsync(interviewId);
+            if (interview == null) return null;
+
+            var evaluation = await _evaluationRepository.GetByIdAsync(interview.EvaluationId);
+            return evaluation?.EmployeeId;
+        }
+
 
         public async Task<bool> UpdateInterviewAsync(int interviewId, DateTime? newDate, List<int>? newParticipantIds, int? newStatus)
         {

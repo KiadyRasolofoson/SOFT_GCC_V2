@@ -1,3 +1,5 @@
+import type { SkillLevel } from '../../ui/gcc-skill-badge';
+
 export interface EmployeeNotationRow {
   employeeId: number;
   firstName: string;
@@ -561,6 +563,19 @@ export interface InterviewRecord {
   managerComments: string | null;
   directorApproval: boolean | null;
   directorComments: string | null;
+  /** Salarié évalué (optionnel, enrichi par l’API). */
+  employeeId?: number | null;
+}
+
+/** Ligne d’écart poste affichée dans le wizard / validation d’entretien. */
+export interface InterviewSkillGapItem {
+  label: string;
+  required: SkillLevel;
+  acquired: SkillLevel;
+  missing: boolean;
+  critical: boolean;
+  status: 'ok' | 'gap' | 'missing' | string;
+  domainName: string | null;
 }
 
 export interface ScheduleInterviewPayload {

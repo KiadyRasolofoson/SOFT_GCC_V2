@@ -4,6 +4,8 @@ using SoftGcc.Application.Authorization;
 using SoftGcc.Application.Dtos.EvaluationsDto;
 using SoftGcc.Application.Services.Evaluations;
 using SoftGcc.Application.Services.salary_skills;
+using SoftGcc.Application.SkillReferential;
+using SoftGcc.Application.SkillReferential.Dtos;
 
 namespace SoftGcc.Api.Controllers.Evaluations
 {
@@ -15,16 +17,19 @@ namespace SoftGcc.Api.Controllers.Evaluations
 	{
 		private readonly EvaluationService _evaluationService;
 		private readonly EvaluationInterviewService _evaluationInterviewService;
+		private readonly ISkillReferentialService _skillReferential;
 		private readonly ILogger<EvaluationInterviewController> _logger;
 
 
 		public EvaluationInterviewController(
 		EvaluationService evaluationService,
 		EvaluationInterviewService evaluationInterviewService,
+		ISkillReferentialService skillReferential,
 		ILogger<EvaluationInterviewController> logger)
 		{
 			_evaluationService = evaluationService;
 			_evaluationInterviewService = evaluationInterviewService;
+			_skillReferential = skillReferential;
 			_logger = logger;
 		}
 
@@ -209,12 +214,30 @@ namespace SoftGcc.Api.Controllers.Evaluations
 		[HttpGet("interview-details/{interviewId}")]
 		public async Task<IActionResult> GetInterviewDetails(int interviewId)
 		{
-			var interview = await _evaluationInterviewService.GetInterviewDetailsAsync(interviewId);
+			var interview = await _evaluationInterviewService.GetInterviewDetailsPayloadAsync(interviewId);
 
 			if (interview == null)
 				return NotFound("Interview not found");
 
 			return Ok(interview);
+		}
+
+		/// <summary>
+		/// Écarts poste du salarié de l'entretien (délégué à GetEmployeeGapsAsync, tri discussion).
+		/// Accessible aux managers d'évaluation sans permission skill-referential.
+		/// </summary>
+		[HttpGet("{interviewId:int}/skill-gaps")]
+		public async Task<ActionResult<EmployeeSkillGapDto>> GetInterviewSkillGaps(
+			int interviewId,
+			CancellationToken cancellationToken)
+		{
+			var employeeId = await _evaluationInterviewService.GetEmployeeIdForInterviewAsync(interviewId);
+			if (employeeId == null)
+				return NotFound("Interview not found");
+
+			var gaps = await _skillReferential.GetEmployeeGapsAsync(employeeId.Value, null, cancellationToken);
+			gaps.Items = InterviewSkillGapOrdering.Sort(gaps.Items);
+			return Ok(gaps);
 		}
 
 		[HttpGet("{id}")]
