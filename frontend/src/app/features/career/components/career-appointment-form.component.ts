@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit, signal } from '@angular/core';
+import { Component, inject, Input, OnChanges, OnInit, signal, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import {
@@ -229,10 +229,12 @@ import { GccSelect } from '../../../ui/gcc-select';
     </section>
   `,
 })
-export class CareerAppointmentFormComponent implements OnInit {
+export class CareerAppointmentFormComponent implements OnInit, OnChanges {
   @Input() form!: CareerPlanForm;
   /** RIB de l'employé sélectionné (contrôle si le mode de paiement est « Virement »). */
   @Input() employeeRib: string | null = null;
+  /** FP-02 : indice (id) du dernier plan actif de l'employé (détection d'avancement). */
+  @Input() currentIndicationId: number | null = null;
 
   private readonly service = inject(CareerPlanCreateService);
 
@@ -242,6 +244,8 @@ export class CareerAppointmentFormComponent implements OnInit {
   readonly paymentMethodOptions = signal<GccSelectOption[]>([]);
   /** Erreurs de validation des champs obligatoires / règles métier. */
   readonly errors = signal<Record<string, string>>({});
+  /** FP-02 : true si l'indice choisi est supérieur à l'indice actuel (suggestion d'avancement). */
+  readonly advancementSuggested = signal(false);
 
   private departments: DepartmentOption[] = [];
   private positions: PositionOption[] = [];
@@ -252,6 +256,12 @@ export class CareerAppointmentFormComponent implements OnInit {
 
   ngOnInit(): void {
     void this.load();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['currentIndicationId']) {
+      this.computeAdvancementSuggestion();
+    }
   }
 
   private async load(): Promise<void> {
@@ -388,6 +398,7 @@ export class CareerAppointmentFormComponent implements OnInit {
       this.form.baseSalary = null;
     }
     this.deriveEchelonFromIndice();
+    this.computeAdvancementSuggestion();
     this.recomputeNet();
   }
 
@@ -446,6 +457,20 @@ export class CareerAppointmentFormComponent implements OnInit {
       (e) => e.indicationId === indicationId && (legalClassId == null || e.legalClassId === legalClassId),
     );
     this.form.echelonId = echelon ? String(echelon.echelonId) : null;
+  }
+
+  /**
+   * FP-02 : détecte si l'indice choisi dans la nomination est supérieur à l'indice actuel
+   * de l'employé (dernier plan actif) → suggestion de bascule vers un avancement.
+   */
+  private computeAdvancementSuggestion(): void {
+    if (this.currentIndicationId == null) {
+      this.advancementSuggested.set(false);
+      return;
+    }
+    const current = this.indications.find((i) => i.indicationId === this.currentIndicationId)?.indicationValue;
+    const next = this.indications.find((i) => i.indicationId === this.num(this.form.indicationId))?.indicationValue;
+    this.advancementSuggested.set(current != null && next != null && next > current);
   }
 
   /**
@@ -526,6 +551,7 @@ export class CareerAppointmentFormComponent implements OnInit {
     this.form.baseSalary = null;
     this.form.newsletterTemplateId = null;
     this.form.netSalary = null;
+    this.computeAdvancementSuggestion();
   }
 
   private recomputeNet(): void {

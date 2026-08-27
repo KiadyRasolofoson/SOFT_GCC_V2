@@ -155,13 +155,42 @@ import { GccSelect } from '../../ui/gcc-select';
               </td>
             </ng-container>
 
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef class="!text-slate-500 !font-semibold !text-[11px] !uppercase !tracking-[0.08em]">Type</th>
+              <td mat-cell *matCellDef="let row" class="py-4">
+                <span [class]="typeBadgeClass(row.assignmentTypeId)">{{ typeLabel(row.assignmentTypeId) }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="state">
+              <th mat-header-cell *matHeaderCellDef class="!text-slate-500 !font-semibold !text-[11px] !uppercase !tracking-[0.08em]">État</th>
+              <td mat-cell *matCellDef="let row" class="py-4">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span [class]="stateBadgeClass(row)">{{ stateLabel(row) }}</span>
+                  @if (isCurrent(row)) {
+                    <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">Courant</span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef class="!text-slate-500 !font-semibold !text-[11px] !uppercase !tracking-[0.08em]"></th>
               <td mat-cell *matCellDef="let row" class="py-4">
-                <button mat-stroked-button type="button" class="gcc-btn-secondary !rounded-xl" (click)="openProfile(row)">
-                  <mat-icon class="!mr-1.5 !text-[18px]">visibility</mat-icon>
-                  Voir carrière
-                </button>
+                <div class="flex items-center gap-1.5">
+                  @if (hasPlan(row)) {
+                    <button mat-icon-button type="button" class="!h-8 !w-8" title="Modifier" (click)="$event.stopPropagation(); openEdit(row)">
+                      <mat-icon class="!h-4 !w-4 !text-[16px] text-accent">edit</mat-icon>
+                    </button>
+                    <button mat-icon-button type="button" class="!h-8 !w-8" title="Voir le détail" (click)="$event.stopPropagation(); openDetail(row)">
+                      <mat-icon class="!h-4 !w-4 !text-[16px] text-slate-500">visibility</mat-icon>
+                    </button>
+                  }
+                  <button mat-stroked-button type="button" class="gcc-btn-secondary !rounded-xl" (click)="openProfile(row)">
+                    <mat-icon class="!mr-1.5 !text-[18px]">route</mat-icon>
+                    Voir carrière
+                  </button>
+                </div>
               </td>
             </ng-container>
 
@@ -200,6 +229,8 @@ export class CareerListPage {
     'positionName',
     'assignmentDate',
     'careerPlanNumber',
+    'type',
+    'state',
     'actions',
   ];
 
@@ -278,12 +309,36 @@ export class CareerListPage {
       const result = await this.service.list(this.filters, this.pageIndex() + 1, this.pageSize);
       this.rows.set(result.data);
       this.totalCount.set(result.totalCount);
+      void this.enrichRows();
     } catch {
       this.rows.set([]);
       this.totalCount.set(0);
       this.error.set('Erreur lors de la récupération des données.');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  /** UX-01/02 : enrichit chaque ligne avec le dernier plan actif (id, type, état) pour les actions et badges. */
+  private async enrichRows(): Promise<void> {
+    const rows = this.rows();
+    if (rows.length === 0) return;
+    try {
+      const enriched = await Promise.all(
+        rows.map(async (row) => {
+          const plan = row.registrationNumber ? await this.service.getLastCareerPlan(row.registrationNumber) : null;
+          return {
+            ...row,
+            careerPlanId: plan?.['careerPlanId'] != null ? Number(plan['careerPlanId']) : null,
+            assignmentTypeId: plan?.['assignmentTypeId'] != null ? Number(plan['assignmentTypeId']) : null,
+            state: plan?.['state'] != null ? Number(plan['state']) : null,
+            endingContract: plan?.['endingContract'] ?? null,
+          };
+        }),
+      );
+      this.rows.set(enriched);
+    } catch {
+      // On garde les lignes brutes si l'enrichissement échoue.
     }
   }
 
@@ -310,6 +365,68 @@ export class CareerListPage {
     void this.router.navigate(['/soft-gcc/employes/fiche', row.registrationNumber], {
       queryParams: { espace: 'carrieres' },
     });
+  }
+
+  hasPlan(row: CareerPlanListItem): boolean {
+    return Number(row['careerPlanId']) > 0;
+  }
+
+  openEdit(row: CareerPlanListItem): void {
+    const id = Number(row['careerPlanId']);
+    if (!id) return;
+    void this.router.navigate(['/soft-gcc/carrieres/fiche/modifier', id]);
+  }
+
+  openDetail(row: CareerPlanListItem): void {
+    const id = Number(row['careerPlanId']);
+    if (!id) return;
+    void this.router.navigate(['/soft-gcc/carrieres/fiche/detail', id]);
+  }
+
+  typeLabel(id: number | null): string {
+    switch (id) {
+      case 1:
+        return 'Nomination';
+      case 2:
+        return 'Disponibilité';
+      case 3:
+        return 'Avancement';
+      default:
+        return '—';
+    }
+  }
+
+  typeBadgeClass(id: number | null): string {
+    switch (id) {
+      case 1:
+        return 'inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800';
+      case 2:
+        return 'inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold text-sky-800';
+      case 3:
+        return 'inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800';
+      default:
+        return 'inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600';
+    }
+  }
+
+  stateLabel(row: CareerPlanListItem): string {
+    const state = Number(row['state']);
+    if (!Number.isFinite(state) || state == null) return '—';
+    if (state <= 0) return 'Archivé';
+    return row['endingContract'] ? 'Clôturé' : 'Actif';
+  }
+
+  stateBadgeClass(row: CareerPlanListItem): string {
+    const state = Number(row['state']);
+    if (state <= 0 || row['endingContract']) {
+      return 'inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600';
+    }
+    return 'inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800';
+  }
+
+  /** UX-02-bis : le plan courant = actif (state > 0) sans date de fin. */
+  isCurrent(row: CareerPlanListItem): boolean {
+    return Number(row['state']) > 0 && !row['endingContract'];
   }
 
   openCreate(): void {

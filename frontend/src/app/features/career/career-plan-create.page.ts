@@ -168,12 +168,46 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
         </div>
       </article>
 
+      <!-- UX-03 : situation actuelle de l'employé sélectionné -->
+      @if (currentSituationItems().length) {
+        <article class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
+          <div class="mb-3 flex items-center gap-2">
+            <mat-icon class="!text-[22px] text-emerald-700">info</mat-icon>
+            <h2 class="text-base font-semibold text-emerald-800">Situation actuelle</h2>
+            <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">Courant</span>
+          </div>
+          <div class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            @for (item of currentSituationItems(); track item.label) {
+              <div>
+                <p class="text-xs font-medium text-emerald-800/70">{{ item.label }}</p>
+                <p class="font-semibold text-navy">{{ item.value }}</p>
+              </div>
+            }
+          </div>
+        </article>
+      }
+
+      <!-- FP-02 : suggestion d'avancement si l'indice choisi dépasse l'indice actuel -->
+      @if (selectedType() === '1' && appointmentForm?.advancementSuggested()) {
+        <div class="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-sm text-emerald-900">
+          <mat-icon class="!text-[20px] shrink-0 text-emerald-700">trending_up</mat-icon>
+          <p class="min-w-0 flex-1">
+            <strong>Avancement détecté</strong> — l'indice choisi est supérieur à l'indice actuel de l'employé.
+          </p>
+          <button mat-stroked-button type="button" class="gcc-btn-secondary !rounded-xl" (click)="switchToAdvancement()">
+            <mat-icon>swap_horiz</mat-icon>
+            Basculer en Avancement
+          </button>
+        </div>
+      }
+
       <!-- Sous-formulaire dynamique selon le type d'affectation -->
       @if (selectedType() === '1') {
         <app-career-appointment-form
           class="mt-5"
           [form]="form"
           [employeeRib]="selectedEmployeeRib()"
+          [currentIndicationId]="currentIndicationId()"
         />
       } @else if (selectedType() === '2') {
         <app-career-layoff-form class="mt-5" [form]="form" />
@@ -224,6 +258,7 @@ export class CareerPlanCreatePage {
   readonly assignmentTypeOptions = signal<GccSelectOption[]>([]);
   readonly employeeRecords = signal<EmployeeOption[]>([]);
   readonly departmentOptions = signal<GccSelectOption[]>([]);
+  readonly positionOptions = signal<GccSelectOption[]>([]);
   readonly indicationOptions = signal<GccSelectOption[]>([]);
   readonly professionalCategoryOptions = signal<GccSelectOption[]>([]);
   readonly legalClassOptions = signal<GccSelectOption[]>([]);
@@ -240,6 +275,31 @@ export class CareerPlanCreatePage {
     () => this.employeeRecords().find((e) => e.registrationNumber === this.selectedRegistration())?.ribNumber ?? null,
   );
 
+  /** FP-02 : dernier plan actif de l'employé sélectionné (situation actuelle). */
+  readonly lastCareerPlan = signal<Record<string, any> | null>(null);
+  /** FP-02 : indice (id) du dernier plan actif, pour comparer avec l'indice saisi. */
+  readonly currentIndicationId = computed(() => {
+    const id = this.lastCareerPlan()?.['indicationId'];
+    return id == null ? null : Number(id);
+  });
+
+  /** UX-03 : résumé « Situation actuelle » de l'employé sélectionné (résolu depuis les référentiels). */
+  readonly currentSituationItems = computed(() => {
+    const plan = this.lastCareerPlan();
+    if (!plan) return [];
+    const pick = (options: { label: string; value: string }[], id: unknown) =>
+      options.find((o) => o.value === String(id))?.label ?? '—';
+    return [
+      { label: 'Poste', value: pick(this.positionOptions(), plan['positionId']) },
+      { label: 'Département', value: pick(this.departmentOptions(), plan['departmentId']) },
+      { label: 'Catégorie', value: pick(this.professionalCategoryOptions(), plan['professionalCategoryId']) },
+      { label: 'Classe légale', value: pick(this.legalClassOptions(), plan['legalClassId']) },
+      { label: 'Indice', value: pick(this.indicationOptions(), plan['indicationId']) },
+      { label: 'Salaire de base', value: plan['baseSalary'] != null ? this.formatNumber(plan['baseSalary']) : '—' },
+      { label: 'RIB', value: this.selectedEmployeeRib() || 'Non renseigné' },
+    ];
+  });
+
   constructor() {
     void this.initLookups();
   }
@@ -253,6 +313,7 @@ export class CareerPlanCreatePage {
         employees,
         assignmentTypes,
         departments,
+        positions,
         indications,
         professionalCategories,
         legalClasses,
@@ -261,6 +322,7 @@ export class CareerPlanCreatePage {
         this.service.loadEmployees(),
         this.service.loadAssignmentTypes(),
         this.service.loadDepartments(),
+        this.service.loadPositions(),
         this.service.loadIndications(),
         this.service.loadProfessionalCategories(),
         this.service.loadLegalClasses(),
@@ -284,6 +346,9 @@ export class CareerPlanCreatePage {
       ]);
       this.departmentOptions.set(
         departments.map((item) => ({ label: item.name, value: String(item.departmentId) })),
+      );
+      this.positionOptions.set(
+        positions.map((item) => ({ label: item.positionName, value: String(item.positionId) })),
       );
       this.indicationOptions.set(
         indications.map((item) => ({ label: item.indicationName, value: String(item.indicationId) })),
@@ -309,6 +374,25 @@ export class CareerPlanCreatePage {
     this.form.registrationNumber = value;
     this.selectedRegistration.set(value);
     this.revalidateField('registrationNumber', value);
+    void this.refreshLastCareerPlan(value);
+  }
+
+  /** FP-02 : charge la situation actuelle de l'employé (auto-classification du type). */
+  private async refreshLastCareerPlan(value: string | null): Promise<void> {
+    if (!value) {
+      this.lastCareerPlan.set(null);
+      return;
+    }
+    try {
+      this.lastCareerPlan.set(await this.service.getLastCareerPlan(value));
+    } catch {
+      this.lastCareerPlan.set(null);
+    }
+  }
+
+  /** FP-02 : bascule le type d'affectation vers « Avancement » (formulaire pré-rempli). */
+  switchToAdvancement(): void {
+    this.onAssignmentTypeChange('3');
   }
 
   onAssignmentTypeChange(value: string | null): void {
@@ -488,5 +572,10 @@ export class CareerPlanCreatePage {
     if (value === null || value === undefined || value === '') return null;
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
+  }
+
+  private formatNumber(value: unknown): string {
+    const number = Number(value);
+    return Number.isFinite(number) ? new Intl.NumberFormat('fr-FR').format(number) : '—';
   }
 }

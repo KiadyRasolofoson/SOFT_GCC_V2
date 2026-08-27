@@ -82,6 +82,19 @@ export class CareerPlanListService {
     };
   }
 
+  /** GET /CareerPlan/last/{registrationNumber} → dernier plan actif (enrichissement des lignes : type, état, id). */
+  async getLastCareerPlan(registrationNumber: string | null): Promise<Record<string, any> | null> {
+    if (!registrationNumber) return null;
+    try {
+      const response = await firstValueFrom(
+        this.http.get<Record<string, any>>(`${environment.apiUrl}/CareerPlan/last/${registrationNumber}`),
+      );
+      return response ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async loadDepartments(): Promise<DepartmentOption[]> {
     const response = await firstValueFrom(this.http.get<DepartmentOption[]>(`${environment.apiUrl}/Department`));
     return Array.isArray(response) ? response : [];

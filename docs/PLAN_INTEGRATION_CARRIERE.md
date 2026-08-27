@@ -12,8 +12,10 @@
 
 | Statut | Items |
 |---|---|
-| ✅ **V0 terminée** | **FP-01** (clôture auto de tous les plans actifs), **FP-03** (règles métier backend), **FP-09** (échelon dérivé) |
-| ⬜ À faire | FP-02, FP-04 … FP-08, UX-01 … UX-12 |
+| ✅ **V0 terminée** | **FP-01** (clôture auto de tous les plans actifs), **FP-03** (règles métier backend) |
+| ✅ **V1 terminée** | **FP-02** (auto-classification du type), **FP-05** (acte courant + situation actuelle), **FP-09** (échelon dérivé) |
+| ✅ **V2 terminée** | **UX-01** (actions liste), **UX-02** (colonnes Type/État), **UX-02-bis** (plan courant), **UX-03** (carte situation actuelle) |
+| ⬜ À faire | FP-04, FP-06 … FP-08, UX-04 … UX-12 |
 
 ---
 

@@ -4,7 +4,7 @@
 > Objectif : rendre le module **fiable et conforme aux pratiques SIRH professionnelles** (un acte RH = une seule saisie, tout le reste est dérivé).
 > Chaque ligne est une fonctionnalité à implémenter, avec priorité, motif, fichiers impactés et critère d'acceptation.
 > Légende priorité : **P1** = correctif/indispensable · **P2** = moyen terme · **P3** = évolutif.
-> Avancement : ✅ **FP-01** et **FP-03** implémentés (V0) · ✅ **FP-09** implémenté.
+> Avancement : ✅ **FP-01**, **FP-03** (V0) · ✅ **FP-02**, **FP-05** (V1) · ✅ **FP-09**.
 
 ---
 
@@ -25,7 +25,7 @@
   - À la création d'un plan, **tout** plan actif (`State > 0`) de l'employé est clôturé (`Ending_contract = Assignment_date` du nouvel acte), quel que soit le type de contrat.
   - Un seul plan « actif » (sans `Ending_contract`) existe par employé après création.
 
-### FP-02 · Auto-classification du type d'affectation à la création
+### ✅ FP-02 · Auto-classification du type d'affectation à la création
 - **Motif** : le type (Nomination/Avancement/Dispo) est choisi manuellement avec pour défaut « Nomination ». Une nomination avec un **indice supérieur** au plan actuel est sémantiquement un **avancement** — le système doit le détecter et le proposer par défaut (l'utilisateur garde la main).
 - **Fichiers impactés** :
   - `frontend/src/app/features/career/career-plan-create.page.ts` (sélection employé → détection du type)
@@ -79,7 +79,7 @@
 
 ## P2 — Parcours & statut
 
-### FP-05 · Acte courant mis en évidence dans l'onglet Carrières
+### ✅ FP-05 · Acte courant mis en évidence dans l'onglet Carrières
 - **Motif** : la fiche employé → Carrières liste nominations/avancements/dispos mais ne met pas en avant le **plan actif** (celui sans `Ending_contract`).
 - **Fichiers impactés** :
   - `frontend/src/app/features/employee/components/employee-career-panel.component.ts`

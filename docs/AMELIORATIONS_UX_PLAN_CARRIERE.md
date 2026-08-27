@@ -3,28 +3,29 @@
 > Source : revue UX du module Plan de Carrière (SOFT_GCC_V2).
 > Chaque ligne est une fonctionnalité à implémenter, avec priorité, motif et critère d'acceptation.
 > Légende priorité : **P1** = à faire rapidement (fort impact / effort modéré) · **P2** = moyen terme · **P3** = polish.
+> Avancement : ✅ **UX-01**, **UX-02**, **UX-02-bis**, **UX-03** implémentés (V2).
 
 ---
 
 ## P1 — Navigation & contexte
 
-### UX-01 · Actions de ligne dans la liste (Détail / Modifier / Clôturer)
+### ✅ UX-01 · Actions de ligne dans la liste (Détail / Modifier)
 - **Motif (C1)** : la liste ne propose que « Voir carrière » ; les routes `modifier/:id` et `detail/:id` existent mais sont inaccessibles depuis l'UI.
 - **Critère d'acceptation** :
   - Chaque ligne de la liste expose au minimum **Modifier** et **Détail** (et « Clôturer » pour les plans actifs).
   - Les actions renvoient vers `/carrieres/fiche/modifier/:id` et `/carrieres/fiche/detail/:id`.
 
-### UX-02 · Colonnes Type d'affectation + État dans la liste
+### ✅ UX-02 · Colonnes Type d'affectation + État dans la liste
 - **Motif (C1)** : la colonne « Plan de carrière » (numéro) est ambiguë ; on ne distingue ni le type (Nomination/Avancement/Dispo), ni l'état (Actif/Archivé), ni le plan courant.
 - **Critère d'acceptation** :
   - Colonne **Type** avec badge (Nomination / Avancement / Mise en disponibilité).
   - Colonne **État** avec badge (Actif / Archivé), le plan courant étant mis en évidence.
 
-### UX-02-bis · Indication du plan courant
+### ✅ UX-02-bis · Indication du plan courant
 - **Motif** : l'utilisateur doit identifier d'un coup d'œil l'affectation **en cours** vs l'historique.
 - **Critère d'acceptation** : le dernier plan actif d'un employé est marqué « Courant » dans la liste et l'onglet Carrières.
 
-### UX-03 · Carte « Situation actuelle » à la sélection de l'employé
+### ✅ UX-03 · Carte « Situation actuelle » à la sélection de l'employé
 - **Motif (C2)** : lors d'une **Nomination**, aucune vision du poste/département/salaire **actuels** de l'employé (l'Avancement pré-remplit, pas la Nomination).
 - **Critère d'acceptation** : dès la sélection d'un employé (tous types), une carte affiche : poste actuel, département, catégorie/classe, salaire de base, RIB (lien vers la fiche). Utilisée comme contrôle d'éligibilité.
 
