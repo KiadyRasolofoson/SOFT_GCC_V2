@@ -61,8 +61,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories
             var equal = Expression.Equal(convert, Expression.Constant(id));
             var lambda = Expression.Lambda<Func<T, bool>>(equal, parameter);
 
-            return await query
-                .Where(lambda)
+            return await OrderByKey(query.Where(lambda), string.IsNullOrEmpty(idPropertyName) ? GetKeyName() : idPropertyName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -89,10 +88,27 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories
                 query = query.Include(includeProperty);
             }
 
-            return query
+            return OrderByKey(query, GetKeyName())
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
+        }
+
+        /// <summary>Nom de la propriété clé primaire de T (tri stable pour la pagination).</summary>
+        private string GetKeyName()
+        {
+            var entityType = context.Model.FindEntityType(typeof(T));
+            var key = entityType?.FindPrimaryKey()?.Properties.FirstOrDefault();
+            return key?.Name ?? $"{typeof(T).Name}Id";
+        }
+
+        /// <summary>Tri ascendant stable par propriété — requis par Skip/Take (OFFSET/FETCH).</summary>
+        private static IOrderedQueryable<T> OrderByKey(IQueryable<T> query, string keyName)
+        {
+            var parameter = Expression.Parameter(typeof(T), "e");
+            var property = Expression.Property(parameter, keyName);
+            var lambda = Expression.Lambda<Func<T, object>>(Expression.Convert(property, typeof(object)), parameter);
+            return query.OrderBy(lambda);
         }
 
         public async Task<T?> GetByIdAsync(int id)

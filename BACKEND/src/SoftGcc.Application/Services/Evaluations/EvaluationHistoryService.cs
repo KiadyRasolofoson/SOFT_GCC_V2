@@ -134,6 +134,7 @@ namespace SoftGcc.Application.Services.Evaluations
                     LastName = e.LastName,
                     Position = e.Position
                 })
+                .OrderBy(e => e.EvaluationId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();

@@ -64,7 +64,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
 
 		public async Task<object> GetAllCareers(int pageNumber = 1, int pageSize = 10)
 		{
-			var query = _context.VEmployeeCareer.AsNoTracking();
+			var query = _context.VEmployeeCareer.AsNoTracking().OrderBy(c => c.RegistrationNumber);
 			var totalRecords = await query.CountAsync();
 
 			var careers = await query
@@ -93,7 +93,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
 			int page = 1,
 			int pageSize = 10)
 		{
-			IQueryable<VEmployeeCareer> query = _context.VEmployeeCareer.AsNoTracking();
+			IQueryable<VEmployeeCareer> query = _context.VEmployeeCareer.AsNoTracking().OrderBy(c => c.RegistrationNumber);
 
 			if (!string.IsNullOrWhiteSpace(keyWord))
 			{
@@ -135,7 +135,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
 
 		public async Task<object> GetAllCareersFilter(string keyWord, int pageNumber = 1, int pageSize = 10)
 		{
-			IQueryable<VEmployeeCareer> filteredQuery = _context.VEmployeeCareer.AsNoTracking();
+			IQueryable<VEmployeeCareer> filteredQuery = _context.VEmployeeCareer.AsNoTracking().OrderBy(c => c.RegistrationNumber);
 
 			if (!string.IsNullOrWhiteSpace(keyWord))
 			{
