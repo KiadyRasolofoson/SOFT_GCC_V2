@@ -4,7 +4,7 @@
 > Objectif : rendre le module **fiable et conforme aux pratiques SIRH professionnelles** (un acte RH = une seule saisie, tout le reste est dérivé).
 > Chaque ligne est une fonctionnalité à implémenter, avec priorité, motif, fichiers impactés et critère d'acceptation.
 > Légende priorité : **P1** = correctif/indispensable · **P2** = moyen terme · **P3** = évolutif.
-> Avancement : ✅ **FP-01**, **FP-03** (V0) · ✅ **FP-02**, **FP-05** (V1) · ✅ **FP-09**.
+> Avancement : ✅ **FP-01**, **FP-03** (V0) · ✅ **FP-02**, **FP-05** (V1) · ✅ **FP-04**, **FP-09** (V3).
 
 ---
 
@@ -56,7 +56,7 @@
     - `Decision_date > Assignment_date`.
   - Les mêmes règles restent dans les formulaires pour l'UX (erreurs par champ), le backend étant la garantie.
 
-### FP-04 · Confirmation explicite du remplacement du plan courant
+### ✅ FP-04 · Confirmation explicite du remplacement du plan courant
 - **Motif** : la clôture du plan précédent est un **effet de bord silencieux** (l'utilisateur ne sait pas qu'il remplace l'acte en cours).
 - **Fichiers impactés** :
   - `frontend/src/app/features/career/career-plan-create.page.ts`

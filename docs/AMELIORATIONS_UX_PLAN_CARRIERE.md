@@ -3,7 +3,7 @@
 > Source : revue UX du module Plan de Carrière (SOFT_GCC_V2).
 > Chaque ligne est une fonctionnalité à implémenter, avec priorité, motif et critère d'acceptation.
 > Légende priorité : **P1** = à faire rapidement (fort impact / effort modéré) · **P2** = moyen terme · **P3** = polish.
-> Avancement : ✅ **UX-01**, **UX-02**, **UX-02-bis**, **UX-03** implémentés (V2).
+> Avancement : ✅ **UX-01**, **UX-02**, **UX-02-bis**, **UX-03** (V2) · ✅ **UX-04**, **UX-05**, **UX-06**, **UX-07** (V3).
 
 ---
 
@@ -33,25 +33,25 @@
 
 ## P1 — Saisie & formulaire
 
-### UX-04 · Confirmation avant changement de type d'affectation
+### ✅ UX-04 · Confirmation avant changement de type d'affectation
 - **Motif (C3)** : basculer Nomination → Avancement **réinitialise** les champs du sous-formulaire sans avertissement (perte de saisie).
 - **Critère d'acceptation** :
   - Si des champs du sous-formulaire sont remplis, un dialogue de confirmation s'affiche avant la bascule.
   - (Option) Conserver les valeurs par type.
 
-### UX-05 · Formulaire guidé (stepper) pour la création/édition
+### ✅ UX-05 · Formulaire guidé (stepper) pour la création/édition
 - **Motif (C4)** : formulaire long, tout déroulé (Identification → Organisation → Rémunération/Classification → actions).
 - **Critère d'acceptation** :
   - Étapes : 1. Identification · 2. Organisation · 3. Rémunération & Classification · 4. Récapitulatif.
   - Navigation avant/arrière, validation d'étape, récapitulatif avant enregistrement.
 
-### UX-06 · Récapitulatif global des erreurs + focus premier champ invalide
+### ✅ UX-06 · Récapitulatif global des erreurs + focus premier champ invalide
 - **Motif (C5)** : erreurs par champ présentes, mais pas de vision globale ni de navigation vers la première erreur.
 - **Critère d'acceptation** :
   - Bandeau « N erreur(s) à corriger » en haut du formulaire.
   - Focus automatique (et scroll) vers le premier champ en erreur à la soumission.
 
-### UX-07 · Feedback de succès après enregistrement
+### ✅ UX-07 · Feedback de succès après enregistrement
 - **Motif (C8)** : aucune notification après Enregistrer.
 - **Critère d'acceptation** : toast de confirmation (n° de décision) + redirection explicite (fiche employé onglet Carrières).
 

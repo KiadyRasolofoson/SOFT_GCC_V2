@@ -17,6 +17,7 @@ import { GccSelectOption } from '../../ui/gcc.types';
 import { CareerAdvancementFormComponent } from './components/career-advancement-form.component';
 import { CareerAppointmentFormComponent } from './components/career-appointment-form.component';
 import { CareerLayoffFormComponent } from './components/career-layoff-form.component';
+import { GccToastService } from '../../ui/gcc-toast.service';
 
 /**
  * Édition / Détail d'un plan de carrière.
@@ -64,6 +65,15 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
         <div class="flex items-start gap-3">
           <mat-icon class="!h-5 !w-5 !text-[20px] shrink-0 text-red-600 mt-0.5">error_outline</mat-icon>
           <p class="font-bold text-red-900">{{ err }}</p>
+        </div>
+      </div>
+    }
+
+    @if (submitted() && errorCount() > 0) {
+      <div class="mb-6 rounded-xl border border-red-200/80 bg-red-50/80 p-4 text-xs text-red-900 shadow-xs">
+        <div class="flex items-start gap-3">
+          <mat-icon class="!h-5 !w-5 !text-[20px] shrink-0 text-red-600 mt-0.5">error_outline</mat-icon>
+          <p class="font-bold text-red-900">{{ errorCount() }} erreur(s) à corriger avant l'enregistrement.</p>
         </div>
       </div>
     }
@@ -127,6 +137,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
           <div>
             <label class="mb-1 block text-sm font-medium text-slate-600">Numéro de décision</label>
             <input
+              id="career-decisionNumber"
               type="text"
               class="gcc-input"
               placeholder="Ex. DEC-2026-001"
@@ -145,6 +156,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
             <div>
               <label class="mb-1 block text-sm font-medium text-slate-600">Date de décision</label>
               <input
+                id="career-decisionDate"
                 type="date"
                 class="gcc-input"
                 [ngModel]="form.decisionDate"
@@ -160,6 +172,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
             <div>
               <label class="mb-1 block text-sm font-medium text-slate-600">Date d'affectation</label>
               <input
+                id="career-assignmentDate"
                 type="date"
                 class="gcc-input"
                 [ngModel]="form.assignmentDate"
@@ -209,6 +222,7 @@ export class CareerPlanEditPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(CareerPlanCreateService);
+  private readonly toast = inject(GccToastService);
 
   readonly loading = signal(false);
   readonly submitting = signal(false);
@@ -216,6 +230,16 @@ export class CareerPlanEditPage {
   readonly loadError = signal<string | null>(null);
   readonly submitError = signal<string | null>(null);
   readonly formErrors = signal<CareerPlanFormErrors>({});
+  /** UX-06 : true après une tentative de soumission (affiche le récapitulatif d'erreurs). */
+  readonly submitted = signal(false);
+
+  /** UX-06 : nombre total d'erreurs (identification + sous-formulaire). */
+  readonly errorCount = computed(() => {
+    let count = Object.keys(this.formErrors()).length;
+    if (this.appointmentForm) count += Object.keys(this.appointmentForm.errors()).length;
+    if (this.advancementForm) count += Object.keys(this.advancementForm.errors()).length;
+    return count;
+  });
 
   readonly careerPlanId = signal<number | null>(null);
   readonly isDetail = signal(false);
@@ -397,14 +421,25 @@ export class CareerPlanEditPage {
     if (this.submitting() || this.isDetail()) return;
     const id = this.careerPlanId();
     if (!id) return;
-    if (!this.validateForm()) return;
-    if (this.selectedType() === '1' && this.appointmentForm && !this.appointmentForm.validate()) return;
-    if (this.advancementForm && !this.advancementForm.validate()) return;
+    if (!this.validateForm()) {
+      this.submitted.set(true);
+      this.focusFirstError();
+      return;
+    }
+    if (this.selectedType() === '1' && this.appointmentForm && !this.appointmentForm.validate()) {
+      this.submitted.set(true);
+      return;
+    }
+    if (this.advancementForm && !this.advancementForm.validate()) {
+      this.submitted.set(true);
+      return;
+    }
 
     this.submitError.set(null);
     this.submitting.set(true);
     try {
       await this.service.update(id, this.buildUpdatePayload());
+      this.toast.show('Plan de carrière modifié avec succès.', 'success');
       this.goBack();
     } catch (error) {
       this.submitError.set(
@@ -537,5 +572,28 @@ export class CareerPlanEditPage {
     if (value === null || value === undefined || value === '') return null;
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  /** UX-06 : scroll + focus vers le premier champ d'identification en erreur. */
+  private focusFirstError(): void {
+    const map: Record<string, string> = {
+      registrationNumber: 'career-registrationNumber',
+      decisionNumber: 'career-decisionNumber',
+      decisionDate: 'career-decisionDate',
+      assignmentDate: 'career-assignmentDate',
+    };
+    for (const field of Object.keys(map)) {
+      if (!this.formErrors()[field as keyof CareerPlanFormErrors]) continue;
+      const el = document.getElementById(map[field]);
+      if (!el) continue;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const tag = el.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+        (el as HTMLElement).focus();
+      } else {
+        el.querySelector<HTMLElement>('input, select, textarea')?.focus();
+      }
+      return;
+    }
   }
 }

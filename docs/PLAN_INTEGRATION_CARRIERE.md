@@ -15,7 +15,8 @@
 | ✅ **V0 terminée** | **FP-01** (clôture auto de tous les plans actifs), **FP-03** (règles métier backend) |
 | ✅ **V1 terminée** | **FP-02** (auto-classification du type), **FP-05** (acte courant + situation actuelle), **FP-09** (échelon dérivé) |
 | ✅ **V2 terminée** | **UX-01** (actions liste), **UX-02** (colonnes Type/État), **UX-02-bis** (plan courant), **UX-03** (carte situation actuelle) |
-| ⬜ À faire | FP-04, FP-06 … FP-08, UX-04 … UX-12 |
+| ✅ **V3 terminée** | **FP-04** (confirmation remplacement), **UX-04** (confirmation type), **UX-05** (stepper), **UX-06** (erreurs globales), **UX-07** (toast succès) |
+| ⬜ À faire | FP-06 … FP-08, UX-08 … UX-12 |
 
 ---
 

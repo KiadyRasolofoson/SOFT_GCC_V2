@@ -18,6 +18,7 @@ import { GccSelect } from '../../ui/gcc-select';
 import { CareerAdvancementFormComponent } from './components/career-advancement-form.component';
 import { CareerAppointmentFormComponent } from './components/career-appointment-form.component';
 import { CareerLayoffFormComponent } from './components/career-layoff-form.component';
+import { GccToastService } from '../../ui/gcc-toast.service';
 
 @Component({
   selector: 'app-career-plan-create-page',
@@ -66,6 +67,35 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
         Chargement du formulaire…
       </div>
     } @else {
+      <!-- UX-06 : récapitulatif global d'erreurs -->
+      @if (submitted() && errorCount() > 0) {
+        <div class="mb-5 rounded-xl border border-red-200/80 bg-red-50/80 p-4 text-xs text-red-900 shadow-xs">
+          <div class="flex items-start gap-3">
+            <mat-icon class="!h-5 !w-5 !text-[20px] shrink-0 text-red-600 mt-0.5">error_outline</mat-icon>
+            <p class="font-bold text-red-900">{{ errorCount() }} erreur(s) à corriger avant l'enregistrement.</p>
+          </div>
+        </div>
+      }
+
+      <!-- UX-05 : indicateur d'étapes -->
+      <ol class="mb-5 flex flex-wrap items-center gap-2 text-xs font-medium">
+        @for (label of steps; track label; let i = $index) {
+          <li class="flex items-center gap-2">
+            @if (i > 0) {
+              <span class="h-px w-6 bg-slate-300"></span>
+            }
+            <button
+              type="button"
+              [class]="step() === i + 1 ? 'rounded-full bg-amber-700 px-3 py-1.5 font-semibold text-white' : 'rounded-full bg-slate-100 px-3 py-1.5 text-slate-600'"
+              (click)="goToStep(i + 1)"
+            >
+              {{ i + 1 }}. {{ label }}
+            </button>
+          </li>
+        }
+      </ol>
+
+      @if (step() === 1) {
       <!-- Identification -->
       <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-5 flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -74,7 +104,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
-          <div>
+          <div id="career-registrationNumber">
             <label class="mb-1 block text-sm font-medium text-slate-600">Employé</label>
             <gcc-searchable-select
               [options]="employeeOptions()"
@@ -109,6 +139,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
           <div>
             <label class="mb-1 block text-sm font-medium text-slate-600">Numéro de décision</label>
             <input
+              id="career-decisionNumber"
               type="text"
               class="gcc-input"
               placeholder="Ex. DEC-2026-001"
@@ -127,6 +158,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
             <div>
               <label class="mb-1 block text-sm font-medium text-slate-600">Date de décision</label>
               <input
+                id="career-decisionDate"
                 type="date"
                 class="gcc-input"
                 [ngModel]="form.decisionDate"
@@ -142,6 +174,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
             <div>
               <label class="mb-1 block text-sm font-medium text-slate-600">Date d'affectation</label>
               <input
+                id="career-assignmentDate"
                 type="date"
                 class="gcc-input"
                 [ngModel]="form.assignmentDate"
@@ -187,6 +220,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
         </article>
       }
 
+      } @else if (step() === 2) {
       <!-- FP-02 : suggestion d'avancement si l'indice choisi dépasse l'indice actuel -->
       @if (selectedType() === '1' && appointmentForm?.advancementSuggested()) {
         <div class="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-sm text-emerald-900">
@@ -218,26 +252,58 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
           [registrationNumber]="form.registrationNumber"
         />
       }
+      } @else {
+        <!-- UX-05 : récapitulatif avant enregistrement -->
+        <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="mb-5 flex items-center gap-2 border-b border-slate-100 pb-3">
+            <mat-icon class="!text-[22px] text-amber-700">fact_check</mat-icon>
+            <h2 class="text-base font-semibold text-amber-700">Récapitulatif</h2>
+          </div>
+          <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            @for (item of recapItems(); track item.label) {
+              <div class="rounded-xl bg-slate-50 p-3">
+                <dt class="text-xs font-medium text-slate-500">{{ item.label }}</dt>
+                <dd class="mt-0.5 font-semibold text-navy">{{ item.value }}</dd>
+              </div>
+            }
+          </dl>
+        </article>
+      }
 
-      <!-- Actions -->
-      <div class="mt-6 flex flex-wrap justify-end gap-2">
-        <button mat-stroked-button type="button" class="gcc-btn-secondary" (click)="goBack()">
-          <mat-icon>close</mat-icon>
-          Annuler
-        </button>
-        <button mat-flat-button type="button" class="gcc-btn-primary" [disabled]="submitting()" (click)="submit()">
-          @if (submitting()) {
-            <span class="flex items-center gap-2">
-              <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-              Enregistrement…
-            </span>
+      <!-- UX-05 : navigation entre étapes -->
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-2">
+        @if (step() > 1) {
+          <button mat-stroked-button type="button" class="gcc-btn-secondary" (click)="prevStep()">
+            <mat-icon>arrow_back</mat-icon>
+            Précédent
+          </button>
+        }
+        <div class="flex flex-wrap justify-end gap-2">
+          <button mat-stroked-button type="button" class="gcc-btn-secondary" (click)="goBack()">
+            <mat-icon>close</mat-icon>
+            Annuler
+          </button>
+          @if (step() < 3) {
+            <button mat-flat-button type="button" class="gcc-btn-primary" (click)="nextStep()">
+              Suivant
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
           } @else {
-            <span class="flex items-center gap-2">
-              <mat-icon>save</mat-icon>
-              Enregistrer
-            </span>
+            <button mat-flat-button type="button" class="gcc-btn-primary" [disabled]="submitting()" (click)="submit()">
+              @if (submitting()) {
+                <span class="flex items-center gap-2">
+                  <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  Enregistrement…
+                </span>
+              } @else {
+                <span class="flex items-center gap-2">
+                  <mat-icon>save</mat-icon>
+                  Enregistrer
+                </span>
+              }
+            </button>
           }
-        </button>
+        </div>
       </div>
     }
   `,
@@ -245,6 +311,7 @@ import { CareerLayoffFormComponent } from './components/career-layoff-form.compo
 export class CareerPlanCreatePage {
   private readonly router = inject(Router);
   private readonly service = inject(CareerPlanCreateService);
+  private readonly toast = inject(GccToastService);
 
   readonly crumbs = [{ label: 'Accueil' }, { label: 'Plan de carrière' }, { label: 'Création' }];
 
@@ -271,6 +338,12 @@ export class CareerPlanCreatePage {
 
   readonly selectedType = signal<string>('1');
   readonly selectedRegistration = signal<string | null>(null);
+
+  /** UX-05 : étape courante du formulaire guidé (1 Identification · 2 Affectation · 3 Récapitulatif). */
+  readonly step = signal(1);
+  readonly steps = ['Identification', 'Affectation', 'Récapitulatif'];
+  /** UX-06 : true après une tentative de soumission (affiche le récapitulatif d'erreurs). */
+  readonly submitted = signal(false);
   readonly selectedEmployeeRib = computed(
     () => this.employeeRecords().find((e) => e.registrationNumber === this.selectedRegistration())?.ribNumber ?? null,
   );
@@ -281,6 +354,57 @@ export class CareerPlanCreatePage {
   readonly currentIndicationId = computed(() => {
     const id = this.lastCareerPlan()?.['indicationId'];
     return id == null ? null : Number(id);
+  });
+
+  /** UX-06 : nombre total d'erreurs (identification + sous-formulaire). */
+  readonly errorCount = computed(() => {
+    let count = Object.keys(this.formErrors()).length;
+    if (this.appointmentForm) count += Object.keys(this.appointmentForm.errors()).length;
+    if (this.advancementForm) count += Object.keys(this.advancementForm.errors()).length;
+    return count;
+  });
+
+  /** UX-05 : récapitulatif des données avant enregistrement. */
+  readonly recapItems = computed(() => {
+    const f = this.form;
+    const employee = this.employeeRecords().find((e) => e.registrationNumber === f.registrationNumber);
+    const pick = (options: { label: string; value: string }[], id: string | null | undefined) =>
+      options.find((o) => o.value === String(id))?.label ?? '—';
+    const items = [
+      {
+        label: 'Employé',
+        value: employee
+          ? [employee.name, employee.firstName].filter(Boolean).join(' ') || employee.registrationNumber || '—'
+          : f.registrationNumber || '—',
+      },
+      {
+        label: "Type d'affectation",
+        value: this.assignmentTypeOptions().find((o) => o.value === f.assignmentTypeId)?.label || '—',
+      },
+      { label: 'Numéro de décision', value: f.decisionNumber?.trim() || '—' },
+      { label: 'Date de décision', value: this.formatDate(f.decisionDate) },
+      { label: "Date d'affectation", value: this.formatDate(f.assignmentDate) },
+      { label: 'Département', value: pick(this.departmentOptions(), f.departmentId) },
+      { label: 'Poste', value: pick(this.positionOptions(), f.positionId) },
+      {
+        label: 'Catégorie professionnelle',
+        value: pick(this.professionalCategoryOptions(), f.professionalCategoryId),
+      },
+      { label: 'Classe légale', value: pick(this.legalClassOptions(), f.legalClassId) },
+      { label: 'Indice', value: pick(this.indicationOptions(), f.indicationId) },
+      { label: 'Échelon', value: pick(this.echelonOptions(), f.echelonId) },
+      { label: 'Salaire de base', value: f.baseSalary ? this.formatNumber(f.baseSalary) : '—' },
+      { label: 'Salaire net (estimé)', value: f.netSalary ? this.formatNumber(f.netSalary) : '—' },
+    ];
+    if (f.assignmentTypeId === '2') {
+      items.push(
+        { label: 'Motif', value: f.reason?.trim() || '—' },
+        { label: "Institution d'affectation", value: f.assigningInstitution?.trim() || '—' },
+        { label: 'Date début', value: this.formatDate(f.startDate) },
+        { label: 'Date fin', value: this.formatDate(f.endDate) },
+      );
+    }
+    return items;
   });
 
   /** UX-03 : résumé « Situation actuelle » de l'employé sélectionné (résolu depuis les référentiels). */
@@ -392,14 +516,67 @@ export class CareerPlanCreatePage {
 
   /** FP-02 : bascule le type d'affectation vers « Avancement » (formulaire pré-rempli). */
   switchToAdvancement(): void {
-    this.onAssignmentTypeChange('3');
+    this.applyTypeChange('3');
+  }
+
+  /** UX-05 : valide l'étape courante puis avance. */
+  nextStep(): void {
+    if (this.step() === 1) {
+      if (!this.validateForm()) {
+        this.submitted.set(true);
+        this.focusFirstError();
+        return;
+      }
+      this.step.set(2);
+    } else if (this.step() === 2) {
+      if (this.selectedType() === '1' && this.appointmentForm && !this.appointmentForm.validate()) {
+        this.submitted.set(true);
+        return;
+      }
+      if (this.advancementForm && !this.advancementForm.validate()) {
+        this.submitted.set(true);
+        return;
+      }
+      this.step.set(3);
+    }
+  }
+
+  prevStep(): void {
+    this.step.update((s) => Math.max(1, s - 1));
+  }
+
+  /** UX-05 : navigation libre vers une étape déjà atteinte (pas de saut en avant). */
+  goToStep(target: number): void {
+    if (target <= this.step()) this.step.set(target);
   }
 
   onAssignmentTypeChange(value: string | null): void {
-    this.form.assignmentTypeId = value ?? '1';
-    this.selectedType.set(value ?? '1');
+    const next = value ?? '1';
+    if (next !== this.selectedType() && this.hasSubFormInput()) {
+      const confirmed = window.confirm(
+        "Changer de type d'affectation réinitialisera les champs du formulaire saisis. Continuer ?",
+      );
+      if (!confirmed) return;
+    }
+    this.applyTypeChange(next);
+  }
+
+  /** Applique le changement de type (sans confirmation — actions explicites). */
+  private applyTypeChange(value: string): void {
+    this.form.assignmentTypeId = value;
+    this.selectedType.set(value);
     this.resetSubFormFields();
     this.revalidateField('assignmentTypeId', this.form.assignmentTypeId);
+  }
+
+  /** UX-04 : vrai si des champs du sous-formulaire sont déjà remplis. */
+  private hasSubFormInput(): boolean {
+    const f = this.form;
+    return Boolean(
+      f.establishmentId || f.departmentId || f.positionId || f.employeeTypeId || f.indicationId ||
+      f.baseSalary || f.professionalCategoryId || f.legalClassId || f.newsletterTemplateId ||
+      f.paymentMethodId || f.echelonId || f.reason || f.assigningInstitution || f.startDate || f.endDate,
+    );
   }
 
   onDecisionNumberChange(value: string): void {
@@ -421,14 +598,34 @@ export class CareerPlanCreatePage {
 
   async submit(): Promise<void> {
     if (this.submitting()) return;
-    if (!this.validateForm()) return;
-    if (this.selectedType() === '1' && this.appointmentForm && !this.appointmentForm.validate()) return;
-    if (this.advancementForm && !this.advancementForm.validate()) return;
+    if (!this.validateForm()) {
+      this.submitted.set(true);
+      this.focusFirstError();
+      return;
+    }
+    if (this.selectedType() === '1' && this.appointmentForm && !this.appointmentForm.validate()) {
+      this.submitted.set(true);
+      return;
+    }
+    if (this.advancementForm && !this.advancementForm.validate()) {
+      this.submitted.set(true);
+      return;
+    }
+
+    // FP-04 : confirmation explicite du remplacement du plan courant
+    if (this.lastCareerPlan()) {
+      const confirmed = window.confirm(
+        "Un plan de carrière actif existe pour cet employé. Ce nouvel acte clôturera le plan actuel " +
+          '(Ending_contract = date d’affectation). Continuer ?',
+      );
+      if (!confirmed) return;
+    }
 
     this.submitError.set(null);
     this.submitting.set(true);
     try {
       await this.service.create(this.buildPayload());
+      this.toast.show('Plan de carrière créé avec succès.', 'success');
       void this.router.navigate(['/soft-gcc/carrieres']);
     } catch (error) {
       this.submitError.set(
@@ -577,5 +774,35 @@ export class CareerPlanCreatePage {
   private formatNumber(value: unknown): string {
     const number = Number(value);
     return Number.isFinite(number) ? new Intl.NumberFormat('fr-FR').format(number) : '—';
+  }
+
+  private formatDate(value: string | null | undefined): string {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+  }
+
+  /** UX-06 : scroll + focus vers le premier champ d'identification en erreur. */
+  private focusFirstError(): void {
+    const map: Record<string, string> = {
+      registrationNumber: 'career-registrationNumber',
+      decisionNumber: 'career-decisionNumber',
+      decisionDate: 'career-decisionDate',
+      assignmentDate: 'career-assignmentDate',
+    };
+    for (const field of Object.keys(map)) {
+      if (!this.formErrors()[field as keyof CareerPlanFormErrors]) continue;
+      const el = document.getElementById(map[field]);
+      if (!el) continue;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const tag = el.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+        (el as HTMLElement).focus();
+      } else {
+        el.querySelector<HTMLElement>('input, select, textarea')?.focus();
+      }
+      return;
+    }
   }
 }
