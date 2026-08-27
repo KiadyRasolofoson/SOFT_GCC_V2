@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import {
   CareerPlanForm,
   DepartmentOption,
+  EchelonOption,
   EmployeeTypeOption,
   EstablishmentOption,
   IndicationOption,
@@ -102,6 +103,12 @@ import { GccSelect } from '../../../ui/gcc-select';
                 <p class="mt-1 flex items-center gap-1 text-xs font-medium text-amber-600">
                   <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">error_outline</mat-icon>
                   {{ errors()['indicationId'] }}
+                </p>
+              }
+              @if (echelonLabel(); as label) {
+                <p class="mt-1 flex items-center gap-1 text-xs font-medium text-emerald-700">
+                  <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">verified</mat-icon>
+                  Échelon dérivé : {{ label }}
                 </p>
               }
             </div>
@@ -240,6 +247,7 @@ export class CareerAppointmentFormComponent implements OnInit {
   private positions: PositionOption[] = [];
   private legalClasses: LegalClassOption[] = [];
   private indications: IndicationOption[] = [];
+  private echelons: EchelonOption[] = [];
   private newsletterTemplates: NewsletterTemplateOption[] = [];
 
   ngOnInit(): void {
@@ -256,6 +264,7 @@ export class CareerAppointmentFormComponent implements OnInit {
       positions,
       legalClasses,
       indications,
+      echelons,
       newsletterTemplates,
     ] = await Promise.all([
       this.service.loadEstablishments(),
@@ -266,6 +275,7 @@ export class CareerAppointmentFormComponent implements OnInit {
       this.service.loadPositions(),
       this.service.loadLegalClasses(),
       this.service.loadIndications(),
+      this.service.loadEchelons(),
       this.service.loadNewsletterTemplates(),
     ]);
 
@@ -280,6 +290,7 @@ export class CareerAppointmentFormComponent implements OnInit {
     this.positions = positions;
     this.legalClasses = legalClasses;
     this.indications = indications;
+    this.echelons = echelons;
     this.newsletterTemplates = newsletterTemplates;
   }
 
@@ -352,6 +363,7 @@ export class CareerAppointmentFormComponent implements OnInit {
     this.form.professionalCategoryId = value;
     this.form.legalClassId = null;
     this.form.indicationId = null;
+    this.form.echelonId = null;
     this.form.baseSalary = null;
     this.recomputeNet();
     this.clearError('professionalCategoryId', 'legalClassId', 'indicationId', 'baseSalary');
@@ -360,6 +372,7 @@ export class CareerAppointmentFormComponent implements OnInit {
   onLegalClassChange(value: string | null): void {
     this.form.legalClassId = value;
     this.form.indicationId = null;
+    this.form.echelonId = null;
     this.form.baseSalary = null;
     this.recomputeNet();
     this.clearError('legalClassId', 'indicationId', 'baseSalary');
@@ -374,6 +387,7 @@ export class CareerAppointmentFormComponent implements OnInit {
     } else {
       this.form.baseSalary = null;
     }
+    this.deriveEchelonFromIndice();
     this.recomputeNet();
   }
 
@@ -412,6 +426,26 @@ export class CareerAppointmentFormComponent implements OnInit {
     return this.employeeRib?.trim()
       ? null
       : "Le mode de paiement « Virement » est sélectionné mais l'employé n'a pas de RIB renseigné.";
+  }
+
+  /** Libellé de l'échelon dérivé de l'indice (FP-09, transparence). */
+  echelonLabel(): string | null {
+    const id = this.num(this.form.echelonId);
+    const echelon = this.echelons.find((e) => e.echelonId === id);
+    return echelon ? echelon.echelonName : null;
+  }
+
+  /**
+   * FP-09 : dérive l'échelon depuis l'indice choisi (grille R2, Echelon.Indication_id),
+   * filtré par la classe légale pour lever l'ambiguïté si plusieurs classes partagent un indice.
+   */
+  private deriveEchelonFromIndice(): void {
+    const indicationId = this.num(this.form.indicationId);
+    const legalClassId = this.num(this.form.legalClassId);
+    const echelon = this.echelons.find(
+      (e) => e.indicationId === indicationId && (legalClassId == null || e.legalClassId === legalClassId),
+    );
+    this.form.echelonId = echelon ? String(echelon.echelonId) : null;
   }
 
   /**
@@ -488,6 +522,7 @@ export class CareerAppointmentFormComponent implements OnInit {
     this.form.professionalCategoryId = null;
     this.form.legalClassId = null;
     this.form.indicationId = null;
+    this.form.echelonId = null;
     this.form.baseSalary = null;
     this.form.newsletterTemplateId = null;
     this.form.netSalary = null;
