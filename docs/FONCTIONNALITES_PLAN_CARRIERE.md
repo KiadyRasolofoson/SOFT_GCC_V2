@@ -4,6 +4,7 @@
 > Objectif : rendre le module **fiable et conforme aux pratiques SIRH professionnelles** (un acte RH = une seule saisie, tout le reste est dérivé).
 > Chaque ligne est une fonctionnalité à implémenter, avec priorité, motif, fichiers impactés et critère d'acceptation.
 > Légende priorité : **P1** = correctif/indispensable · **P2** = moyen terme · **P3** = évolutif.
+> Avancement : ✅ **FP-01** et **FP-03** implémentés (V0) · ✅ **FP-09** implémenté.
 
 ---
 
@@ -15,7 +16,7 @@
 
 ## P1 — Correctifs & fiabilité
 
-### FP-01 · Clôture automatique de TOUS les plans actifs à la création
+### ✅ FP-01 · Clôture automatique de TOUS les plans actifs à la création
 - **Motif** : `GetByEmployeeAndContractType` filtre `AND Employee_type_id = 2` → la clôture du plan précédent (`Ending_contract = date du nouvel acte`) ne s'applique qu'aux employés CDD (id 2 dans le seed). Pour un CDI, l'ancien plan reste actif → plusieurs plans « actifs » en parallèle → parcours incohérent.
 - **Fichiers impactés** :
   - `BACKEND/src/SoftGcc.Infrastructure/Persistence/Repositories/Data/CareerPlanDataService.cs` (`GetByEmployeeAndContractType`)
@@ -42,7 +43,7 @@
   - L'utilisateur peut toujours forcer un autre type (liste non bloquée).
   - Un badge explique la suggestion : « Indice supérieur au plan actuel → Avancement proposé ».
 
-### FP-03 · Règles métier centralisées dans le backend
+### ✅ FP-03 · Règles métier centralisées dans le backend
 - **Motif** : R1 (indice strictement croissant), R2 (échelon → indice), R3 (ancienneté min), R4 (reset si changement de classe), salaire min et dates cohérentes ne sont validés **que côté frontend** → un appel API direct peut créer un acte incohérent.
 - **Fichiers impactés** :
   - `BACKEND/src/SoftGcc.Application/Services/career_plan/CareerPlanService.cs` (ou nouveau `CareerPlanValidator`)
@@ -64,7 +65,7 @@
   - Quand un plan actif existe pour l'employé, un encart affiche : « Ce plan remplacera et clôturera le plan X (poste Y, au Z) ».
   - (Option) Case à cocher ou dialogue de confirmation avant enregistrement.
 
-### FP-09 · Échelon dérivé automatiquement de l'indice à la nomination
+### ✅ FP-09 · Échelon dérivé automatiquement de l'indice à la nomination
 - **Motif** : le formulaire de **Nomination** ne capture pas l'échelon → `Echelon_id` reste NULL après la nomination. Or l'**avancement** lit l'échelon du dernier plan pour R3 (ancienneté min) → R3 est silencieusement désactivée et la situation actuelle est incomplète (l'échelon fait partie de la grille, R2 : `Echelon.Indication_id`).
 - **Fichiers impactés** :
   - `frontend/src/app/features/career/components/career-appointment-form.component.ts`

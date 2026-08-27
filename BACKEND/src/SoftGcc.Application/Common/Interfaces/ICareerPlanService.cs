@@ -29,5 +29,9 @@ namespace SoftGcc.Application.Common.Interfaces
         Task<bool> DeleteDefinitivelyCareerPlan(int careerPlanId);
         Task<bool> DeleteHistory(int historyId);
         Task<CareerPlan?> GetByEmployeeAndContractType(string? registrationNumber);
+        Task ValidateAsync(CareerPlan careerPlan);
+        Task<int> CloseActivePlansAsync(string? registrationNumber, DateTime? endingDate);
+        Task<CareerPlan> CreateAsync(CareerPlan careerPlan, string? clientIp = null);
+        Task UpdateAsync(CareerPlan careerPlan, string? clientIp = null);
     }
 }

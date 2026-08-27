@@ -268,9 +268,29 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                     FROM career_plan
                     WHERE Registration_number = @p0
                     AND State > 0
-                    AND Employee_type_id = 2
                     ORDER BY Assignment_date DESC", registrationNumber)
                 .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// FP-01 : clôture TOUS les plans actifs (State > 0, sans date de fin) d'un employé,
+        /// en posant Ending_contract = date du nouvel acte. Retourne le nombre de lignes mises à jour.
+        /// </summary>
+        public async Task<int> CloseActivePlansAsync(string? registrationNumber, DateTime? endingDate)
+        {
+            if (string.IsNullOrWhiteSpace(registrationNumber))
+            {
+                return 0;
+            }
+
+            return await _context.Database.ExecuteSqlRawAsync(@"
+                UPDATE career_plan
+                SET Ending_contract = @EndingDate
+                WHERE Registration_number = @RegistrationNumber
+                  AND State > 0
+                  AND Ending_contract IS NULL",
+                new SqlParameter("@EndingDate", (object?)endingDate ?? DBNull.Value),
+                new SqlParameter("@RegistrationNumber", registrationNumber));
         }
 
         public async Task<List<CertificateHistory>> GetCertificateByEmployee(string registrationNumber)

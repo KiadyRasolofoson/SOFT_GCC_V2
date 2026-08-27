@@ -26,6 +26,7 @@ namespace SoftGcc.Domain.Interfaces.Data
         Task<bool> DeleteDefinitivelyCareerPlan(int careerPlanId);
         Task<bool> DeleteHistory(int historyId);
         Task<CareerPlan?> GetByEmployeeAndContractType(string? registrationNumber);
+        Task<int> CloseActivePlansAsync(string? registrationNumber, DateTime? endingDate);
 
         // Certificate History
         Task<List<CertificateHistory>> GetCertificateByEmployee(string registrationNumber);

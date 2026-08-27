@@ -50,61 +50,12 @@ namespace SoftGcc.Api.Controllers.career
 			return Ok(assignment);
 		}
 
-		// Creationd'un plan de carrière
+		// Création d'un plan de carrière (controller mince : délégation au service)
 		[HttpPost]
 		public async Task<IActionResult> Create(CareerPlan careerPlan)
 		{
-			if (careerPlan == null)
-			{
-				return BadRequest("Le plan de carrière est requis.");
-			}
-
-			try
-			{
-				// Récupérer l'AssignmentType en vérifiant s'il est null
-				AssignmentType? assignmentType = await _assignmentTypeService.GetById((int)careerPlan.AssignmentTypeId);
-				if (assignmentType == null)
-				{
-					return NotFound("Type d'affectation introuvable.");
-				}
-
-				// Vérifier s'il existe déjà un plan de carrière pour cet employé et ce type de contrat
-				CareerPlan? lastCareerPlan = await _careerPlanService.GetByEmployeeAndContractType(
-					careerPlan.RegistrationNumber
-				);
-
-
-				if (lastCareerPlan == null)
-				{
-					// Ajouter le plan de carrière
-					await _careerPlanService.Add(careerPlan);
-				}
-				else
-				{
-					lastCareerPlan.EndingContract = careerPlan.AssignmentDate;
-					await _careerPlanService.Update(lastCareerPlan);
-					await _careerPlanService.Add(careerPlan);
-				}
-
-				// Création du journal d'activité
-				var activityLog = new ActivityLog
-				{
-					UserId = 1, // Id utilisateur à remplacer par l'ID du contexte actuel si possible
-					Module = 2,
-					Action = "Création",
-					Description = $"L'utilisateur 1 a créé un nouveau plan de carrière de type {assignmentType.AssignmentTypeName} pour l'employé {careerPlan.RegistrationNumber}",
-					Timestamp = DateTime.UtcNow,
-					Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "IP inconnue"
-				};
-
-				await _historyService.Add(activityLog);
-
-				return CreatedAtAction(nameof(Get), new { id = careerPlan.CareerPlanId }, careerPlan);
-			}
-			catch (Exception ex)
-			{
-				return StatusCode(500, $"Une erreur est survenue : {ex.Message}");
-			}
+			var created = await _careerPlanService.CreateAsync(careerPlan, HttpContext.Connection.RemoteIpAddress?.ToString());
+			return CreatedAtAction(nameof(Get), new { id = created.CareerPlanId }, created);
 		}
 
 		// Récuperer les données de type nomination
@@ -148,25 +99,12 @@ namespace SoftGcc.Api.Controllers.career
 			return Ok(list);
 		}
 
-		// Mis à jour du plan carrière
+		// Mise à jour du plan carrière (controller mince : délégation au service)
 		[HttpPut("{id}")]
 		public async Task<IActionResult> Update(int id, CareerPlan careerPlan)
 		{
 			if (id != careerPlan.CareerPlanId) return BadRequest();
-			await _careerPlanService.Update(careerPlan);
-
-			AssignmentType? assignmentType = await _assignmentTypeService.GetById((int)careerPlan.AssignmentTypeId);
-			var activityLog = new ActivityLog
-			{
-				UserId = 1,
-				Module = 2,
-				Action = "Modification",
-				Description = "L'user 1 a modifié un plan de carrière de type " + (assignmentType?.AssignmentTypeName ?? "") + " pour l'employé " + (careerPlan.RegistrationNumber ?? ""),
-				Timestamp = DateTime.UtcNow,
-				Metadata = HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
-			};
-
-			await _historyService.Add(activityLog);
+			await _careerPlanService.UpdateAsync(careerPlan, HttpContext.Connection.RemoteIpAddress?.ToString());
 			return NoContent();
 		}
 
