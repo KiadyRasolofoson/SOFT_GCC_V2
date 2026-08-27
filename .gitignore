@@ -15,6 +15,7 @@ BACKEND/src/**/bin/
 BACKEND/src/**/obj/
 BACKEND/tests/**/bin/
 BACKEND/tests/**/obj/
+BACKEND/artifacts/
 
 # === License / configuration files ===
 LicenseGenerator/bin/

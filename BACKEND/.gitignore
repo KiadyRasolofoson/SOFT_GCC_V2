@@ -34,6 +34,7 @@ packages/
 
 # Dossiers de tests générés
 TestResults/
+artifacts/
 
 # Dossiers et fichiers spécifiques à NuGet
 *.nuget/
