@@ -9,6 +9,15 @@ namespace SoftGcc.Application.Services.Evaluations;
 public static class QcmAnswerScoring
 {
     public const int QcmResponseTypeId = 2;
+    public const int CorrectPerformanceScore = 5;
+    public const int IncorrectPerformanceScore = 0;
+
+    /// <summary>
+    /// Contribution d'un QCM à la note de performance /5 : 5 si l'ensemble coché
+    /// est exact, 0 sinon. Distinct du rang de maîtrise 1–4.
+    /// </summary>
+    public static int PerformanceScore(bool isCorrect) =>
+        isCorrect ? CorrectPerformanceScore : IncorrectPerformanceScore;
 
     public static IReadOnlyList<int> ParseSelectedOptionIds(string? responseValue)
     {

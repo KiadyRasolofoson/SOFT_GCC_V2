@@ -22,7 +22,7 @@ import {
             <div>
               <h2 class="text-base font-bold text-navy">Note de performance</h2>
               <p class="mt-0.5 text-xs font-medium text-slate-500">
-                Moyenne des notes questions · échelle 1–5. Distincte des niveaux de maîtrise.
+                Moyenne des notes questions (QCM réussi = 5/5) · Distincte des niveaux de maîtrise.
               </p>
             </div>
             <div class="rounded-2xl border border-indigo-100/80 bg-indigo-50 px-4 py-2 text-center min-w-28">

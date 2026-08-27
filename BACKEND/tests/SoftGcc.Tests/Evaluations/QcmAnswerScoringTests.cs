@@ -43,6 +43,13 @@ public class QcmAnswerScoringTests
     }
 
     [Fact]
+    public void PerformanceScore_CorrectAnswerCountsAsFive()
+    {
+        Assert.Equal(5, QcmAnswerScoring.PerformanceScore(true));
+        Assert.Equal(0, QcmAnswerScoring.PerformanceScore(false));
+    }
+
+    [Fact]
     public void IsExactMatch_TooManySelections_IsFalse()
     {
         Assert.False(QcmAnswerScoring.IsExactMatch([12, 15, 16], [12, 15]));

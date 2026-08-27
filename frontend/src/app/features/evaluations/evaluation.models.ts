@@ -252,13 +252,24 @@ export function parseQcmOptionIds(value: string | null | undefined): number[] {
   ];
 }
 
+/** Note /5 d'un QCM dans la moyenne de performance : 5 si juste, 0 si faux. */
+export function qcmPerformanceScore(isCorrect: boolean): number {
+  return isCorrect ? 5 : 0;
+}
+
 export function averageOfRateableQuestions(
-  questions: Array<{ questionId: number; responseType: string | null }>,
+  questions: Array<{ questionId: number; responseType: string | null; isCorrect?: boolean }>,
   ratings: Record<number, number>,
 ): number {
   const values = questions
-    .filter((question) => !isQcmResponseType(question.responseType))
-    .map((question) => ratings[question.questionId])
+    .map((question) => {
+      const rated = ratings[question.questionId];
+      if (Number.isFinite(rated)) return rated;
+      if (isQcmResponseType(question.responseType)) {
+        return qcmPerformanceScore(Boolean(question.isCorrect));
+      }
+      return undefined;
+    })
     .filter((score): score is number => Number.isFinite(score));
   if (!values.length) return 0;
   return Math.round((values.reduce((sum, n) => sum + n, 0) / values.length) * 100) / 100;

@@ -20,6 +20,7 @@ import {
   NotationRemarks,
   NotationValidation,
   QuestionOption,
+  qcmPerformanceScore,
   ReferenceAnswer,
   SelectedQuestion,
   TrainingSuggestion,
@@ -156,9 +157,9 @@ import { PdfPreviewDialog } from './pdf-preview.dialog';
                 @if (!readonly() && !canProceedQuestions()) {
                   <p class="max-w-sm text-right text-xs font-medium text-amber-800">
                     @if (!allRated() && !allCompetencesRated()) {
-                      Notez les questions texte et score sur 5, et attribuez un niveau 1–4 à chaque compétence. Les QCM sont corrigés automatiquement.
+                      Notez les questions texte et score sur 5, et attribuez un niveau 1–4 à chaque compétence. Un QCM réussi compte 5/5 dans la note de performance.
                     } @else if (!allRated()) {
-                      Notez chaque question texte ou score sur 5 (étoiles). Les QCM sont corrigés automatiquement.
+                      Notez chaque question texte ou score sur 5 (étoiles). Un QCM réussi compte 5/5 dans la note de performance.
                     } @else {
                       Choisissez un niveau 1–4 (Notions à Expert) pour chaque compétence, au-dessus des questions.
                     }
@@ -480,7 +481,10 @@ export class NotationWizardPage implements OnInit {
     for (const question of questions) {
       const parsed = this.parseExisting(question);
       if (parsed.comment) comments[question.questionId] = parsed.comment;
-      if (isQcmResponseType(question.responseType)) continue;
+      if (isQcmResponseType(question.responseType)) {
+        ratings[question.questionId] = qcmPerformanceScore(question.isCorrect);
+        continue;
+      }
       if (parsed.score != null) ratings[question.questionId] = parsed.score;
     }
     this.ratings.set(ratings);
@@ -537,9 +541,7 @@ export class NotationWizardPage implements OnInit {
       detailedRatings: this.questions().map((question) => ({
         questionId: question.questionId,
         overallRating: isQcmResponseType(question.responseType)
-          ? question.isCorrect
-            ? 5
-            : 0
+          ? qcmPerformanceScore(question.isCorrect)
           : (ratings[question.questionId] ?? 0),
         comment: comments[question.questionId] || null,
       })),

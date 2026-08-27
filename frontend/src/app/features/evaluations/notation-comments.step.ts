@@ -31,7 +31,7 @@ import { averageOf, NotationRemarks, ratingLabel } from './evaluation.models';
           <gcc-kpi-card
             label="Note de performance"
             [value]="averageDisplay()"
-            hint="Moyenne des questions / 5"
+            hint="Moyenne /5, QCM compris (5 si juste)"
             tone="accent"
             icon="auto_awesome"
           />

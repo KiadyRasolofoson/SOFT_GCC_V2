@@ -35,7 +35,7 @@ const STARS = [1, 2, 3, 4, 5];
             <div>
               <h2 class="text-sm font-bold text-navy">Notation : performance et maîtrise</h2>
               <p class="text-xs text-slate-500 font-medium">
-                Étoiles /5 sur les questions texte et score · QCM corrigé automatiquement · rang 1–4 par compétence
+                Étoiles /5 sur le texte · QCM réussi = 5/5 dans la note de performance · rang 1–4 par compétence
               </p>
             </div>
           </div>
@@ -48,7 +48,7 @@ const STARS = [1, 2, 3, 4, 5];
                 {{ averageLabel() }}
               </span>
               <p class="mt-0.5 text-[10px] font-medium text-slate-400">
-                {{ ratedCount() }} / {{ rateableCount() }} questions notées
+                {{ ratedCount() }} / {{ rateableCount() }} questions · QCM auto 5 ou 0
               </p>
             </div>
             <div class="rounded-xl border border-indigo-100 bg-indigo-50/80 px-3 py-2 text-right">
@@ -154,7 +154,20 @@ const STARS = [1, 2, 3, 4, 5];
                         <h4 class="text-base font-bold leading-snug text-navy">{{ question.questionText }}</h4>
                       </div>
 
-                      @if (!isQcm(question)) {
+                      @if (isQcm(question)) {
+                        <div
+                          class="shrink-0 rounded-2xl border p-2.5 text-center min-w-24 transition-colors"
+                          [class]="scoreBoxClass(ratings()[question.questionId])"
+                        >
+                          <p class="tabular text-xl font-extrabold leading-none">
+                            {{ ratings()[question.questionId] != null ? ratings()[question.questionId] : '—' }}
+                            <span class="text-xs font-medium opacity-70">/5</span>
+                          </p>
+                          <p class="text-[10px] font-bold uppercase tracking-wider mt-1 opacity-80">
+                            {{ question.isCorrect ? 'Réussi' : 'Échoué' }}
+                          </p>
+                        </div>
+                      } @else {
                         <div
                           class="shrink-0 rounded-2xl border p-2.5 text-center min-w-24 transition-colors"
                           [class]="scoreBoxClass(ratings()[question.questionId])"
@@ -354,9 +367,7 @@ export class NotationQuestionsStep {
 
   readonly rateableCount = computed(() => this.rateableQuestions().length);
 
-  readonly rateableQuestions = computed(() =>
-    this.questions().filter((question) => !isQcmResponseType(question.responseType)),
-  );
+  readonly rateableQuestions = computed(() => this.questions());
 
   readonly competenceCount = computed(
     () => this.groups().filter((group) => group.competenceLineId > 0).length,
@@ -439,6 +450,7 @@ export class NotationQuestionsStep {
     if (score == null) return 'bg-slate-50 border-slate-200 text-slate-400';
     if (score >= 4) return 'bg-emerald-50 border-emerald-200 text-emerald-800';
     if (score >= 3) return 'bg-indigo-50 border-indigo-200 text-indigo-800';
+    if (score <= 0) return 'bg-rose-50 border-rose-200 text-rose-800';
     return 'bg-amber-50 border-amber-200 text-amber-800';
   }
 

@@ -819,16 +819,21 @@ namespace SoftGcc.Application.Services.Evaluations
         // Surcharge pour accepter le DTO complet
         public async Task<bool> SaveEvaluationResultsAsync(EvaluationResultsDto dto)
         {
-            // Synchroniser les notes simples et détaillées si nécessaire
+            // Synchroniser les notes simples et détaillées pour assurer la cohérence
             if (dto.HasDetailedRatings())
             {
                 dto.SynchronizeRatings();
             }
-            
+
+            // La moyenne /5 inclut les QCM (5 si juste, 0 si faux) via Ratings après synchro.
+            var overallScore = dto.Ratings.Count > 0
+                ? (decimal)Math.Round(dto.Ratings.Values.Average(), 2)
+                : dto.OverallScore;
+
             return await SaveEvaluationResultsAsync(
                 dto.EvaluationId,
                 dto.Ratings,
-                dto.OverallScore,
+                overallScore,
                 dto.Strengths ?? string.Empty,
                 dto.Weaknesses ?? string.Empty,
                 dto.GeneralEvaluation ?? string.Empty,
@@ -1654,22 +1659,40 @@ namespace SoftGcc.Application.Services.Evaluations
             }
 
             var optionTexts = new Dictionary<int, string>();
+            var correctIdsByQuestion = new Dictionary<int, List<int>>();
             if (questionIds.Count > 0)
             {
                 var optionRows = await _dataService.GetActiveOptionsByQuestionIdsAsync(questionIds);
                 optionTexts = optionRows
                     .GroupBy(option => option.OptionId)
                     .ToDictionary(group => group.Key, group => group.First().OptionText);
+                correctIdsByQuestion = optionRows
+                    .Where(option => option.IsCorrect)
+                    .GroupBy(option => option.QuestionId)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.Select(option => option.OptionId).ToList());
             }
 
             var result = new List<object>();
             foreach (var row in selectedRows)
             {
                 var questionId = Convert.ToInt32(row["QuestionId"]);
-                responseTypeDict.TryGetValue(Convert.ToInt32(row["ResponseTypeId"]), out var responseType);
+                var responseTypeId = row["ResponseTypeId"] != DBNull.Value ? Convert.ToInt32(row["ResponseTypeId"]) : 0;
+                responseTypeDict.TryGetValue(responseTypeId, out var responseType);
+                var isQcm = responseTypeId == QcmAnswerScoring.QcmResponseTypeId
+                    || string.Equals(responseType, "QCM", StringComparison.OrdinalIgnoreCase);
 
                 var responseValue = row.GetValueOrDefault("ResponseValue")?.ToString();
                 var isCorrect = row.ContainsKey("IsCorrect") && row["IsCorrect"] != DBNull.Value && Convert.ToBoolean(row["IsCorrect"]);
+                if (isQcm)
+                {
+                    var selectedIds = QcmAnswerScoring.ParseSelectedOptionIds(responseValue);
+                    if (correctIdsByQuestion.TryGetValue(questionId, out var correctIds))
+                    {
+                        isCorrect = QcmAnswerScoring.IsExactMatch(selectedIds, correctIds);
+                    }
+                }
 
                 string competenceName = "Non spécifiée";
                 var clIdObj = row["CompetenceLineId"];
@@ -1679,7 +1702,7 @@ namespace SoftGcc.Application.Services.Evaluations
                 }
 
                 string formattedResponse = responseValue ?? string.Empty;
-                if (responseType == "QCM" && !string.IsNullOrWhiteSpace(responseValue))
+                if (isQcm && !string.IsNullOrWhiteSpace(responseValue))
                 {
                     var selectedIds = QcmAnswerScoring.ParseSelectedOptionIds(responseValue);
                     if (selectedIds.Count > 0)
