@@ -57,6 +57,48 @@ namespace SoftGcc.Application.Services.Evaluations
             return await _dataService.GetCompetenceLinesBySkillPositionIdAsync(skillPositionId);
         }
 
+        /// <summary>
+        /// Les questions sont rattachées à une compétence, la notation à une ligne de
+        /// questionnaire : cette méthode fait le pont pour un employé donné, en s'appuyant
+        /// sur la matrice emploi-compétences (règle A1.3). Une compétence absente de la
+        /// matrice du poste n'est pas évaluable, on ne crée alors aucune ligne.
+        /// </summary>
+        public async Task<CompetenceLine?> EnsureForPositionSkillAsync(int positionId, int skillId)
+        {
+            if (positionId <= 0 || skillId <= 0)
+            {
+                return null;
+            }
+
+            var matrixRow = await _dataService.GetActiveSkillPositionAsync(positionId, skillId);
+            if (matrixRow is null)
+            {
+                return null;
+            }
+
+            var existing = await _dataService.FindCompetenceLineBySkillPositionAsync(matrixRow.SkillPositionId);
+            if (existing is not null)
+            {
+                if (existing.State != 1)
+                {
+                    existing.State = 1;
+                    await _dataService.UpdateCompetenceLineAsync(existing);
+                }
+
+                return existing;
+            }
+
+            var line = new CompetenceLine
+            {
+                SkillPositionId = matrixRow.SkillPositionId,
+                Description = matrixRow.Skill?.Name ?? MissingDescriptionLabel,
+                State = 1
+            };
+
+            await _dataService.CreateCompetenceLineAsync(line);
+            return line;
+        }
+
         public async Task<CompetenceLine> CreateAsync(CompetenceLine competenceLine)
         {
             await EnsureMatrixLinkAsync(competenceLine.SkillPositionId);

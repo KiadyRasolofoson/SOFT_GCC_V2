@@ -3,20 +3,22 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SoftGcc.Domain.Entities.Evaluations
 {
-    [Table("evaluation_question_options")]
+    [Table("Evaluation_Question_Options")]
     public class EvaluationQuestionOptions
     {
         [Key]
-        [Column("optionId")]
+        [Column("OptionId")]
         public int OptionId { get; set; }
 
-        [Column("questionId")]
+        [Column("QuestionId")]
         public int QuestionId { get; set; }
-        [Column("optionText")]
+        [Column("OptionText")]
         public string OptionText { get; set; } = string.Empty;
-        [Column("isCorrect")]
+        [Column("IsCorrect")]
         public bool IsCorrect { get; set; }
-        [Column("state")]
+        [Column("SortOrder")]
+        public int SortOrder { get; set; }
+        [Column("State")]
         public int State { get; set; }
     }
 }

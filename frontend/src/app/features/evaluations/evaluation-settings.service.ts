@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  CompetenceDomainNode,
   EvaluationTemplate,
   PositionOption,
   QuestionTimeUpdate,
@@ -10,6 +11,7 @@ import {
   SettingsCompetenceLine,
   SettingsEvalType,
   SettingsQuestion,
+  SettingsQuestionOption,
   SettingsQuestionPayload,
   SettingsTraining,
   SettingsTrainingPayload,
@@ -33,6 +35,20 @@ export class EvaluationSettingsService {
 
   updateQuestion(id: number, payload: SettingsQuestionPayload): Observable<unknown> {
     return this.http.put(`${this.api}/Evaluation/questions/${id}`, this.toQuestionBody({ ...payload, questionId: id }));
+  }
+
+  getQuestionOptions(questionId: number): Observable<SettingsQuestionOption[]> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/questions/${questionId}/options`).pipe(
+      map((raw) => this.normalizeQuestionOptions(raw)),
+      catchError(() => of([])),
+    );
+  }
+
+  getQuestionOptionSummaries(): Observable<Record<number, { optionCount: number; correctCount: number }>> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/question-option-summaries`).pipe(
+      map((raw) => this.normalizeOptionSummaries(raw)),
+      catchError(() => of({})),
+    );
   }
 
   deleteQuestion(id: number): Observable<unknown> {
@@ -101,6 +117,13 @@ export class EvaluationSettingsService {
     );
   }
 
+  getCompetenceDomains(): Observable<CompetenceDomainNode[]> {
+    return this.http.get<unknown>(`${this.api}/Evaluation/competence-domains`).pipe(
+      map((raw) => this.normalizeCompetenceDomains(raw)),
+      catchError(() => of([])),
+    );
+  }
+
   getCompetenceLines(): Observable<SettingsCompetenceLine[]> {
     return this.http.get<unknown>(`${this.api}/Evaluation/competence-lines`).pipe(
       map((raw) => this.normalizeCompetenceLines(raw)),
@@ -146,10 +169,17 @@ export class EvaluationSettingsService {
       QuestionId: payload.questionId ?? null,
       Question: payload.question.trim(),
       EvaluationTypeId: payload.evaluationTypeId,
-      PositionId: payload.positionId,
+      SkillId: payload.skillId,
+      PositionId: payload.positionId && payload.positionId > 0 ? payload.positionId : null,
       CompetenceLineId: payload.competenceLineId,
       ResponseTypeId: payload.responseTypeId,
       State: payload.state || 1,
+      Options: (payload.options ?? []).map((item, index) => ({
+        OptionId: item.optionId && item.optionId > 0 ? item.optionId : null,
+        OptionText: item.optionText.trim(),
+        IsCorrect: item.isCorrect,
+        SortOrder: item.sortOrder || index + 1,
+      })),
     };
   }
 
@@ -203,8 +233,14 @@ export class EvaluationSettingsService {
         const row = this.asRecord(item);
         const type = this.asRecord(this.pick(row, 'evaluationType', 'EvaluationType'));
         const position = this.asRecord(this.pick(row, 'position', 'Position'));
+        const skill = this.asRecord(this.pick(row, 'skill', 'Skill'));
+        const family = this.asRecord(this.pick(skill, 'family', 'Family'));
+        const domain = this.asRecord(this.pick(family, 'domain', 'Domain'));
         const competence = this.asRecord(this.pick(row, 'competenceLine', 'CompetenceLine'));
         const response = this.asRecord(this.pick(row, 'responseType', 'ResponseType'));
+        const skillName =
+          this.asString(this.pick(skill, 'name', 'Name', 'skillName', 'SkillName')) ??
+          this.asString(this.pick(row, 'skillName', 'SkillName'));
         return {
           questionId: this.asNumber(this.pick(row, 'questionId', 'QuestionId', 'id', 'Id')) ?? 0,
           question: this.asString(this.pick(row, 'question', 'Question')) ?? '',
@@ -213,13 +249,30 @@ export class EvaluationSettingsService {
             this.asString(this.pick(type, 'designation', 'Designation')) ??
             this.asString(this.pick(row, 'evaluationTypeName', 'EvaluationTypeName')) ??
             '',
-          positionId: this.asNumber(this.pick(row, 'positionId', 'PositionId')) ?? 0,
+          skillId: this.asNumber(this.pick(row, 'skillId', 'SkillId')) ?? this.asNumber(this.pick(skill, 'skillId', 'SkillId')),
+          skillName,
+          familyId:
+            this.asNumber(this.pick(row, 'familyId', 'FamilyId')) ??
+            this.asNumber(this.pick(skill, 'familyId', 'FamilyId')) ??
+            this.asNumber(this.pick(family, 'familyId', 'FamilyId')),
+          familyName:
+            this.asString(this.pick(row, 'familyName', 'FamilyName')) ??
+            this.asString(this.pick(family, 'name', 'Name')),
+          domainId:
+            this.asNumber(this.pick(row, 'domainId', 'DomainId')) ??
+            this.asNumber(this.pick(family, 'domainSkillId', 'DomainSkillId')) ??
+            this.asNumber(this.pick(domain, 'domainSkillId', 'DomainSkillId')),
+          domainName:
+            this.asString(this.pick(row, 'domainName', 'DomainName')) ??
+            this.asString(this.pick(domain, 'name', 'Name')),
+          positionId: this.asNumber(this.pick(row, 'positionId', 'PositionId')),
           positionName:
             this.asString(this.pick(position, 'positionName', 'PositionName')) ??
             this.asString(this.pick(row, 'positionName', 'PositionName')) ??
             '',
           competenceLineId: this.asNumber(this.pick(row, 'competenceLineId', 'CompetenceLineId')),
           competenceName:
+            skillName ??
             this.asString(this.pick(competence, 'skillName', 'SkillName', 'description', 'Description')) ??
             this.asString(this.pick(row, 'competenceName', 'CompetenceName')),
           responseTypeId: this.asNumber(this.pick(row, 'responseTypeId', 'ResponseTypeId')) ?? 1,
@@ -227,10 +280,40 @@ export class EvaluationSettingsService {
             this.asString(this.pick(response, 'typeName', 'TypeName')) ??
             this.asString(this.pick(row, 'responseTypeName', 'ResponseTypeName')) ??
             'TEXT',
+          optionCount: this.asNumber(this.pick(row, 'optionCount', 'OptionCount')) ?? 0,
+          correctOptionCount: this.asNumber(this.pick(row, 'correctOptionCount', 'CorrectOptionCount')) ?? 0,
           state: this.asNumber(this.pick(row, 'state', 'State')) ?? 1,
         };
       })
       .filter((item) => item.questionId > 0);
+  }
+
+  private normalizeQuestionOptions(raw: unknown): SettingsQuestionOption[] {
+    return this.asArray(raw)
+      .map((item, index) => {
+        const row = this.asRecord(item);
+        return {
+          optionId: this.asNumber(this.pick(row, 'optionId', 'OptionId')),
+          optionText: this.asString(this.pick(row, 'optionText', 'OptionText')) ?? '',
+          isCorrect: Boolean(this.pick(row, 'isCorrect', 'IsCorrect')),
+          sortOrder: this.asNumber(this.pick(row, 'sortOrder', 'SortOrder')) ?? index + 1,
+        };
+      })
+      .filter((item) => item.optionText || item.optionId);
+  }
+
+  private normalizeOptionSummaries(raw: unknown): Record<number, { optionCount: number; correctCount: number }> {
+    const next: Record<number, { optionCount: number; correctCount: number }> = {};
+    for (const item of this.asArray(raw)) {
+      const row = this.asRecord(item);
+      const questionId = this.asNumber(this.pick(row, 'questionId', 'QuestionId'));
+      if (!questionId) continue;
+      next[questionId] = {
+        optionCount: this.asNumber(this.pick(row, 'optionCount', 'OptionCount')) ?? 0,
+        correctCount: this.asNumber(this.pick(row, 'correctCount', 'CorrectCount')) ?? 0,
+      };
+    }
+    return next;
   }
 
   private normalizeTrainings(raw: unknown): SettingsTraining[] {
@@ -284,6 +367,38 @@ export class EvaluationSettingsService {
         };
       })
       .filter((item) => item.positionId > 0 && item.positionName);
+  }
+
+  private normalizeCompetenceDomains(raw: unknown): CompetenceDomainNode[] {
+    return this.asArray(raw)
+      .map((item) => {
+        const row = this.asRecord(item);
+        return {
+          domainId: this.asNumber(this.pick(row, 'domainId', 'DomainId')) ?? 0,
+          domainCode: this.asString(this.pick(row, 'domainCode', 'DomainCode')) ?? '',
+          domainName: this.asString(this.pick(row, 'domainName', 'DomainName')) ?? '',
+          families: this.asArray(this.pick(row, 'families', 'Families')).map((familyRaw) => {
+            const family = this.asRecord(familyRaw);
+            return {
+              familyId: this.asNumber(this.pick(family, 'familyId', 'FamilyId')) ?? 0,
+              familyCode: this.asString(this.pick(family, 'familyCode', 'FamilyCode')) ?? '',
+              familyName: this.asString(this.pick(family, 'familyName', 'FamilyName')) ?? '',
+              skills: this.asArray(this.pick(family, 'skills', 'Skills'))
+                .map((skillRaw) => {
+                  const skill = this.asRecord(skillRaw);
+                  return {
+                    skillId: this.asNumber(this.pick(skill, 'skillId', 'SkillId')) ?? 0,
+                    skillCode: this.asString(this.pick(skill, 'skillCode', 'SkillCode')) ?? '',
+                    skillName: this.asString(this.pick(skill, 'skillName', 'SkillName')) ?? '',
+                    category: this.asString(this.pick(skill, 'category', 'Category')) ?? '',
+                  };
+                })
+                .filter((skill) => skill.skillId > 0),
+            };
+          }).filter((family) => family.familyId > 0),
+        };
+      })
+      .filter((domain) => domain.domainId > 0 && domain.domainName);
   }
 
   private normalizeCompetenceLines(raw: unknown): SettingsCompetenceLine[] {

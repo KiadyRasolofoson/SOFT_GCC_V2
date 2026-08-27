@@ -126,24 +126,36 @@ namespace SoftGcc.Api.Controllers.Evaluations
 			return Ok(formatted);
 		}
 
+		/// <summary>
+		/// Questions proposées pour un poste : elles sont déduites des compétences attendues
+		/// de la matrice emploi-compétences, puis renvoyées avec leur domaine et leur famille
+		/// pour que le wizard les regroupe par domaine.
+		/// </summary>
 		[HttpGet("questions")]
 		public async Task<IActionResult> GetPlanningQuestions(
 			[FromQuery] int evaluationTypeId,
 			[FromQuery] int positionId,
 			[FromQuery] int? competenceLineId = null)
 		{
-			var filter = new EvaluationQuestionFilterDto(evaluationTypeId, positionId, competenceLineId);
-			var questions = await _evaluationService.FindQuestionsAsync(filter);
-			return Ok(questions
-				.Where(q => q.state == 1)
-				.Select(q => new
-				{
-					questionId = q.questionId,
-					question = q.question,
-					competenceLineId = q.CompetenceLineId,
-					positionId = q.positionId,
-					evaluationTypeId = q.evaluationTypeId
-				}));
+			var questions = await _evaluationService.GetPlanningQuestionsAsync(
+				evaluationTypeId, positionId, competenceLineId);
+
+			return Ok(questions.Select(q => new
+			{
+				questionId = q.QuestionId,
+				question = q.Question,
+				evaluationTypeId = q.EvaluationTypeId,
+				skillId = q.SkillId,
+				skillName = q.SkillName,
+				familyId = q.FamilyId,
+				familyName = q.FamilyName,
+				domainId = q.DomainId,
+				domainName = q.DomainName,
+				positionId = q.PositionId,
+				competenceLineId = q.CompetenceLineId,
+				responseTypeId = q.ResponseTypeId,
+				responseTypeName = q.ResponseTypeName
+			}));
 		}
 
 		[HttpGet("rappel-evaluation")]

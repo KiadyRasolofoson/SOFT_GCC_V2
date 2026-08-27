@@ -11,6 +11,7 @@ import {
   PlanningEmployee,
   PlanningQuestion,
   QuestionSelectionMap,
+  responseTypeMeta,
   selectedQuestionCount,
 } from './evaluation.models';
 
@@ -96,12 +97,21 @@ import {
               @if (!competencesForActive().length) {
                 <gcc-empty-state
                   title="Aucune compétence associée"
-                  message="Ce poste n’a pas de ligne de compétence, ou le référentiel n’est pas encore renseigné."
+                  message="Ce poste n’a pas de compétence attendue dans la matrice, ou le référentiel n’est pas encore renseigné."
                 />
               } @else {
-                @for (competence of competencesForActive(); track competence.competenceLineId) {
-                  @if (questionsFor(employee.employeeId, competence.competenceLineId); as questions) {
-                    <article class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xs">
+                @for (domain of domainGroups(); track domain.key) {
+                  <div class="space-y-3">
+                    <div class="flex items-center gap-2 px-1">
+                      <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-100 text-[11px] font-bold text-violet-700">
+                        {{ domain.competences.length }}
+                      </span>
+                      <h4 class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">{{ domain.name }}</h4>
+                      <div class="h-px flex-1 bg-slate-200/80"></div>
+                    </div>
+                    @for (competence of domain.competences; track competence.competenceLineId) {
+                      @if (questionsFor(employee.employeeId, competence.competenceLineId); as questions) {
+                        <article class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xs">
                       <button
                         type="button"
                         class="flex w-full items-center gap-3 px-4 py-3 text-left"
@@ -182,7 +192,14 @@ import {
                                       <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">check</mat-icon>
                                     </span>
                                     <span class="min-w-0 flex-1">
-                                      <span class="block text-sm font-medium text-navy">{{ question.question }}</span>
+                                      <span class="flex items-start justify-between gap-2">
+                                        <span class="block text-sm font-medium text-navy">{{ question.question }}</span>
+                                        <gcc-status-tag
+                                          class="shrink-0"
+                                          [status]="responseTypeMeta(question.responseTypeName).kind"
+                                          [label]="responseTypeMeta(question.responseTypeName).label"
+                                        />
+                                      </span>
                                       @if (usedByOther(question.questionId, employee.employeeId)) {
                                         <span class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700">
                                           <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">warning</mat-icon>
@@ -199,6 +216,8 @@ import {
                       }
                     </article>
                   }
+                    }
+                  </div>
                 }
               }
             </section>
@@ -226,6 +245,7 @@ export class PlanningQuestionsStep {
   readonly initialsOf = initialsOf;
   readonly planningEmployeeName = planningEmployeeName;
   readonly selectedQuestionCount = selectedQuestionCount;
+  readonly responseTypeMeta = responseTypeMeta;
 
   readonly activeEmployee = computed(() => {
     const employees = this.employees();
@@ -255,6 +275,18 @@ export class PlanningQuestionsStep {
     if (!employee) return [];
     return this.competenceLines()[employee.employeeId] ?? [];
   }
+
+  readonly domainGroups = computed(() => {
+    const groups = new Map<string, { key: string; name: string; competences: CompetenceLineOption[] }>();
+    for (const competence of this.competencesForActive()) {
+      const name = competence.domainName?.trim() || 'Autres domaines';
+      const key = competence.domainId && competence.domainId > 0 ? `id:${competence.domainId}` : `name:${name}`;
+      const group = groups.get(key) ?? { key, name, competences: [] };
+      group.competences.push(competence);
+      groups.set(key, group);
+    }
+    return [...groups.values()];
+  });
 
   questionsFor(employeeId: number, competenceLineId: number): PlanningQuestion[] {
     return this.questions()[employeeId]?.[competenceLineId] ?? [];

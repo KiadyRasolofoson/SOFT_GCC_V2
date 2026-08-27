@@ -267,18 +267,14 @@ namespace SoftGcc.Application.Services.Evaluations
                 return false;
             
             // Si c'est une question QCM
-            if (question.ResponseTypeId == 2) // 2 = QCM
+            if (question.ResponseTypeId == QcmAnswerScoring.QcmResponseTypeId)
             {
-                // Essayer de parser la valeur comme un ID d'option
-                if (int.TryParse(responseValue, out int optionId))
-                {
-                    // Vérifier si l'option sélectionnée est marquée comme correcte
-                    var count = await _dataService.ExecuteScalarAsync(@"
-                        SELECT COUNT(1) FROM Evaluation_Question_Options 
-                        WHERE QuestionId = @p0 AND OptionId = @p1 AND IsCorrect = 1",
-                        questionId, optionId);
-                    return count > 0;
-                }
+                var correctIds = (await _dataService.GetActiveOptionsByQuestionIdAsync(questionId))
+                    .Where(option => option.IsCorrect)
+                    .Select(option => option.OptionId);
+                return QcmAnswerScoring.IsExactMatch(
+                    QcmAnswerScoring.ParseSelectedOptionIds(responseValue),
+                    correctIds);
             }
             
             // Pour les autres types de questions, on devrait implémenter d'autres méthodes de vérification
@@ -305,14 +301,12 @@ namespace SoftGcc.Application.Services.Evaluations
                     bool isCorrect = false;
                     if (responseType == "QCM")
                     {
-                        if (int.TryParse(responseValue, out int optionId))
-                        {
-                            var count = await _dataService.ExecuteScalarAsync(@"
-                                SELECT COUNT(1) FROM Evaluation_Question_Options 
-                                WHERE QuestionId = @p0 AND OptionId = @p1 AND IsCorrect = 1",
-                                questionId, optionId);
-                            isCorrect = count > 0;
-                        }
+                        var correctIds = (await _dataService.GetActiveOptionsByQuestionIdAsync(questionId))
+                            .Where(option => option.IsCorrect)
+                            .Select(option => option.OptionId);
+                        isCorrect = QcmAnswerScoring.IsExactMatch(
+                            QcmAnswerScoring.ParseSelectedOptionIds(responseValue),
+                            correctIds);
                     }
 
                     // Mettre à jour le statut de la réponse
@@ -346,22 +340,10 @@ namespace SoftGcc.Application.Services.Evaluations
             if (!questionIds.Any())
                 return new Dictionary<int, List<EvaluationQuestionOptions>>();
 
-            var placeholders = string.Join(",", questionIds.Select((_, i) => $"@p{i}"));
-            var optionsRows = await _dataService.ExecuteReaderAsync($@"
-                SELECT optionId, questionId, optionText, isCorrect, state
-                FROM evaluation_question_options
-                WHERE questionId IN ({placeholders})", questionIds.Cast<object>().ToArray());
+            var options = await _dataService.GetActiveOptionsByQuestionIdsAsync(questionIds);
 
-            var options = optionsRows.Select(row => new EvaluationQuestionOptions
-            {
-                OptionId = Convert.ToInt32(ReadColumn(row, "optionId")),
-                QuestionId = Convert.ToInt32(ReadColumn(row, "questionId")),
-                OptionText = ReadColumn(row, "optionText")?.ToString() ?? string.Empty,
-                IsCorrect = ToBoolean(ReadColumn(row, "isCorrect")),
-                State = ReadColumn(row, "state") is null or DBNull ? 0 : Convert.ToInt32(ReadColumn(row, "state"))
-            }).ToList();
-
-            return options.GroupBy(opt => opt.QuestionId)
+            return options
+                .GroupBy(opt => opt.QuestionId)
                 .ToDictionary(g => g.Key, g => g.ToList());
         }
 

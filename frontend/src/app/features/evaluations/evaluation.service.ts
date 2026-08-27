@@ -106,12 +106,10 @@ export class EvaluationService {
   }
 
   getQuestionOptions(evaluationId: number): Observable<Record<number, QuestionOption[]>> {
-    return this.http
-      .get<Record<string, QuestionOption[]>>(`${this.api}/Evaluation/${evaluationId}/options`)
-      .pipe(
-        map((raw) => this.normalizeIdMap(raw)),
-        catchError(() => of({})),
-      );
+    return this.http.get<unknown>(`${this.api}/Evaluation/${evaluationId}/options/key`).pipe(
+      map((raw) => this.normalizeQuestionOptionsMap(raw)),
+      catchError(() => of({})),
+    );
   }
 
   getReferenceAnswers(questionIds: number[]): Observable<Record<number, ReferenceAnswer>> {
@@ -499,10 +497,22 @@ export class EvaluationService {
     return source.map((item) => {
       const row = item as Record<string, unknown>;
       const competence = row['competenceLineId'] ?? row['CompetenceLineId'];
+      const responseTypeId = this.asNumber(row['responseTypeId'] ?? row['ResponseTypeId']) ?? 1;
+      const responseTypeName =
+        this.asString(row['responseTypeName'] ?? row['ResponseTypeName'] ?? row['responseType'] ?? row['ResponseType']) ??
+        this.responseTypeNameFromId(responseTypeId);
       return {
         questionId: Number(row['questionId'] ?? row['QuestionId'] ?? 0),
         question: String(row['question'] ?? row['Question'] ?? ''),
         competenceLineId: competence == null || competence === '' ? null : Number(competence),
+        skillId: this.asNumber(row['skillId'] ?? row['SkillId']),
+        skillName: this.asString(row['skillName'] ?? row['SkillName']),
+        familyId: this.asNumber(row['familyId'] ?? row['FamilyId']),
+        familyName: this.asString(row['familyName'] ?? row['FamilyName']),
+        domainId: this.asNumber(row['domainId'] ?? row['DomainId']),
+        domainName: this.asString(row['domainName'] ?? row['DomainName']),
+        responseTypeId,
+        responseTypeName,
       };
     }).filter((row) => row.questionId > 0 && row.question.trim());
   }
@@ -604,7 +614,14 @@ export class EvaluationService {
           questionId: this.asNumber(this.pick(row, 'questionId', 'QuestionId')) ?? 0,
           questionText: this.asString(this.pick(row, 'questionText', 'QuestionText', 'question', 'Question')) ?? '',
           competenceLineId: competence == null || competence === '' ? null : this.asNumber(competence),
-          competenceName: this.asString(this.pick(row, 'competenceName', 'CompetenceName')) ?? '',
+          competenceName:
+            this.asString(this.pick(row, 'skillName', 'SkillName', 'competenceName', 'CompetenceName')) ?? '',
+          skillId: this.asNumber(this.pick(row, 'skillId', 'SkillId')),
+          skillName: this.asString(this.pick(row, 'skillName', 'SkillName')),
+          familyId: this.asNumber(this.pick(row, 'familyId', 'FamilyId')),
+          familyName: this.asString(this.pick(row, 'familyName', 'FamilyName')),
+          domainId: this.asNumber(this.pick(row, 'domainId', 'DomainId')),
+          domainName: this.asString(this.pick(row, 'domainName', 'DomainName')),
           responseType: this.asString(this.pick(row, 'responseType', 'ResponseType')),
           responseValue: this.asString(this.pick(row, 'responseValue', 'ResponseValue')),
           isCorrect: Boolean(this.pick(row, 'isCorrect', 'IsCorrect')),
@@ -650,6 +667,28 @@ export class EvaluationService {
       .filter((item) => item.evaluationId > 0);
   }
 
+  private normalizeQuestionOptionsMap(raw: unknown): Record<number, QuestionOption[]> {
+    const next: Record<number, QuestionOption[]> = {};
+    const source = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    for (const [key, value] of Object.entries(source)) {
+      const id = Number(key);
+      if (!Number.isFinite(id)) continue;
+      const list = Array.isArray(value) ? value : [];
+      next[id] = list
+        .map((item) => {
+          const row = (item ?? {}) as Record<string, unknown>;
+          return {
+            optionId: this.asNumber(this.pick(row, 'optionId', 'OptionId')) ?? 0,
+            questionId: this.asNumber(this.pick(row, 'questionId', 'QuestionId')) ?? id,
+            optionText: this.asString(this.pick(row, 'optionText', 'OptionText')) ?? '',
+            isCorrect: Boolean(this.pick(row, 'isCorrect', 'IsCorrect')),
+          };
+        })
+        .filter((item) => item.optionId > 0);
+    }
+    return next;
+  }
+
   private normalizeIdMap<T>(raw: Record<string, T> | null | undefined): Record<number, T> {
     const next: Record<number, T> = {};
     if (!raw) return next;
@@ -689,6 +728,12 @@ export class EvaluationService {
     if (value == null) return null;
     const text = String(value).trim();
     return text && text.toLowerCase() !== 'null' ? text : null;
+  }
+
+  private responseTypeNameFromId(id: number): string {
+    if (id === 2) return 'QCM';
+    if (id === 3) return 'SCORE';
+    return 'TEXT';
   }
 
   private normalizeHistoryRow(row: EvaluationHistoryRow | Record<string, unknown>): EvaluationHistoryRow {

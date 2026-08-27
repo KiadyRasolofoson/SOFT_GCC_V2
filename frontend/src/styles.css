@@ -298,7 +298,8 @@ body {
   padding: 1rem 0 0;
 }
 
-.gcc-portal-choice.mat-mdc-radio-button {
+.gcc-portal-choice.mat-mdc-radio-button,
+.gcc-portal-choice.mat-mdc-checkbox {
   display: flex;
   width: 100%;
   margin: 0;
@@ -312,12 +313,14 @@ body {
     box-shadow 0.15s ease;
 }
 
-.gcc-portal-choice.mat-mdc-radio-button .mdc-form-field {
+.gcc-portal-choice.mat-mdc-radio-button .mdc-form-field,
+.gcc-portal-choice.mat-mdc-checkbox .mdc-form-field {
   width: 100%;
   align-items: flex-start;
 }
 
-.gcc-portal-choice.mat-mdc-radio-button .mdc-label {
+.gcc-portal-choice.mat-mdc-radio-button .mdc-label,
+.gcc-portal-choice.mat-mdc-checkbox .mdc-label {
   white-space: normal;
   padding-top: 0.15rem;
   font-family: var(--font-sans);
@@ -327,12 +330,14 @@ body {
   color: #0f172a;
 }
 
-.gcc-portal-choice.mat-mdc-radio-button:hover {
+.gcc-portal-choice.mat-mdc-radio-button:hover,
+.gcc-portal-choice.mat-mdc-checkbox:hover {
   border-color: #6366f1;
   background: #eef2ff;
 }
 
-.gcc-portal-choice.mat-mdc-radio-checked {
+.gcc-portal-choice.mat-mdc-radio-checked,
+.gcc-portal-choice.mat-mdc-checkbox-checked {
   border-color: #6366f1;
   background: #eef2ff;
   box-shadow: 0 0 0 3px rgb(99 102 241 / 0.15);

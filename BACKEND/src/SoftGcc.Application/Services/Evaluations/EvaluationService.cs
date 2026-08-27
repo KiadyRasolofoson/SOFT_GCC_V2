@@ -7,6 +7,7 @@ using SoftGcc.Domain.Exceptions;
 using SoftGcc.Domain.Interfaces;
 using SoftGcc.Domain.Interfaces.Evaluations;
 using SoftGcc.Domain.Interfaces.Data;
+using SoftGcc.Domain.SkillReferential;
 using SoftGcc.Application.Common.Interfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
@@ -29,6 +30,7 @@ namespace SoftGcc.Application.Services.Evaluations
         private readonly IEmailService _emailService;
         private readonly ReminderSettings _reminderSettings;
         private readonly EvaluationCompetenceService? _competenceService;
+        private readonly ICompetenceLineService? _competenceLineService;
         private readonly IConfiguration _configuration;
         private readonly INotificationService _notificationService;
 
@@ -43,7 +45,8 @@ namespace SoftGcc.Application.Services.Evaluations
             TemporaryAccountService temporaryAccountService,
             IConfiguration configuration,
             INotificationService notificationService,
-            EvaluationCompetenceService? competenceService = null)
+            EvaluationCompetenceService? competenceService = null,
+            ICompetenceLineService? competenceLineService = null)
         {
             _questionRepository = questionRepository;
             _evaluationTypeRepository = evaluationType;
@@ -60,33 +63,37 @@ namespace SoftGcc.Application.Services.Evaluations
             _configuration = configuration;
             _notificationService = notificationService;
             _competenceService = competenceService;
+            _competenceLineService = competenceLineService;
         }
 
         public async Task<EvaluationQuestionCreatedDto> CreateQuestionAsync(EvaluationQuestionDto question)
         {
             ArgumentNullException.ThrowIfNull(question);
 
-            if (question.ResponseTypeId == 3 && (question.CompetenceLineId is null or <= 0))
-            {
-                throw new ValidationException("Une question de type SCORE doit être liée à une ligne de compétence du poste.");
-            }
+            await EnsureSkillIsUsableAsync(question.SkillId);
+            ValidateQcmOptionsIfNeeded(question.ResponseTypeId, question.Options);
+            var positionId = NormalizePositionId(question.PositionId);
 
             var newQuestion = new EvaluationQuestion
             {
                 question = question.Question,
                 evaluationTypeId = question.EvaluationTypeId,
-                positionId = question.PositionId,
-                CompetenceLineId = question.CompetenceLineId,
+                SkillId = question.SkillId,
+                positionId = positionId,
+                CompetenceLineId = await ResolveQuestionCompetenceLineAsync(
+                    question.CompetenceLineId, positionId, question.SkillId),
                 ResponseTypeId = question.ResponseTypeId,
                 state = question.State
             };
 
             await CreateEvaluationQuestionAsync(newQuestion);
+            await SyncQuestionOptionsAsync(newQuestion.questionId, question.ResponseTypeId, question.Options);
 
             return new EvaluationQuestionCreatedDto(
                 newQuestion.questionId,
                 newQuestion.question,
                 newQuestion.evaluationTypeId,
+                newQuestion.SkillId,
                 newQuestion.positionId,
                 newQuestion.CompetenceLineId,
                 newQuestion.ResponseTypeId,
@@ -97,27 +104,161 @@ namespace SoftGcc.Application.Services.Evaluations
         {
             ArgumentNullException.ThrowIfNull(question);
 
-            if (question.ResponseTypeId == 3 && (question.CompetenceLineId is null or <= 0))
-            {
-                throw new ValidationException("Une question de type SCORE doit être liée à une ligne de compétence du poste.");
-            }
-
             if (question.QuestionId.HasValue && question.QuestionId.Value != questionId)
             {
                 throw new ValidationException(
                     "L'identifiant de la question diffère entre l'URL et le corps de la requête.");
             }
 
+            await EnsureSkillIsUsableAsync(question.SkillId);
+            ValidateQcmOptionsIfNeeded(question.ResponseTypeId, question.Options);
+            var positionId = NormalizePositionId(question.PositionId);
+
             var existingQuestion = await GetRequiredQuestionAsync(questionId);
             existingQuestion.question = question.Question;
             existingQuestion.evaluationTypeId = question.EvaluationTypeId;
-            existingQuestion.positionId = question.PositionId;
-            existingQuestion.CompetenceLineId = question.CompetenceLineId;
+            existingQuestion.SkillId = question.SkillId;
+            existingQuestion.positionId = positionId;
+            existingQuestion.CompetenceLineId = await ResolveQuestionCompetenceLineAsync(
+                question.CompetenceLineId, positionId, question.SkillId);
             existingQuestion.ResponseTypeId = question.ResponseTypeId;
             existingQuestion.state = question.State;
 
             await UpdateEvaluationQuestionAsync(existingQuestion);
+            await SyncQuestionOptionsAsync(questionId, question.ResponseTypeId, question.Options);
         }
+
+        /// <summary>
+        /// Une question évalue une compétence du référentiel : le domaine et la famille en
+        /// découlent. Une compétence archivée n'est plus évaluable.
+        /// </summary>
+        private async Task EnsureSkillIsUsableAsync(int skillId)
+        {
+            if (skillId <= 0)
+            {
+                throw new ValidationException(
+                    "Une question doit être rattachée à une compétence du référentiel.");
+            }
+
+            var skill = await _dataService.GetSkillByIdAsync(skillId);
+            if (skill is null)
+            {
+                throw new ValidationException(
+                    $"La compétence {skillId} est absente du référentiel.");
+            }
+
+            if (SkillLifecycle.IsArchived(skill.State))
+            {
+                throw new ValidationException(
+                    $"La compétence « {skill.Name} » est archivée : elle ne peut plus être évaluée.");
+            }
+        }
+
+        /// <summary>Le poste est facultatif : 0 est traité comme « tous les postes ».</summary>
+        private static int? NormalizePositionId(int? positionId) =>
+            positionId is > 0 ? positionId : null;
+
+        /// <summary>
+        /// La ligne de questionnaire reste le pivot de la notation (rang de maîtrise par
+        /// <c>CompetenceLineId</c>). Quand la question cible un poste précis, on la relie à la
+        /// ligne du couple (poste, compétence) ; sinon elle reste indépendante du poste et la
+        /// ligne sera résolue au moment de la planification, employé par employé.
+        /// </summary>
+        private async Task<int?> ResolveQuestionCompetenceLineAsync(
+            int? requestedCompetenceLineId,
+            int? positionId,
+            int skillId)
+        {
+            if (requestedCompetenceLineId is > 0)
+            {
+                return requestedCompetenceLineId;
+            }
+
+            if (positionId is not > 0 || _competenceLineService is null)
+            {
+                return null;
+            }
+
+            var line = await _competenceLineService.EnsureForPositionSkillAsync(positionId.Value, skillId);
+            return line?.CompetenceLineId;
+        }
+
+        public async Task<IReadOnlyList<EvaluationQuestionOptionDto>> GetQuestionOptionsAsync(int questionId)
+        {
+            _ = await GetRequiredQuestionAsync(questionId);
+            var options = await _dataService.GetActiveOptionsByQuestionIdAsync(questionId);
+            return options.Select(ToOptionDto).ToList();
+        }
+
+        public async Task<IReadOnlyList<object>> GetQuestionOptionSummariesAsync()
+        {
+            var rows = await _dataService.GetQuestionOptionSummariesAsync();
+            return rows
+                .Select(row => (object)new
+                {
+                    questionId = row.QuestionId,
+                    optionCount = row.OptionCount,
+                    correctCount = row.CorrectCount
+                })
+                .ToList();
+        }
+
+        private async Task SyncQuestionOptionsAsync(
+            int questionId,
+            int responseTypeId,
+            IReadOnlyList<EvaluationQuestionOptionDto>? options)
+        {
+            if (questionId <= 0)
+            {
+                return;
+            }
+
+            if (responseTypeId != QcmAnswerScoring.QcmResponseTypeId)
+            {
+                await _dataService.DeactivateQuestionOptionsAsync(questionId);
+                return;
+            }
+
+            ValidateQcmOptionsIfNeeded(responseTypeId, options);
+
+            var entities = (options ?? [])
+                .Select((option, index) => new EvaluationQuestionOptions
+                {
+                    OptionId = option.OptionId ?? 0,
+                    QuestionId = questionId,
+                    OptionText = option.OptionText?.Trim() ?? string.Empty,
+                    IsCorrect = option.IsCorrect,
+                    SortOrder = option.SortOrder > 0 ? option.SortOrder : index + 1,
+                    State = 1
+                })
+                .ToList();
+
+            await _dataService.ReplaceQuestionOptionsAsync(questionId, entities);
+        }
+
+        private static void ValidateQcmOptionsIfNeeded(
+            int responseTypeId,
+            IReadOnlyList<EvaluationQuestionOptionDto>? options)
+        {
+            if (responseTypeId != QcmAnswerScoring.QcmResponseTypeId)
+            {
+                return;
+            }
+
+            var drafts = (options ?? [])
+                .Select(option => new EvaluationQuestionOptionDraft(option.OptionText?.Trim() ?? string.Empty, option.IsCorrect))
+                .ToList();
+            QcmAnswerScoring.ValidateOptions(drafts);
+        }
+
+        private static EvaluationQuestionOptionDto ToOptionDto(EvaluationQuestionOptions option) =>
+            new()
+            {
+                OptionId = option.OptionId,
+                OptionText = option.OptionText,
+                IsCorrect = option.IsCorrect,
+                SortOrder = option.SortOrder
+            };
 
         public async Task DeleteQuestionAsync(int questionId)
         {
@@ -137,22 +278,119 @@ namespace SoftGcc.Application.Services.Evaluations
         {
             ArgumentNullException.ThrowIfNull(filter);
 
-            if (filter.CompetenceLineId is { } competenceLineId)
-            {
-                if (filter.PositionId > 0)
-                {
-                    return await GetEvaluationQuestionsByTypePositionAndCompetenceAsync(
-                        filter.EvaluationTypeId, filter.PositionId, competenceLineId);
-                }
+            return await _questionRepository.FindAsync(new EvaluationQuestionQuery(
+                EvaluationTypeId: filter.EvaluationTypeId,
+                PositionId: filter.PositionId,
+                CompetenceLineId: filter.CompetenceLineId,
+                SkillId: filter.SkillId,
+                FamilyId: filter.FamilyId,
+                DomainId: filter.DomainId));
+        }
 
-                if (filter.PositionId == 0)
-                {
-                    return await GetEvaluationQuestionsByTypeAndCompetenceAsync(
-                        filter.EvaluationTypeId, competenceLineId);
-                }
+        /// <summary>
+        /// Questions proposées pour un employé : on part des compétences attendues de son
+        /// poste (matrice <c>Skill_position</c>) puis on tire les questions de la banque
+        /// portant sur ces compétences. Les questions historiques rattachées au poste sont
+        /// conservées pour ne perdre aucun contenu existant.
+        /// </summary>
+        public async Task<IEnumerable<EvaluationQuestion>> GetQuestionsForPositionMatrixAsync(
+            int evaluationTypeId,
+            int positionId,
+            int? competenceLineId = null)
+        {
+            var matrix = await _dataService.GetActiveSkillPositionsByPositionIdAsync(positionId);
+            var skillIds = matrix.Select(row => row.SkillId).Distinct().ToList();
+
+            var bySkill = await _questionRepository.GetQuestionsBySkillIdsAsync(skillIds, evaluationTypeId);
+
+            var legacy = await _questionRepository.FindAsync(new EvaluationQuestionQuery(
+                EvaluationTypeId: evaluationTypeId,
+                PositionId: positionId,
+                ActiveOnly: true));
+
+            var questions = bySkill
+                .Concat(legacy.Where(q => q.SkillId is null or <= 0))
+                .GroupBy(q => q.questionId)
+                .Select(group => group.First());
+
+            if (competenceLineId is > 0)
+            {
+                var skillIdForLine = await ResolveSkillIdForCompetenceLineAsync(competenceLineId.Value);
+
+                questions = questions.Where(q =>
+                    q.CompetenceLineId == competenceLineId
+                    || (skillIdForLine is > 0 && q.SkillId == skillIdForLine));
             }
 
-            return await GetEvaluationQuestionsAsync(filter.EvaluationTypeId, filter.PositionId);
+            return questions.ToList();
+        }
+
+        /// <summary>
+        /// Questions à proposer au planificateur pour un poste, enrichies de leur place dans
+        /// le référentiel et de la ligne de questionnaire résolue (créée si besoin) : le
+        /// wizard peut ainsi les regrouper par domaine puis compétence, et la notation
+        /// conserve son indexation par <c>CompetenceLineId</c>.
+        /// </summary>
+        public async Task<IReadOnlyList<PlanningQuestionDto>> GetPlanningQuestionsAsync(
+            int evaluationTypeId,
+            int positionId,
+            int? competenceLineId = null)
+        {
+            var questions = await GetQuestionsForPositionMatrixAsync(evaluationTypeId, positionId, competenceLineId);
+
+            var resolvedLines = new Dictionary<int, int?>();
+            var planningQuestions = new List<PlanningQuestionDto>();
+
+            foreach (var question in questions.OrderBy(q => q.Skill?.Family?.Domain?.SortOrder ?? int.MaxValue)
+                                              .ThenBy(q => q.Skill?.Family?.SortOrder ?? int.MaxValue)
+                                              .ThenBy(q => q.Skill?.Name)
+                                              .ThenBy(q => q.questionId))
+            {
+                var lineId = question.CompetenceLineId;
+
+                if (lineId is not > 0 && question.SkillId is > 0)
+                {
+                    if (!resolvedLines.TryGetValue(question.SkillId.Value, out var cached))
+                    {
+                        cached = _competenceLineService is null
+                            ? null
+                            : (await _competenceLineService.EnsureForPositionSkillAsync(positionId, question.SkillId.Value))
+                                ?.CompetenceLineId;
+                        resolvedLines[question.SkillId.Value] = cached;
+                    }
+
+                    lineId = cached;
+                }
+
+                planningQuestions.Add(new PlanningQuestionDto(
+                    question.questionId,
+                    question.question,
+                    question.evaluationTypeId,
+                    question.SkillId,
+                    question.Skill?.Name,
+                    question.Skill?.FamilyId,
+                    question.Skill?.Family?.Name,
+                    question.Skill?.Family?.DomainSkillId,
+                    question.Skill?.Family?.Domain?.Name,
+                    question.positionId,
+                    lineId,
+                    question.ResponseTypeId,
+                    question.ResponseType?.TypeName));
+            }
+
+            return planningQuestions;
+        }
+
+        private async Task<int?> ResolveSkillIdForCompetenceLineAsync(int competenceLineId)
+        {
+            var line = await _dataService.GetCompetenceLineByIdAsync(competenceLineId);
+            if (line is null)
+            {
+                return null;
+            }
+
+            var matrixRow = await _dataService.GetSkillPositionByIdAsync(line.SkillPositionId);
+            return matrixRow?.SkillId;
         }
 
         public async Task<PagedResult<EvaluationQuestionSummaryDto>> GetQuestionSummariesAsync(PageRequest page)
@@ -237,6 +475,12 @@ namespace SoftGcc.Application.Services.Evaluations
                 question.question,
                 question.evaluationTypeId,
                 question.EvaluationType?.Designation,
+                question.SkillId,
+                question.Skill?.Name,
+                question.Skill?.FamilyId,
+                question.Skill?.Family?.Name,
+                question.Skill?.Family?.DomainSkillId,
+                question.Skill?.Family?.Domain?.Name,
                 question.positionId,
                 question.Position?.PositionName,
                 question.CompetenceLineId,
@@ -295,6 +539,7 @@ namespace SoftGcc.Application.Services.Evaluations
                 // Mettre à jour uniquement les champs simples, pas les relations
                 existingQuestion.question = question.question;
                 existingQuestion.evaluationTypeId = question.evaluationTypeId;
+                existingQuestion.SkillId = question.SkillId;
                 existingQuestion.positionId = question.positionId;
                 existingQuestion.CompetenceLineId = question.CompetenceLineId;
                 existingQuestion.ResponseTypeId = question.ResponseTypeId;
@@ -322,9 +567,11 @@ namespace SoftGcc.Application.Services.Evaluations
             return true;
         }
 
-        private async Task<IEnumerable<EvaluationQuestion>> GetEvaluationQuestionsAsync(int evaluationTypeId, int positionId)
+        private async Task<IEnumerable<EvaluationQuestion>> GetEvaluationQuestionsAsync(int evaluationTypeId, int? positionId)
         {
-            return await _questionRepository.GetQuestionsByEvaluationTypeAndPostAsync(evaluationTypeId, positionId);
+            return await _questionRepository.FindAsync(new EvaluationQuestionQuery(
+                EvaluationTypeId: evaluationTypeId,
+                PositionId: positionId));
         }
 
         public async Task<IEnumerable<EvaluationType>> GetEvaluationTypeAsync()
@@ -1042,7 +1289,8 @@ namespace SoftGcc.Application.Services.Evaluations
                     var attachedCount = 0;
                     foreach (var question in employeeQuestion.SelectedQuestions)
                     {
-                        var competenceLineId = await ResolveCompetenceLineIdAsync(question.QuestionId, question.CompetenceLineId);
+                        var competenceLineId = await ResolveCompetenceLineIdAsync(
+                            question.QuestionId, question.CompetenceLineId, employeeQuestion.PositionId);
                         if (competenceLineId <= 0)
                         {
                             continue;
@@ -1089,7 +1337,15 @@ namespace SoftGcc.Application.Services.Evaluations
             return question.CompetenceLineId.Value;
         }
 
-        private async Task<int> ResolveCompetenceLineIdAsync(int questionId, int? requestedCompetenceLineId)
+        /// <summary>
+        /// La notation est indexée par ligne de questionnaire. Une question rattachée à une
+        /// compétence sans poste n'en possède pas : on la résout alors depuis la matrice du
+        /// poste de l'employé, en créant la ligne au besoin.
+        /// </summary>
+        private async Task<int> ResolveCompetenceLineIdAsync(
+            int questionId,
+            int? requestedCompetenceLineId,
+            int positionId)
         {
             if (requestedCompetenceLineId is > 0)
             {
@@ -1097,7 +1353,21 @@ namespace SoftGcc.Application.Services.Evaluations
             }
 
             var question = await _evaluationQuestion.GetByIdAsync(questionId);
-            return question?.CompetenceLineId is > 0 ? question.CompetenceLineId.Value : 0;
+            if (question?.CompetenceLineId is > 0)
+            {
+                return question.CompetenceLineId.Value;
+            }
+
+            if (question?.SkillId is > 0 && positionId > 0 && _competenceLineService is not null)
+            {
+                var line = await _competenceLineService.EnsureForPositionSkillAsync(positionId, question.SkillId.Value);
+                if (line?.CompetenceLineId is > 0)
+                {
+                    return line.CompetenceLineId;
+                }
+            }
+
+            return 0;
         }
 
         public async Task<IEnumerable<EvaluationSelectedQuestions>> GetSelectedQuestionsAsync(int evaluationId)
@@ -1276,6 +1546,7 @@ namespace SoftGcc.Application.Services.Evaluations
                 text = q.question,
                 positionId = q.positionId,
                 competenceLineId = q.CompetenceLineId,
+                skillId = q.SkillId,
                 responseType = responseTypeDict.ContainsKey(q.ResponseTypeId) ? responseTypeDict[q.ResponseTypeId] : "TEXT",
                 maxTimeInMinutes = timeConfigs.ContainsKey(q.questionId) ? timeConfigs[q.questionId] : 15
             }).ToList();
@@ -1309,15 +1580,31 @@ namespace SoftGcc.Application.Services.Evaluations
         // Get selected questions and responses for an evaluation (from EvaluationController)
         public async Task<IEnumerable<object>> GetSelectedQuestionsAndResponsesAsync(int evaluationId)
         {
-            // Get selected questions with question data
+            // La compétence de la question porte son domaine et sa famille ; les questions
+            // historiques la retrouvent via leur ligne de questionnaire (repli en _legacy).
             var selectedRows = await _dataService.ExecuteReaderAsync(@"
                 SELECT esq.QuestionId, eq.question,
                        CASE WHEN esq.CompetenceLineId > 0 THEN esq.CompetenceLineId ELSE eq.CompetenceLineId END AS CompetenceLineId,
                        eq.ResponseTypeId,
-                       er.ResponseValue, er.IsCorrect, er.ResponseId
+                       er.ResponseValue, er.IsCorrect, er.ResponseId,
+                       COALESCE(sk.Skill_id, sk_legacy.Skill_id)                       AS SkillId,
+                       COALESCE(sk.Skill_name, sk_legacy.Skill_name)                   AS SkillName,
+                       COALESCE(sf.Family_id, sf_legacy.Family_id)                     AS FamilyId,
+                       COALESCE(sf.Name, sf_legacy.Name)                               AS FamilyName,
+                       COALESCE(ds.Domain_skill_id, ds_legacy.Domain_skill_id)         AS DomainId,
+                       COALESCE(ds.Domain_skill_name, ds_legacy.Domain_skill_name)     AS DomainName
                 FROM Evaluation_Selected_Questions esq
                 INNER JOIN Evaluation_questions eq ON esq.QuestionId = eq.Question_id
                 LEFT JOIN Evaluation_Responses er ON er.EvaluationId = @p0 AND er.QuestionId = eq.Question_id
+                LEFT JOIN Skill sk         ON sk.Skill_id = eq.SkillId
+                LEFT JOIN Skill_family sf  ON sf.Family_id = sk.Family_id
+                LEFT JOIN Domain_skill ds  ON ds.Domain_skill_id = sf.Domain_skill_id
+                LEFT JOIN Competence_Lines cl
+                    ON cl.CompetenceLineId = CASE WHEN esq.CompetenceLineId > 0 THEN esq.CompetenceLineId ELSE eq.CompetenceLineId END
+                LEFT JOIN Skill_position sp       ON sp.Skill_position_id = cl.SkillPositionId
+                LEFT JOIN Skill sk_legacy         ON sk_legacy.Skill_id = sp.Skill_id
+                LEFT JOIN Skill_family sf_legacy  ON sf_legacy.Family_id = sk_legacy.Family_id
+                LEFT JOIN Domain_skill ds_legacy  ON ds_legacy.Domain_skill_id = sf_legacy.Domain_skill_id
                 WHERE esq.EvaluationId = @p0", evaluationId);
 
             // Get time configs
@@ -1366,35 +1653,13 @@ namespace SoftGcc.Application.Services.Evaluations
                     .ToDictionary(g => g.Key, g => g.First()["Description"]?.ToString() ?? "Non spécifiée");
             }
 
-            // Get option IDs from responses for QCM
-            var optionIds = new List<int>();
-            foreach (var row in selectedRows)
+            var optionTexts = new Dictionary<int, string>();
+            if (questionIds.Count > 0)
             {
-                var responseValue = row.GetValueOrDefault("ResponseValue")?.ToString();
-                if (responseValue != null && int.TryParse(responseValue, out int optId))
-                {
-                    optionIds.Add(optId);
-                }
-            }
-
-            var options = new Dictionary<int, string>();
-            if (optionIds.Count > 0)
-            {
-                var optPlaceholders = string.Join(",", optionIds.Select((_, i) => $"@p{i}"));
-                var optRows = await _dataService.ExecuteReaderAsync(
-                    $"SELECT optionId, optionText FROM evaluation_question_options WHERE optionId IN ({optPlaceholders})",
-                    optionIds.Cast<object>().ToArray());
-                options = optRows
-                    .Select(r =>
-                    {
-                        r.TryGetValue("optionId", out var idObj);
-                        r.TryGetValue("optionText", out var textObj);
-                        var id = idObj is null or DBNull ? 0 : Convert.ToInt32(idObj);
-                        return new { Id = id, Text = textObj?.ToString() ?? "" };
-                    })
-                    .Where(o => o.Id > 0)
-                    .GroupBy(o => o.Id)
-                    .ToDictionary(g => g.Key, g => g.First().Text);
+                var optionRows = await _dataService.GetActiveOptionsByQuestionIdsAsync(questionIds);
+                optionTexts = optionRows
+                    .GroupBy(option => option.OptionId)
+                    .ToDictionary(group => group.Key, group => group.First().OptionText);
             }
 
             var result = new List<object>();
@@ -1414,9 +1679,15 @@ namespace SoftGcc.Application.Services.Evaluations
                 }
 
                 string formattedResponse = responseValue ?? string.Empty;
-                if (responseType == "QCM" && responseValue != null && int.TryParse(responseValue, out int optId) && options.TryGetValue(optId, out var optText))
+                if (responseType == "QCM" && !string.IsNullOrWhiteSpace(responseValue))
                 {
-                    formattedResponse = optText!;
+                    var selectedIds = QcmAnswerScoring.ParseSelectedOptionIds(responseValue);
+                    if (selectedIds.Count > 0)
+                    {
+                        formattedResponse = string.Join(
+                            ", ",
+                            selectedIds.Select(id => optionTexts.TryGetValue(id, out var label) ? label : id.ToString()));
+                    }
                 }
 
                 int maxTime = timeConfigs.ContainsKey(questionId) ? timeConfigs[questionId] : 15;
@@ -1427,6 +1698,12 @@ namespace SoftGcc.Application.Services.Evaluations
                     QuestionText = row["question"]?.ToString() ?? "",
                     CompetenceLineId = clIdObj != DBNull.Value ? Convert.ToInt32(clIdObj) : (int?)null,
                     CompetenceName = competenceName,
+                    SkillId = ReadNullableInt(row, "SkillId"),
+                    SkillName = ReadString(row, "SkillName"),
+                    FamilyId = ReadNullableInt(row, "FamilyId"),
+                    FamilyName = ReadString(row, "FamilyName"),
+                    DomainId = ReadNullableInt(row, "DomainId"),
+                    DomainName = ReadString(row, "DomainName"),
                     ResponseType = responseType,
                     ResponseValue = formattedResponse,
                     IsCorrect = isCorrect,
@@ -1436,6 +1713,16 @@ namespace SoftGcc.Application.Services.Evaluations
 
             return result;
         }
+
+        private static int? ReadNullableInt(IDictionary<string, object> row, string column) =>
+            row.TryGetValue(column, out var value) && value is not null && value != DBNull.Value
+                ? Convert.ToInt32(value)
+                : null;
+
+        private static string? ReadString(IDictionary<string, object> row, string column) =>
+            row.TryGetValue(column, out var value) && value is not null && value != DBNull.Value
+                ? value.ToString()
+                : null;
 
         // Submit evaluation - complex logic moved from controller
         public async Task SubmitEvaluationAsync(int evaluationId, EvaluationSubmissionDto submission)
@@ -1465,17 +1752,15 @@ namespace SoftGcc.Application.Services.Evaluations
                     throw new Exception("Les dates doivent être supérieures ou égales au 1er janvier 1753.");
                 }
 
-                // Vérifier si la réponse est correcte
                 bool isCorrect = false;
-                if (response.ResponseType == "QCM")
+                if (string.Equals(response.ResponseType, "QCM", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (int.TryParse(response.ResponseValue, out int optionId))
-                    {
-                        var count = await _dataService.ExecuteScalarAsync(
-                            "SELECT COUNT(1) FROM evaluation_question_options WHERE questionId = @p0 AND optionId = @p1 AND isCorrect = 1",
-                            response.QuestionId, optionId);
-                        isCorrect = count > 0;
-                    }
+                    var correctIds = (await _dataService.GetActiveOptionsByQuestionIdAsync(response.QuestionId))
+                        .Where(option => option.IsCorrect)
+                        .Select(option => option.OptionId);
+                    isCorrect = QcmAnswerScoring.IsExactMatch(
+                        QcmAnswerScoring.ParseSelectedOptionIds(response.ResponseValue),
+                        correctIds);
                 }
 
                 if (existingByQuestion.TryGetValue(response.QuestionId, out var existingResponseId))

@@ -59,6 +59,12 @@ export interface SelectedQuestion {
   questionText: string;
   competenceLineId: number | null;
   competenceName: string;
+  skillId: number | null;
+  skillName: string | null;
+  familyId: number | null;
+  familyName: string | null;
+  domainId: number | null;
+  domainName: string | null;
   responseType: string | null;
   responseValue: string | null;
   isCorrect: boolean;
@@ -70,6 +76,13 @@ export interface QuestionOption {
   questionId: number;
   optionText: string;
   isCorrect: boolean;
+}
+
+export interface SettingsQuestionOption {
+  optionId: number | null;
+  optionText: string;
+  isCorrect: boolean;
+  sortOrder: number;
 }
 
 export interface ReferenceAnswer {
@@ -213,6 +226,44 @@ export function averageOf(ratings: Record<number, number>): number {
   return Math.round((values.reduce((sum, n) => sum + n, 0) / values.length) * 100) / 100;
 }
 
+export function isQcmResponseType(responseType: string | null | undefined): boolean {
+  return (responseType ?? '').trim().toUpperCase() === 'QCM';
+}
+
+export function parseQcmOptionIds(value: string | null | undefined): number[] {
+  const raw = String(value ?? '').trim();
+  if (!raw || raw === '[]') return [];
+  if (raw.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return [];
+      return [...new Set(parsed.map((item) => Number(item)).filter((id) => Number.isFinite(id) && id > 0))];
+    } catch {
+      return [];
+    }
+  }
+  return [
+    ...new Set(
+      raw
+        .split(',')
+        .map((part) => Number(part.trim()))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  ];
+}
+
+export function averageOfRateableQuestions(
+  questions: Array<{ questionId: number; responseType: string | null }>,
+  ratings: Record<number, number>,
+): number {
+  const values = questions
+    .filter((question) => !isQcmResponseType(question.responseType))
+    .map((question) => ratings[question.questionId])
+    .filter((score): score is number => Number.isFinite(score));
+  if (!values.length) return 0;
+  return Math.round((values.reduce((sum, n) => sum + n, 0) / values.length) * 100) / 100;
+}
+
 export function lookupById<T>(map: Record<string, T> | Record<number, T> | null | undefined, id: number): T | undefined {
   if (!map) return undefined;
   const record = map as Record<string, T>;
@@ -279,12 +330,46 @@ export interface CompetenceLineOption {
   skillName: string;
   description: string | null;
   positionId: number;
+  skillId?: number | null;
+  domainId?: number | null;
+  domainName?: string | null;
+  familyId?: number | null;
+  familyName?: string | null;
 }
 
 export interface PlanningQuestion {
   questionId: number;
   question: string;
   competenceLineId: number | null;
+  skillId: number | null;
+  skillName: string | null;
+  familyId: number | null;
+  familyName: string | null;
+  domainId: number | null;
+  domainName: string | null;
+  responseTypeId: number;
+  responseTypeName: string;
+}
+
+export interface CompetenceSkillNode {
+  skillId: number;
+  skillCode: string;
+  skillName: string;
+  category: string;
+}
+
+export interface CompetenceFamilyNode {
+  familyId: number;
+  familyCode: string;
+  familyName: string;
+  skills: CompetenceSkillNode[];
+}
+
+export interface CompetenceDomainNode {
+  domainId: number;
+  domainCode: string;
+  domainName: string;
+  families: CompetenceFamilyNode[];
 }
 
 export interface DurationRecommendation {
@@ -1068,12 +1153,20 @@ export interface SettingsQuestion {
   question: string;
   evaluationTypeId: number;
   evaluationTypeName: string;
-  positionId: number;
+  skillId: number | null;
+  skillName: string | null;
+  familyId: number | null;
+  familyName: string | null;
+  domainId: number | null;
+  domainName: string | null;
+  positionId: number | null;
   positionName: string;
   competenceLineId: number | null;
   competenceName: string | null;
   responseTypeId: number;
   responseTypeName: string;
+  optionCount: number;
+  correctOptionCount: number;
   state: number;
 }
 
@@ -1081,10 +1174,12 @@ export interface SettingsQuestionPayload {
   questionId?: number | null;
   question: string;
   evaluationTypeId: number;
-  positionId: number;
+  skillId: number;
+  positionId: number | null;
   competenceLineId: number | null;
   responseTypeId: number;
   state: number;
+  options: SettingsQuestionOption[];
 }
 
 export interface ResponseTypeOption {

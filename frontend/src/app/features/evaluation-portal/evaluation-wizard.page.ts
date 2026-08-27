@@ -3,10 +3,10 @@ import { Component, computed, ElementRef, inject, OnDestroy, OnInit, signal, vie
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatRadioModule } from '@angular/material/radio';
 import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { Router } from '@angular/router';
 import { catchError, forkJoin, interval, of } from 'rxjs';
@@ -17,7 +17,9 @@ import { GccStatusTag } from '../../ui/gcc-status-tag';
 import {
   EvaluationDetails,
   initialsOf,
+  isQcmResponseType,
   lookupById,
+  parseQcmOptionIds,
   QuestionOption,
   SelectedQuestion,
 } from '../evaluations/evaluation.models';
@@ -34,9 +36,9 @@ import { EvaluationSubmitDialog } from './evaluation-submit.dialog';
     GccPageHeader,
     GccStatusTag,
     MatButtonModule,
+    MatCheckboxModule,
     MatIconModule,
     MatProgressBarModule,
-    MatRadioModule,
     MatStepperModule,
   ],
   host: { class: 'block min-w-0 w-full' },
@@ -131,20 +133,18 @@ import { EvaluationSubmitDialog } from './evaluation-submit.dialog';
                 </p>
 
                 @if (isQcm(question)) {
-                  <mat-radio-group
-                    class="mt-5 flex flex-col gap-2"
-                    [ngModel]="answers()[question.questionId] ?? ''"
-                    (ngModelChange)="setAnswer(question.questionId, $event)"
-                  >
+                  <div class="mt-5 flex flex-col gap-2" role="group" [attr.aria-label]="'Choix de la question ' + (i + 1)">
+                    <p class="text-xs font-medium text-slate-500">Cochez une ou plusieurs réponses.</p>
                     @for (option of optionsOf(question.questionId); track optionValue(option)) {
-                      <mat-radio-button
+                      <mat-checkbox
                         class="gcc-portal-choice !whitespace-normal"
-                        [value]="optionValue(option)"
+                        [checked]="isOptionChecked(question.questionId, option)"
+                        (change)="toggleOption(question.questionId, option, $event.checked)"
                       >
                         {{ option.optionText }}
-                      </mat-radio-button>
+                      </mat-checkbox>
                     }
-                  </mat-radio-group>
+                  </div>
                 } @else {
                   <label class="mt-5 block">
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">
@@ -328,23 +328,38 @@ export class EvaluationWizardPage implements OnInit, OnDestroy {
   }
 
   isQcm(question: SelectedQuestion): boolean {
-    return (question.responseType ?? '').trim().toUpperCase() === 'QCM';
+    return isQcmResponseType(question.responseType);
   }
 
   isAnswered(questionId: number): boolean {
-    return this.hasValue(this.answers()[questionId]);
+    const question = this.questions().find((item) => item.questionId === questionId);
+    const value = this.answers()[questionId];
+    if (question && this.isQcm(question)) {
+      return parseQcmOptionIds(value).length > 0;
+    }
+    return this.hasValue(value);
   }
 
   optionsOf(questionId: number): QuestionOption[] {
-    const stored = lookupById(this.options(), questionId) ?? [];
-    if (stored.length) return stored;
-    const question = this.questions().find((item) => item.questionId === questionId);
-    if (!question || !this.isQcm(question)) return [];
-    return qcmChoices(questionId, {});
+    return lookupById(this.options(), questionId) ?? [];
   }
 
   optionValue(option: QuestionOption): string {
-    return optionChoiceValue(option);
+    return option.optionId > 0 ? `${option.optionId}` : option.optionText;
+  }
+
+  isOptionChecked(questionId: number, option: QuestionOption): boolean {
+    if (option.optionId <= 0) return false;
+    return parseQcmOptionIds(this.answers()[questionId]).includes(option.optionId);
+  }
+
+  toggleOption(questionId: number, option: QuestionOption, checked: boolean): void {
+    if (option.optionId <= 0) return;
+    const current = parseQcmOptionIds(this.answers()[questionId]);
+    const next = checked
+      ? [...current.filter((id) => id !== option.optionId), option.optionId]
+      : current.filter((id) => id !== option.optionId);
+    this.setAnswer(questionId, serializeSelectedOptionIds(next));
   }
 
   setAnswer(questionId: number, value: string): void {
@@ -513,32 +528,25 @@ export class EvaluationWizardPage implements OnInit, OnDestroy {
   ): string {
     const question = questions.find((item) => item.questionId === questionId);
     if (!question || !this.isQcm(question)) return raw;
-    const list = qcmChoices(questionId, options);
-    if (list.some((option) => optionChoiceValue(option) === raw)) return raw;
-    const byText = list.find((option) => option.optionText.trim() === raw.trim());
-    return byText ? optionChoiceValue(byText) : raw;
+    const list = lookupById(options, questionId) ?? [];
+    const known = new Set(list.map((option) => option.optionId).filter((id) => id > 0));
+    let selected = parseQcmOptionIds(raw).filter((id) => !known.size || known.has(id));
+    if (!selected.length && raw.trim()) {
+      const byText = list.find((option) => option.optionText.trim() === raw.trim());
+      if (byText && byText.optionId > 0) selected = [byText.optionId];
+    }
+    return serializeSelectedOptionIds(selected);
   }
 
   private hasValue(value: string | undefined): boolean {
-    return String(value ?? '').trim().length > 0;
+    const trimmed = String(value ?? '').trim();
+    return trimmed.length > 0 && trimmed !== '[]';
   }
 }
 
-const FALLBACK_QCM_LABELS = ['Débutant', 'Intermédiaire', 'Avancé', 'Expert'] as const;
-
-function qcmChoices(questionId: number, options: Record<number, QuestionOption[]>): QuestionOption[] {
-  const stored = lookupById(options, questionId) ?? [];
-  if (stored.length) return stored;
-  return FALLBACK_QCM_LABELS.map((optionText, index) => ({
-    optionId: -(index + 1),
-    questionId,
-    optionText,
-    isCorrect: false,
-  }));
-}
-
-function optionChoiceValue(option: QuestionOption): string {
-  return option.optionId > 0 ? `${option.optionId}` : option.optionText;
+function serializeSelectedOptionIds(ids: number[]): string {
+  const unique = [...new Set(ids.filter((id) => id > 0))].sort((left, right) => left - right);
+  return unique.length ? JSON.stringify(unique) : '';
 }
 
 function toSqlIso(value: Date): string {

@@ -13,11 +13,13 @@ import { GccSelect } from '../../ui/gcc-select';
 import { GccStatusTag } from '../../ui/gcc-status-tag';
 import { GccSelectOption } from '../../ui/gcc.types';
 import {
+  CompetenceDomainNode,
   PositionOption,
   ResponseTypeOption,
-  SettingsCompetenceLine,
   SettingsEvalType,
   SettingsQuestion,
+  SettingsQuestionOption,
+  isQcmResponseType,
   responseTypeMeta,
 } from './evaluation.models';
 import { EvaluationSettingsService } from './evaluation-settings.service';
@@ -52,6 +54,22 @@ import { SettingsQuestionDialog } from './settings-question.dialog';
       (reset)="resetFilters()"
     >
       <gcc-select class="w-full shrink-0 lg:w-48" [options]="typeOptions()" [(value)]="typeFilter" placeholder="Tous les types" />
+      <gcc-select
+        class="w-full shrink-0 lg:w-48"
+        [options]="domainOptions()"
+        [(value)]="domainFilter"
+        placeholder="Tous les domaines"
+        [searchable]="true"
+        searchPlaceholder="Rechercher un domaine…"
+      />
+      <gcc-select
+        class="w-full shrink-0 lg:w-48"
+        [options]="familyOptions()"
+        [(value)]="familyFilter"
+        placeholder="Toutes les familles"
+        [searchable]="true"
+        searchPlaceholder="Rechercher une famille…"
+      />
       <gcc-select
         class="w-full shrink-0 lg:w-48"
         [options]="positionOptions()"
@@ -135,16 +153,33 @@ import { SettingsQuestionDialog } from './settings-question.dialog';
                         <span class="truncate">{{ row.evaluationTypeName }}</span>
                       </span>
                     }
+                    @if (row.domainName) {
+                      <span class="inline-flex max-w-52 items-center gap-1 rounded-lg bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-violet-400">account_tree</mat-icon>
+                        <span class="truncate">{{ row.domainName }}</span>
+                      </span>
+                    }
+                    @if (row.skillName) {
+                      <span class="inline-flex max-w-72 items-center gap-1 rounded-lg bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-accent">psychology</mat-icon>
+                        <span class="truncate">{{ row.skillName }}</span>
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-amber-500">warning</mat-icon>
+                        Compétence à définir
+                      </span>
+                    }
                     @if (row.positionName) {
                       <span class="inline-flex max-w-52 items-center gap-1 rounded-lg bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
                         <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-slate-400">work</mat-icon>
                         <span class="truncate">{{ row.positionName }}</span>
                       </span>
                     }
-                    @if (row.competenceName) {
-                      <span class="inline-flex max-w-72 items-center gap-1 rounded-lg bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-accent">psychology</mat-icon>
-                        <span class="truncate">{{ row.competenceName }}</span>
+                    @if (isQcm(row) && row.optionCount > 0) {
+                      <span class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-emerald-500">checklist</mat-icon>
+                        {{ row.optionCount }} choix · {{ row.correctOptionCount }} bonne{{ row.correctOptionCount > 1 ? 's' : '' }}
                       </span>
                     }
                     @if (isLongQuestion(row.question)) {
@@ -230,6 +265,8 @@ export class SettingsQuestionsPanel implements OnInit {
   readonly expanded = signal<number[]>([]);
   readonly search = signal('');
   readonly typeFilter = signal<string | null>('all');
+  readonly domainFilter = signal<string | null>('all');
+  readonly familyFilter = signal<string | null>('all');
   readonly positionFilter = signal<string | null>('all');
   readonly responseFilter = signal<string | null>('all');
   readonly pageIndex = signal(0);
@@ -239,7 +276,7 @@ export class SettingsQuestionsPanel implements OnInit {
   readonly allRows = signal<SettingsQuestion[]>([]);
   readonly types = signal<SettingsEvalType[]>([]);
   readonly positions = signal<PositionOption[]>([]);
-  readonly competenceLines = signal<SettingsCompetenceLine[]>([]);
+  readonly domains = signal<CompetenceDomainNode[]>([]);
   readonly responseTypes = signal<ResponseTypeOption[]>([]);
   readonly selected = signal<number[]>([]);
   readonly responseTypeMeta = responseTypeMeta;
@@ -248,6 +285,28 @@ export class SettingsQuestionsPanel implements OnInit {
     { label: 'Tous les types', value: 'all' },
     ...this.types().map((item) => ({ label: item.designation, value: String(item.evaluationTypeId) })),
   ]);
+  readonly domainOptions = computed<GccSelectOption[]>(() => [
+    { label: 'Tous les domaines', value: 'all' },
+    ...this.domains().map((item) => ({ label: item.domainName, value: String(item.domainId) })),
+  ]);
+  readonly familyOptions = computed<GccSelectOption[]>(() => {
+    const domain = this.domainFilter();
+    const families =
+      domain && domain !== 'all'
+        ? this.domains().find((item) => item.domainId === Number(domain))?.families ?? []
+        : this.domains().flatMap((item) => item.families);
+    const seen = new Set<number>();
+    return [
+      { label: 'Toutes les familles', value: 'all' },
+      ...families
+        .filter((item) => {
+          if (seen.has(item.familyId)) return false;
+          seen.add(item.familyId);
+          return true;
+        })
+        .map((item) => ({ label: item.familyName, value: String(item.familyId) })),
+    ];
+  });
   readonly positionOptions = computed<GccSelectOption[]>(() => [
     { label: 'Tous les postes', value: 'all' },
     ...this.positions().map((item) => ({ label: item.positionName, value: String(item.positionId) })),
@@ -260,10 +319,14 @@ export class SettingsQuestionsPanel implements OnInit {
   readonly filteredRows = computed(() => {
     const query = this.search().trim().toLowerCase();
     const type = this.typeFilter();
+    const domain = this.domainFilter();
+    const family = this.familyFilter();
     const position = this.positionFilter();
     const response = this.responseFilter();
     return this.allRows().filter((row) => {
       if (type && type !== 'all' && row.evaluationTypeId !== Number(type)) return false;
+      if (domain && domain !== 'all' && row.domainId !== Number(domain)) return false;
+      if (family && family !== 'all' && row.familyId !== Number(family)) return false;
       if (position && position !== 'all' && row.positionId !== Number(position)) return false;
       if (response && response !== 'all' && row.responseTypeId !== Number(response)) return false;
       if (query && !row.question.toLowerCase().includes(query)) return false;
@@ -311,6 +374,8 @@ export class SettingsQuestionsPanel implements OnInit {
     return Boolean(
       this.search().trim() ||
         (this.typeFilter() && this.typeFilter() !== 'all') ||
+        (this.domainFilter() && this.domainFilter() !== 'all') ||
+        (this.familyFilter() && this.familyFilter() !== 'all') ||
         (this.positionFilter() && this.positionFilter() !== 'all') ||
         (this.responseFilter() && this.responseFilter() !== 'all'),
     );
@@ -324,6 +389,8 @@ export class SettingsQuestionsPanel implements OnInit {
   resetFilters(): void {
     this.search.set('');
     this.typeFilter.set('all');
+    this.domainFilter.set('all');
+    this.familyFilter.set('all');
     this.positionFilter.set('all');
     this.responseFilter.set('all');
     this.pageIndex.set(0);
@@ -387,30 +454,43 @@ export class SettingsQuestionsPanel implements OnInit {
     this.selected.set([]);
   }
 
+  isQcm(row: SettingsQuestion): boolean {
+    return isQcmResponseType(row.responseTypeName) || row.responseTypeId === 2;
+  }
+
   openDialog(row?: SettingsQuestion): void {
-    this.dialog
-      .open(SettingsQuestionDialog, {
-        width: '40rem',
-        maxWidth: '95vw',
-        data: {
-          question: row ?? null,
-          types: this.types(),
-          positions: this.positions(),
-          competenceLines: this.competenceLines(),
-          responseTypes: this.responseTypes(),
-        },
-      })
-      .afterClosed()
-      .subscribe((payload) => {
-        if (!payload) return;
-        const request = row
-          ? this.settings.updateQuestion(row.questionId, payload)
-          : this.settings.createQuestion(payload);
-        request.subscribe({
-          next: () => this.reload(),
-          error: () => this.error.set('L’enregistrement a échoué. Vérifiez les champs et vos droits.'),
+    const open = (options: SettingsQuestionOption[]) => {
+      this.dialog
+        .open(SettingsQuestionDialog, {
+          width: '44rem',
+          maxWidth: '95vw',
+          data: {
+            question: row ?? null,
+            types: this.types(),
+            positions: this.positions(),
+            domains: this.domains(),
+            responseTypes: this.responseTypes(),
+            options,
+          },
+        })
+        .afterClosed()
+        .subscribe((payload) => {
+          if (!payload) return;
+          const request = row
+            ? this.settings.updateQuestion(row.questionId, payload)
+            : this.settings.createQuestion(payload);
+          request.subscribe({
+            next: () => this.reload(),
+            error: () => this.error.set('L’enregistrement a échoué. Vérifiez les champs et vos droits.'),
+          });
         });
-      });
+    };
+
+    if (row?.questionId) {
+      this.settings.getQuestionOptions(row.questionId).subscribe((options) => open(options));
+      return;
+    }
+    open([]);
   }
 
   deleteOne(row: SettingsQuestion): void {
@@ -438,30 +518,55 @@ export class SettingsQuestionsPanel implements OnInit {
     this.clearSelection();
     forkJoin({
       questions: this.settings.getQuestions(),
+      summaries: this.settings.getQuestionOptionSummaries(),
       types: this.settings.getEvaluationTypes(),
       positions: this.settings.getPositions(),
-      competenceLines: this.settings.getCompetenceLines(),
+      domains: this.settings.getCompetenceDomains(),
       responseTypes: this.settings.getResponseTypes(),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ questions, types, positions, competenceLines, responseTypes }) => {
+        next: ({ questions, summaries, types, positions, domains, responseTypes }) => {
           const typeMap = new Map(types.map((item) => [item.evaluationTypeId, item.designation]));
           const positionMap = new Map(positions.map((item) => [item.positionId, item.positionName]));
           const responseMap = new Map(responseTypes.map((item) => [item.responseTypeId, item.typeName]));
-          const competenceMap = new Map(competenceLines.map((item) => [item.competenceLineId, item.skillName]));
+          const skillLookup = new Map<number, { skillName: string; familyId: number; familyName: string; domainId: number; domainName: string }>();
+          for (const domain of domains) {
+            for (const family of domain.families) {
+              for (const skill of family.skills) {
+                skillLookup.set(skill.skillId, {
+                  skillName: skill.skillName,
+                  familyId: family.familyId,
+                  familyName: family.familyName,
+                  domainId: domain.domainId,
+                  domainName: domain.domainName,
+                });
+              }
+            }
+          }
           this.allRows.set(
-            questions.map((row) => ({
-              ...row,
-              evaluationTypeName: row.evaluationTypeName || typeMap.get(row.evaluationTypeId) || '',
-              positionName: row.positionName || positionMap.get(row.positionId) || '',
-              responseTypeName: row.responseTypeName || responseMap.get(row.responseTypeId) || 'TEXT',
-              competenceName: row.competenceName || (row.competenceLineId ? competenceMap.get(row.competenceLineId) ?? null : null),
-            })),
+            questions.map((row) => {
+              const skill = row.skillId ? skillLookup.get(row.skillId) : undefined;
+              const summary = summaries[row.questionId];
+              return {
+                ...row,
+                evaluationTypeName: row.evaluationTypeName || typeMap.get(row.evaluationTypeId) || '',
+                positionName: row.positionName || (row.positionId ? positionMap.get(row.positionId) || '' : ''),
+                responseTypeName: row.responseTypeName || responseMap.get(row.responseTypeId) || 'TEXT',
+                skillName: row.skillName || skill?.skillName || row.competenceName,
+                familyId: row.familyId || skill?.familyId || null,
+                familyName: row.familyName || skill?.familyName || null,
+                domainId: row.domainId || skill?.domainId || null,
+                domainName: row.domainName || skill?.domainName || null,
+                competenceName: row.skillName || skill?.skillName || row.competenceName,
+                optionCount: summary?.optionCount ?? row.optionCount ?? 0,
+                correctOptionCount: summary?.correctCount ?? row.correctOptionCount ?? 0,
+              };
+            }),
           );
           this.types.set(types);
           this.positions.set(positions);
-          this.competenceLines.set(competenceLines);
+          this.domains.set(domains);
           this.responseTypes.set(responseTypes);
           this.loading.set(false);
         },

@@ -24,23 +24,27 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
 
         public async Task<List<EvaluationQuestion>> GetAllQuestionsWithIncludes()
         {
-            return await _context.evaluationQuestions
-                .Include(q => q.EvaluationType)
-                .Include(q => q.Position)
-                .Include(q => q.CompetenceLine)
-                .Include(q => q.ResponseType)
-                .ToListAsync();
+            return await QuestionsWithReferences().ToListAsync();
         }
 
         public async Task<EvaluationQuestion?> GetQuestionWithIncludes(int id)
         {
-            return await _context.evaluationQuestions
+            return await QuestionsWithReferences().FirstOrDefaultAsync(q => q.questionId == id);
+        }
+
+        /// <summary>
+        /// La chaîne Skill → Skill_family → Domain_skill porte le domaine et la famille de
+        /// la question : c'est l'axe d'organisation du référentiel de questions.
+        /// </summary>
+        private IQueryable<EvaluationQuestion> QuestionsWithReferences() =>
+            _context.evaluationQuestions
                 .Include(q => q.EvaluationType)
                 .Include(q => q.Position)
                 .Include(q => q.CompetenceLine)
                 .Include(q => q.ResponseType)
-                .FirstOrDefaultAsync(q => q.questionId == id);
-        }
+                .Include(q => q.Skill)
+                    .ThenInclude(s => s!.Family)
+                        .ThenInclude(f => f.Domain);
 
         public async Task UpdateQuestion(EvaluationQuestion question)
         {
@@ -240,6 +244,132 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 .FirstOrDefaultAsync(q => q.questionId == questionId);
         }
 
+        public async Task<List<EvaluationQuestionOptions>> GetActiveOptionsByQuestionIdAsync(int questionId)
+        {
+            return await ActiveOptionsQuery()
+                .Where(option => option.QuestionId == questionId)
+                .ToListAsync();
+        }
+
+        public async Task<List<EvaluationQuestionOptions>> GetActiveOptionsByQuestionIdsAsync(
+            IReadOnlyCollection<int> questionIds)
+        {
+            if (questionIds is null || questionIds.Count == 0)
+            {
+                return [];
+            }
+
+            return await ActiveOptionsQuery()
+                .Where(option => questionIds.Contains(option.QuestionId))
+                .ToListAsync();
+        }
+
+        public async Task<List<(int QuestionId, int OptionCount, int CorrectCount)>> GetQuestionOptionSummariesAsync()
+        {
+            var rows = await _context.evaluationQuestionOptions
+                .Where(option => option.State == 1)
+                .GroupBy(option => option.QuestionId)
+                .Select(group => new
+                {
+                    QuestionId = group.Key,
+                    OptionCount = group.Count(),
+                    CorrectCount = group.Count(option => option.IsCorrect)
+                })
+                .ToListAsync();
+
+            return rows
+                .Select(row => (row.QuestionId, row.OptionCount, row.CorrectCount))
+                .ToList();
+        }
+
+        public async Task ReplaceQuestionOptionsAsync(
+            int questionId,
+            IReadOnlyList<EvaluationQuestionOptions> options)
+        {
+            var existing = await _context.evaluationQuestionOptions
+                .Where(option => option.QuestionId == questionId)
+                .ToListAsync();
+
+            var keptIds = options
+                .Where(option => option.OptionId > 0)
+                .Select(option => option.OptionId)
+                .ToHashSet();
+
+            foreach (var row in existing)
+            {
+                if (!keptIds.Contains(row.OptionId))
+                {
+                    row.State = 0;
+                }
+            }
+
+            var sortOrder = 0;
+            foreach (var incoming in options)
+            {
+                sortOrder++;
+                var text = incoming.OptionText.Trim();
+                if (incoming.OptionId > 0)
+                {
+                    var row = existing.FirstOrDefault(option => option.OptionId == incoming.OptionId);
+                    if (row is null)
+                    {
+                        _context.evaluationQuestionOptions.Add(NewOption(questionId, text, incoming.IsCorrect, sortOrder));
+                        continue;
+                    }
+
+                    row.OptionText = text;
+                    row.IsCorrect = incoming.IsCorrect;
+                    row.SortOrder = sortOrder;
+                    row.State = 1;
+                }
+                else
+                {
+                    _context.evaluationQuestionOptions.Add(NewOption(questionId, text, incoming.IsCorrect, sortOrder));
+                }
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeactivateQuestionOptionsAsync(int questionId)
+        {
+            var existing = await _context.evaluationQuestionOptions
+                .Where(option => option.QuestionId == questionId && option.State != 0)
+                .ToListAsync();
+
+            if (existing.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var row in existing)
+            {
+                row.State = 0;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        private IQueryable<EvaluationQuestionOptions> ActiveOptionsQuery() =>
+            _context.evaluationQuestionOptions
+                .Where(option => option.State == 1)
+                .OrderBy(option => option.SortOrder)
+                .ThenBy(option => option.OptionId);
+
+        private static EvaluationQuestionOptions NewOption(
+            int questionId,
+            string optionText,
+            bool isCorrect,
+            int sortOrder) =>
+            new()
+            {
+                QuestionId = questionId,
+                OptionText = optionText,
+                IsCorrect = isCorrect,
+                SortOrder = sortOrder,
+                State = 1
+            };
+
         public async Task<EvaluationSelectedQuestions?> GetSelectedQuestionAsync(int questionnaireId, int questionId)
         {
             return await _context.evaluationSelectedQuestions
@@ -322,6 +452,47 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             return await _context.SkillPosition
                 .AsNoTracking()
                 .FirstOrDefaultAsync(sp => sp.SkillPositionId == skillPositionId);
+        }
+
+        public async Task<SkillPosition?> GetActiveSkillPositionAsync(int positionId, int skillId)
+        {
+            return await _context.SkillPosition
+                .AsNoTracking()
+                .Include(sp => sp.Skill)
+                .FirstOrDefaultAsync(sp =>
+                    sp.PositionId == positionId && sp.SkillId == skillId && sp.State > 0);
+        }
+
+        public async Task<List<SkillPosition>> GetActiveSkillPositionsByPositionIdAsync(int positionId)
+        {
+            return await _context.SkillPosition
+                .AsNoTracking()
+                .Include(sp => sp.Skill)
+                    .ThenInclude(s => s.Family)
+                        .ThenInclude(f => f.Domain)
+                .Where(sp => sp.PositionId == positionId && sp.State > 0)
+                .ToListAsync();
+        }
+
+        public async Task<Skill?> GetSkillByIdAsync(int skillId)
+        {
+            return await _context.Skill
+                .AsNoTracking()
+                .Include(s => s.Family)
+                    .ThenInclude(f => f.Domain)
+                .FirstOrDefaultAsync(s => s.SkillId == skillId);
+        }
+
+        public async Task<CompetenceLine?> FindCompetenceLineBySkillPositionAsync(int skillPositionId)
+        {
+            return await _context.competenceLines
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Skill)
+                .Include(cl => cl.SkillPosition)
+                    .ThenInclude(sp => sp.Position)
+                .OrderByDescending(cl => cl.State)
+                .ThenBy(cl => cl.CompetenceLineId)
+                .FirstOrDefaultAsync(cl => cl.SkillPositionId == skillPositionId);
         }
 
         public async Task CreateCompetenceLineAsync(CompetenceLine competenceLine)
@@ -703,16 +874,10 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
 
         public async Task<(List<EvaluationQuestion> Items, int TotalCount)> GetPaginatedQuestionsAsync(int pageNumber, int pageSize)
         {
-            var query = _context.evaluationQuestions
-                .Where(q => q.state == 1);
+            var totalCount = await _context.evaluationQuestions.CountAsync(q => q.state == 1);
 
-            var totalCount = await query.CountAsync();
-
-            var items = await query
-                .Include(q => q.Position)
-                .Include(q => q.EvaluationType)
-                .Include(q => q.CompetenceLine)
-                .Include(q => q.ResponseType)
+            var items = await QuestionsWithReferences()
+                .Where(q => q.state == 1)
                 .OrderByDescending(q => q.questionId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)

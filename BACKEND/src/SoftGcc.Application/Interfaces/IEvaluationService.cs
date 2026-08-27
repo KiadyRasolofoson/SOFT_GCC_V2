@@ -18,6 +18,15 @@ public interface IEvaluationService
 
     Task<IEnumerable<object>> GetSelectedQuestionsAndResponsesAsync(int evaluationId);
 
+    /// <summary>
+    /// Questions proposées à la planification pour un poste : compétences de la matrice
+    /// puis banque de questions, enrichies du domaine et de la famille.
+    /// </summary>
+    Task<IReadOnlyList<PlanningQuestionDto>> GetPlanningQuestionsAsync(
+        int evaluationTypeId,
+        int positionId,
+        int? competenceLineId = null);
+
     double CalculateAverageRating(Dictionary<int, int> ratings);
 
     Task<bool> SaveEvaluationResultsAsync(EvaluationResultsDto dto);

@@ -42,6 +42,11 @@ namespace SoftGcc.Domain.Interfaces.Data
         // EvaluationResponseService
         Task<List<EvaluationQuestion>> GetQuestionsWithTypeAsync(int questionnaireId);
         Task<EvaluationQuestion?> GetQuestionWithOptionsAsync(int questionId);
+        Task<List<EvaluationQuestionOptions>> GetActiveOptionsByQuestionIdAsync(int questionId);
+        Task<List<EvaluationQuestionOptions>> GetActiveOptionsByQuestionIdsAsync(IReadOnlyCollection<int> questionIds);
+        Task<List<(int QuestionId, int OptionCount, int CorrectCount)>> GetQuestionOptionSummariesAsync();
+        Task ReplaceQuestionOptionsAsync(int questionId, IReadOnlyList<EvaluationQuestionOptions> options);
+        Task DeactivateQuestionOptionsAsync(int questionId);
         Task<EvaluationSelectedQuestions?> GetSelectedQuestionAsync(int questionnaireId, int questionId);
         Task AddResponseAsync(EvaluationResponses response);
         Task SaveProgressAsync(EvaluationProgress progress);
@@ -56,6 +61,18 @@ namespace SoftGcc.Domain.Interfaces.Data
         Task<List<CompetenceLine>> GetCompetenceLinesByPositionIdAsync(int positionId);
         Task<List<CompetenceLine>> GetCompetenceLinesBySkillPositionIdAsync(int skillPositionId);
         Task<SkillPosition?> GetSkillPositionByIdAsync(int skillPositionId);
+
+        /// <summary>Ligne active de la matrice pour un couple (poste, compétence).</summary>
+        Task<SkillPosition?> GetActiveSkillPositionAsync(int positionId, int skillId);
+
+        /// <summary>Compétences attendues d'un poste (matrice active), avec famille et domaine.</summary>
+        Task<List<SkillPosition>> GetActiveSkillPositionsByPositionIdAsync(int positionId);
+
+        Task<Skill?> GetSkillByIdAsync(int skillId);
+
+        /// <summary>Ligne de questionnaire déjà rattachée à une ligne de matrice, si elle existe.</summary>
+        Task<CompetenceLine?> FindCompetenceLineBySkillPositionAsync(int skillPositionId);
+
         Task CreateCompetenceLineAsync(CompetenceLine competenceLine);
         Task UpdateCompetenceLineAsync(CompetenceLine competenceLine);
         Task DeleteCompetenceLineAsync(int id);

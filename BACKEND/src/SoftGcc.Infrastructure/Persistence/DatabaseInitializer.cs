@@ -212,12 +212,12 @@ public static class DatabaseInitializer
             CREATE VIEW dbo.VEmployeeDetails AS
             SELECT
                 e.Employee_id AS EmployeeId,
-                e.FirstName AS FirstName,
-                e.Name AS LastName,
+                ISNULL(e.FirstName, N'') AS FirstName,
+                ISNULL(e.Name, N'') AS LastName,
                 ISNULL(ep.Position_name, N'Non défini') AS Position,
                 ISNULL(ep.Position_id, 0) AS PositionId,
                 CAST(NULL AS nvarchar(255)) AS Role,
-                d.Department_name AS Department,
+                ISNULL(d.Department_name, N'Non défini') AS Department,
                 ev.Evaluations_id AS EvaluationId,
                 ev.start_date AS EvaluationDate,
                 ev.overallScore AS OverallScore,
@@ -273,6 +273,8 @@ public static class DatabaseInitializer
             ("Evaluation_type", "state", "INT NULL"),
             ("Users", "username", "NVARCHAR(255) NULL"),
             ("Users", "employee_id", "INT NULL"),
+            ("Evaluation_questions", "SkillId", "INT NULL"),
+            ("Evaluation_Question_Options", "SortOrder", "INT NOT NULL CONSTRAINT DF_Evaluation_Question_Options_SortOrder DEFAULT 0"),
         };
 
         foreach (var (table, column, definition) in columns)
@@ -288,6 +290,88 @@ public static class DatabaseInitializer
             IF OBJECT_ID(N'dbo.Skill_position', N'U') IS NOT NULL
                AND COL_LENGTH(N'dbo.Skill_position', N'Weight') IS NULL
                 ALTER TABLE dbo.Skill_position ADD Weight DECIMAL(9,4) NOT NULL CONSTRAINT DF_Skill_position_Weight DEFAULT 1;
+            """, cancellationToken);
+
+        await EnsureEvaluationQuestionSkillColumnAsync(connection, cancellationToken);
+    }
+
+    /// <summary>
+    /// Filet si la migration EF 20260826230000 a été enregistrée sans poser la colonne
+    /// (table absente au moment du Up, ou historique EF en avance sur le schéma).
+    /// </summary>
+    private static async Task EnsureEvaluationQuestionSkillColumnAsync(
+        SqlConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await ExecuteSqlAsync(connection, """
+            IF OBJECT_ID(N'dbo.Evaluation_questions', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.Evaluation_questions', N'SkillId') IS NULL
+                ALTER TABLE dbo.Evaluation_questions ADD SkillId INT NULL;
+            """, cancellationToken);
+
+        await ExecuteSqlAsync(connection, """
+            IF OBJECT_ID(N'dbo.Evaluation_questions', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.Evaluation_questions', N'SkillId') IS NOT NULL
+            BEGIN
+                IF OBJECT_ID(N'dbo.Competence_Lines', N'U') IS NOT NULL
+                   AND OBJECT_ID(N'dbo.Skill_position', N'U') IS NOT NULL
+                BEGIN
+                    UPDATE eq
+                    SET eq.SkillId = sp.Skill_id
+                    FROM dbo.Evaluation_questions eq
+                    JOIN dbo.Competence_Lines cl ON cl.CompetenceLineId = eq.CompetenceLineId
+                    JOIN dbo.Skill_position sp   ON sp.Skill_position_id = cl.SkillPositionId
+                    WHERE eq.SkillId IS NULL;
+                END
+
+                IF OBJECT_ID(N'dbo.Skill', N'U') IS NOT NULL
+                   AND NOT EXISTS (
+                        SELECT 1 FROM sys.foreign_keys
+                        WHERE name = N'FK_Evaluation_questions_Skill'
+                          AND parent_object_id = OBJECT_ID(N'dbo.Evaluation_questions'))
+                    ALTER TABLE dbo.Evaluation_questions ADD CONSTRAINT FK_Evaluation_questions_Skill
+                        FOREIGN KEY (SkillId) REFERENCES dbo.Skill(Skill_id);
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.indexes
+                    WHERE name = N'IX_Evaluation_questions_SkillId'
+                      AND object_id = OBJECT_ID(N'dbo.Evaluation_questions'))
+                    CREATE INDEX IX_Evaluation_questions_SkillId ON dbo.Evaluation_questions(SkillId);
+            END
+            """, cancellationToken);
+
+        await ExecuteSqlAsync(connection, """
+            IF OBJECT_ID(N'dbo.Evaluation_questions', N'U') IS NOT NULL
+               AND EXISTS (
+                    SELECT 1 FROM sys.columns
+                    WHERE object_id = OBJECT_ID(N'dbo.Evaluation_questions')
+                      AND name = N'positionId' AND is_nullable = 0)
+            BEGIN
+                DECLARE @fkPosition nvarchar(128);
+                SELECT @fkPosition = fk.name
+                FROM sys.foreign_keys fk
+                JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id
+                JOIN sys.columns c
+                    ON c.object_id = fkc.parent_object_id AND c.column_id = fkc.parent_column_id
+                WHERE fk.parent_object_id = OBJECT_ID(N'dbo.Evaluation_questions')
+                  AND c.name = N'positionId';
+
+                IF @fkPosition IS NOT NULL
+                BEGIN
+                    DECLARE @dropFkSql nvarchar(400) =
+                        N'ALTER TABLE dbo.Evaluation_questions DROP CONSTRAINT ' + QUOTENAME(@fkPosition);
+                    EXEC(@dropFkSql);
+                END
+
+                ALTER TABLE dbo.Evaluation_questions ALTER COLUMN positionId INT NULL;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.foreign_keys
+                    WHERE name = N'FK_Evaluation_questions_Position'
+                      AND parent_object_id = OBJECT_ID(N'dbo.Evaluation_questions'))
+                    ALTER TABLE dbo.Evaluation_questions ADD CONSTRAINT FK_Evaluation_questions_Position
+                        FOREIGN KEY (positionId) REFERENCES dbo.Position(Position_id);
+            END
             """, cancellationToken);
     }
 

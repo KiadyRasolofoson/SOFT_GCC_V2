@@ -194,10 +194,17 @@ function normalizeSelectedQuestions(raw: unknown): SelectedQuestion[] {
         questionId: asNumber(pick(row, 'questionId', 'QuestionId')) ?? 0,
         questionText: asString(pick(row, 'questionText', 'QuestionText', 'question', 'Question')) ?? '',
         competenceLineId: competence == null || competence === '' ? null : asNumber(competence),
-        competenceName: asString(pick(row, 'competenceName', 'CompetenceName')) ?? '',
+        competenceName:
+          asString(pick(row, 'skillName', 'SkillName', 'competenceName', 'CompetenceName')) ?? '',
+        skillId: asNumber(pick(row, 'skillId', 'SkillId')),
+        skillName: asString(pick(row, 'skillName', 'SkillName')),
+        familyId: asNumber(pick(row, 'familyId', 'FamilyId')),
+        familyName: asString(pick(row, 'familyName', 'FamilyName')),
+        domainId: asNumber(pick(row, 'domainId', 'DomainId')),
+        domainName: asString(pick(row, 'domainName', 'DomainName')),
         responseType: asString(pick(row, 'responseType', 'ResponseType')),
         responseValue: asString(pick(row, 'responseValue', 'ResponseValue')),
-        isCorrect: Boolean(pick(row, 'isCorrect', 'IsCorrect')),
+        isCorrect: false,
         maxTimeInMinutes: asNumber(pick(row, 'maxTimeInMinutes', 'MaxTimeInMinutes')) ?? 15,
       };
     })
@@ -218,7 +225,7 @@ function normalizeOptionsMap(raw: Record<string, unknown> | null | undefined): R
           optionId: asNumber(pick(row, 'optionId', 'OptionId')) ?? 0,
           questionId: asNumber(pick(row, 'questionId', 'QuestionId')) ?? id,
           optionText: asString(pick(row, 'optionText', 'OptionText')) ?? '',
-          isCorrect: Boolean(pick(row, 'isCorrect', 'IsCorrect')),
+          isCorrect: false,
         };
       })
       .filter((item) => item.optionId > 0);

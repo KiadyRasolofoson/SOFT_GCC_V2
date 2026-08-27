@@ -11,10 +11,11 @@ import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccPageHeader } from '../../ui/gcc-page-header';
 import { downloadEvaluationPdf, evaluationPdfBlob } from './evaluation-pdf';
 import {
-  averageOf,
+  averageOfRateableQuestions,
   CompetenceResult,
   EvaluationDetails,
   initialsOf,
+  isQcmResponseType,
   masteryRankOf,
   NotationRemarks,
   NotationValidation,
@@ -155,9 +156,9 @@ import { PdfPreviewDialog } from './pdf-preview.dialog';
                 @if (!readonly() && !canProceedQuestions()) {
                   <p class="max-w-sm text-right text-xs font-medium text-amber-800">
                     @if (!allRated() && !allCompetencesRated()) {
-                      Notez chaque question sur 5 et attribuez un niveau 1–4 à chaque compétence.
+                      Notez les questions texte et score sur 5, et attribuez un niveau 1–4 à chaque compétence. Les QCM sont corrigés automatiquement.
                     } @else if (!allRated()) {
-                      Notez chaque question sur 5 (étoiles).
+                      Notez chaque question texte ou score sur 5 (étoiles). Les QCM sont corrigés automatiquement.
                     } @else {
                       Choisissez un niveau 1–4 (Notions à Expert) pour chaque compétence, au-dessus des questions.
                     }
@@ -271,8 +272,10 @@ export class NotationWizardPage implements OnInit {
   readonly allRated = computed(() => {
     const items = this.questions();
     if (!items.length) return false;
+    const rateable = items.filter((question) => !isQcmResponseType(question.responseType));
+    if (!rateable.length) return true;
     const ratings = this.ratings();
-    return items.every((question) => ratings[question.questionId] != null);
+    return rateable.every((question) => ratings[question.questionId] != null);
   });
 
   readonly allCompetencesRated = computed(() => {
@@ -287,7 +290,7 @@ export class NotationWizardPage implements OnInit {
 
   readonly canProceedQuestions = computed(() => this.allRated() && this.allCompetencesRated());
 
-  readonly averageDisplay = computed(() => averageOf(this.ratings()).toFixed(2));
+  readonly averageDisplay = computed(() => averageOfRateableQuestions(this.questions(), this.ratings()).toFixed(2));
 
   readonly headerSubtitle = computed(() => {
     const evaluation = this.evaluation();
@@ -476,8 +479,9 @@ export class NotationWizardPage implements OnInit {
     const comments: Record<number, string> = {};
     for (const question of questions) {
       const parsed = this.parseExisting(question);
-      if (parsed.score != null) ratings[question.questionId] = parsed.score;
       if (parsed.comment) comments[question.questionId] = parsed.comment;
+      if (isQcmResponseType(question.responseType)) continue;
+      if (parsed.score != null) ratings[question.questionId] = parsed.score;
     }
     this.ratings.set(ratings);
     this.comments.set(comments);
@@ -514,9 +518,6 @@ export class NotationWizardPage implements OnInit {
     if (Number.isFinite(numeric) && numeric >= 0 && numeric <= 5 && raw !== '' && !Number.isNaN(numeric) && String(numeric) === raw) {
       return { score: numeric, comment: '' };
     }
-    if (question.responseType === 'QCM') {
-      return { score: question.isCorrect ? 5 : 0, comment: '' };
-    }
     return { score: undefined, comment: '' };
   }
 
@@ -528,14 +529,18 @@ export class NotationWizardPage implements OnInit {
     return {
       evaluationId: evaluation.evaluationId,
       ratings,
-      overallScore: averageOf(ratings),
+      overallScore: averageOfRateableQuestions(this.questions(), ratings),
       strengths: remarks.strengths,
       weaknesses: remarks.weaknesses,
       generalEvaluation: remarks.generalEvaluation,
       competenceRatings: this.competenceRatings(),
       detailedRatings: this.questions().map((question) => ({
         questionId: question.questionId,
-        overallRating: ratings[question.questionId] ?? 0,
+        overallRating: isQcmResponseType(question.responseType)
+          ? question.isCorrect
+            ? 5
+            : 0
+          : (ratings[question.questionId] ?? 0),
         comment: comments[question.questionId] || null,
       })),
     };
@@ -547,7 +552,7 @@ export class NotationWizardPage implements OnInit {
       questions: this.questions(),
       ratings: this.ratings(),
       comments: this.comments(),
-      average: averageOf(this.ratings()),
+      average: averageOfRateableQuestions(this.questions(), this.ratings()),
       competenceRatings: this.competenceRatings(),
       validation: this.validation(),
       suggestions: this.suggestions(),

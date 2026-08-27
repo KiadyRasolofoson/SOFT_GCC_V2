@@ -234,19 +234,32 @@ BEGIN
     CREATE TABLE Evaluation_questions (
         Question_id INT PRIMARY KEY IDENTITY(1,1),
         evaluationTypeId INT NOT NULL,
-        positionId INT NOT NULL,
+        -- Une question appartient à une compétence du référentiel (Skill), pas à un poste.
+        -- Domaine et famille sont déduits via Skill.Family_id → Skill_family.Domain_skill_id.
+        SkillId INT NULL,
+        -- positionId conservé comme filtre facultatif (ciblage lors de la planification).
+        positionId INT NULL,
         question NVARCHAR(255) NOT NULL,
         CompetenceLineId INT,
         ResponseTypeId INT NOT NULL DEFAULT 1,
         state INT,
         FOREIGN KEY (evaluationTypeId) REFERENCES Evaluation_type(Evaluation_type_id),
-        FOREIGN KEY (positionId) REFERENCES Position(Position_id),
+        CONSTRAINT FK_Evaluation_questions_Skill
+            FOREIGN KEY (SkillId) REFERENCES Skill(Skill_id),
+        CONSTRAINT FK_Evaluation_questions_Position
+            FOREIGN KEY (positionId) REFERENCES Position(Position_id),
         FOREIGN KEY (CompetenceLineId) REFERENCES Competence_Lines(CompetenceLineId),
         FOREIGN KEY (ResponseTypeId) REFERENCES ResponseTypes(ResponseTypeId)
     );
+    CREATE INDEX IX_Evaluation_questions_SkillId ON Evaluation_questions(SkillId);
     PRINT '   ✓ Table Evaluation_questions créée';
 END
-ELSE PRINT '   - Table Evaluation_questions existe déjà';
+ELSE
+BEGIN
+    IF COL_LENGTH(N'dbo.Evaluation_questions', N'SkillId') IS NULL
+        ALTER TABLE dbo.Evaluation_questions ADD SkillId INT NULL;
+    PRINT '   - Table Evaluation_questions existe déjà';
+END
 
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Evaluation_questionnaire')
 BEGIN
@@ -406,12 +419,18 @@ BEGIN
         QuestionId INT NOT NULL,
         OptionText NVARCHAR(255) NOT NULL,
         IsCorrect BIT DEFAULT 0,
+        SortOrder INT NOT NULL DEFAULT 0,
         State INT DEFAULT 1,
         FOREIGN KEY (QuestionId) REFERENCES Evaluation_questions(Question_id)
     );
     PRINT '   ✓ Table Evaluation_Question_Options créée';
 END
-ELSE PRINT '   - Table Evaluation_Question_Options existe déjà';
+ELSE
+BEGIN
+    IF COL_LENGTH(N'dbo.Evaluation_Question_Options', N'SortOrder') IS NULL
+        ALTER TABLE dbo.Evaluation_Question_Options ADD SortOrder INT NOT NULL CONSTRAINT DF_Evaluation_Question_Options_SortOrder DEFAULT 0;
+    PRINT '   - Table Evaluation_Question_Options existe déjà';
+END
 
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'EvaluationQuestionConfig')
 BEGIN

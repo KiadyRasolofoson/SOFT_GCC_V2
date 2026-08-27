@@ -7,8 +7,11 @@ import { GccEmptyState } from '../../ui/gcc-empty-state';
 import { GccSkillBadge, skillLevelFromRank } from '../../ui/gcc-skill-badge';
 import { GccStatusTag } from '../../ui/gcc-status-tag';
 import {
+  averageOfRateableQuestions,
   COMPETENCY_SCALE_RANKS,
+  isQcmResponseType,
   lookupById,
+  parseQcmOptionIds,
   QuestionOption,
   ratingLabel,
   ReferenceAnswer,
@@ -32,7 +35,7 @@ const STARS = [1, 2, 3, 4, 5];
             <div>
               <h2 class="text-sm font-bold text-navy">Notation : performance et maîtrise</h2>
               <p class="text-xs text-slate-500 font-medium">
-                Étoiles /5 par question · rang 1–4 par compétence (CompetencyScale)
+                Étoiles /5 sur les questions texte et score · QCM corrigé automatiquement · rang 1–4 par compétence
               </p>
             </div>
           </div>
@@ -45,7 +48,7 @@ const STARS = [1, 2, 3, 4, 5];
                 {{ averageLabel() }}
               </span>
               <p class="mt-0.5 text-[10px] font-medium text-slate-400">
-                {{ ratedCount() }} / {{ questions().length }} questions
+                {{ ratedCount() }} / {{ rateableCount() }} questions notées
               </p>
             </div>
             <div class="rounded-xl border border-indigo-100 bg-indigo-50/80 px-3 py-2 text-right">
@@ -73,13 +76,23 @@ const STARS = [1, 2, 3, 4, 5];
         />
       } @else {
         <div class="flex flex-col gap-6 pt-1">
-          @for (group of groups(); track group.key) {
-            <section class="space-y-3">
+          @for (domain of domainGroups(); track domain.key) {
+            <section class="space-y-4">
+              <div class="flex items-center gap-2.5 px-1">
+                <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-100 text-violet-700 text-xs font-bold">
+                  {{ domain.groups.length }}
+                </span>
+                <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">{{ domain.name }}</h3>
+                <div class="h-px flex-1 bg-slate-200/80"></div>
+              </div>
+
+              @for (group of domain.groups; track group.key) {
+            <div class="space-y-3">
               <div class="flex items-center gap-2.5 px-1">
                 <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 text-accent text-xs font-bold">
                   {{ group.items.length }}
                 </span>
-                <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">{{ group.name }}</h3>
+                <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">{{ group.name }}</h4>
                 <div class="h-px flex-1 bg-slate-200/80"></div>
               </div>
 
@@ -132,27 +145,29 @@ const STARS = [1, 2, 3, 4, 5];
                           <span class="inline-flex items-center rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-white shadow-2xs">
                             Question #{{ questionIndex(question.questionId) }}
                           </span>
-                          @if (question.competenceName) {
+                          @if (question.skillName || question.competenceName) {
                             <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 border border-indigo-100/80">
-                              {{ question.competenceName }}
+                              {{ question.skillName || question.competenceName }}
                             </span>
                           }
                         </div>
                         <h4 class="text-base font-bold leading-snug text-navy">{{ question.questionText }}</h4>
                       </div>
 
-                      <div
-                        class="shrink-0 rounded-2xl border p-2.5 text-center min-w-24 transition-colors"
-                        [class]="scoreBoxClass(ratings()[question.questionId])"
-                      >
-                        <p class="tabular text-xl font-extrabold leading-none">
-                          {{ ratings()[question.questionId] != null ? ratings()[question.questionId] : '—' }}
-                          <span class="text-xs font-medium opacity-70">/5</span>
-                        </p>
-                        <p class="text-[10px] font-bold uppercase tracking-wider mt-1 opacity-80">
-                          {{ ratingLabel(ratings()[question.questionId] || 0) }}
-                        </p>
-                      </div>
+                      @if (!isQcm(question)) {
+                        <div
+                          class="shrink-0 rounded-2xl border p-2.5 text-center min-w-24 transition-colors"
+                          [class]="scoreBoxClass(ratings()[question.questionId])"
+                        >
+                          <p class="tabular text-xl font-extrabold leading-none">
+                            {{ ratings()[question.questionId] != null ? ratings()[question.questionId] : '—' }}
+                            <span class="text-xs font-medium opacity-70">/5</span>
+                          </p>
+                          <p class="text-[10px] font-bold uppercase tracking-wider mt-1 opacity-80">
+                            {{ ratingLabel(ratings()[question.questionId] || 0) }}
+                          </p>
+                        </div>
+                      }
                     </div>
 
                     <!-- Employee Answer Box -->
@@ -171,6 +186,18 @@ const STARS = [1, 2, 3, 4, 5];
                           }
                         </div>
                         <p class="text-sm font-medium leading-relaxed text-navy whitespace-pre-line">{{ answer }}</p>
+                        @if (isQcm(question) && !hideCorrectness()) {
+                          @if (correctAnswersOf(question.questionId); as correct) {
+                            <p class="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                              Bonnes réponses
+                            </p>
+                            <ul class="mt-1 list-disc space-y-0.5 pl-4 text-sm text-navy">
+                              @for (label of correct; track label) {
+                                <li>{{ label }}</li>
+                              }
+                            </ul>
+                          }
+                        }
                       </div>
                     }
 
@@ -210,6 +237,7 @@ const STARS = [1, 2, 3, 4, 5];
                       }
                     }
 
+                    @if (!isQcm(question)) {
                     <!-- Interactive Star Rating Input -->
                     <div class="mt-5 border-t border-slate-100 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
@@ -254,9 +282,12 @@ const STARS = [1, 2, 3, 4, 5];
                         </label>
                       </div>
                     </div>
+                    }
                   </article>
                 }
               </div>
+            </div>
+              }
             </section>
           }
         </div>
@@ -284,7 +315,10 @@ export class NotationQuestionsStep {
     const map = new Map<string, { key: string; competenceLineId: number; name: string; items: SelectedQuestion[] }>();
     for (const question of this.questions()) {
       const lineId = Number(question.competenceLineId) > 0 ? Number(question.competenceLineId) : 0;
-      const name = question.competenceName?.trim() || (lineId ? `Compétence #${lineId}` : 'Autres compétences');
+      const name =
+        question.skillName?.trim() ||
+        question.competenceName?.trim() ||
+        (lineId ? `Compétence #${lineId}` : 'Autres compétences');
       const key = lineId > 0 ? `id:${lineId}` : `name:${name}`;
       const group = map.get(key) ?? { key, competenceLineId: lineId, name, items: [] };
       group.items.push(question);
@@ -293,8 +327,35 @@ export class NotationQuestionsStep {
     return [...map.values()];
   });
 
+  readonly domainGroups = computed(() => {
+    const domains = new Map<
+      string,
+      {
+        key: string;
+        name: string;
+        groups: { key: string; competenceLineId: number; name: string; items: SelectedQuestion[] }[];
+      }
+    >();
+    for (const group of this.groups()) {
+      const sample = group.items[0];
+      const name = sample?.domainName?.trim() || 'Autres domaines';
+      const domainId = Number(sample?.domainId) > 0 ? Number(sample.domainId) : 0;
+      const key = domainId > 0 ? `id:${domainId}` : `name:${name}`;
+      const domain = domains.get(key) ?? { key, name, groups: [] };
+      domain.groups.push(group);
+      domains.set(key, domain);
+    }
+    return [...domains.values()];
+  });
+
   readonly ratedCount = computed(() =>
-    this.questions().filter((question) => this.ratings()[question.questionId] != null).length,
+    this.rateableQuestions().filter((question) => this.ratings()[question.questionId] != null).length,
+  );
+
+  readonly rateableCount = computed(() => this.rateableQuestions().length);
+
+  readonly rateableQuestions = computed(() =>
+    this.questions().filter((question) => !isQcmResponseType(question.responseType)),
   );
 
   readonly competenceCount = computed(
@@ -311,17 +372,28 @@ export class NotationQuestionsStep {
 
   readonly progress = computed(() => {
     const total = this.questions().length;
-    return total ? (this.ratedCount() / total) * 100 : 0;
+    if (!total) return 0;
+    const complete = this.questions().filter(
+      (question) => isQcmResponseType(question.responseType) || this.ratings()[question.questionId] != null,
+    ).length;
+    return (complete / total) * 100;
   });
 
   readonly averageLabel = computed(() => {
-    const values = Object.values(this.ratings()).filter((n) => n > 0 || n === 0);
+    const rateable = this.rateableQuestions();
+    if (!rateable.length) return '—';
+    const values = rateable
+      .map((question) => this.ratings()[question.questionId])
+      .filter((score): score is number => Number.isFinite(score));
     if (!values.length) return '—';
-    const avg = values.reduce((sum, n) => sum + n, 0) / values.length;
-    return `${avg.toFixed(2)} / 5`;
+    return `${averageOfRateableQuestions(this.questions(), this.ratings()).toFixed(2)} / 5`;
   });
 
   readonly hideCorrectness = computed(() => this.evaluationTypeId() === 1);
+
+  isQcm(question: SelectedQuestion): boolean {
+    return isQcmResponseType(question.responseType);
+  }
 
   questionIndex(questionId: number): number {
     return this.questions().findIndex((question) => question.questionId === questionId) + 1;
@@ -407,16 +479,25 @@ export class NotationQuestionsStep {
       }
     }
 
-    // Réponse QCM : résoudre l'optionId en libellé
-    if (question.responseType === 'QCM') {
-      const optionId = Number(raw);
+    // Réponse QCM : résoudre le ou les optionId en libellés
+    if (isQcmResponseType(question.responseType)) {
       const opts = lookupById(this.options(), question.questionId) ?? [];
-      if (Number.isFinite(optionId) && opts.length) {
-        const opt = opts.find((o) => o.optionId === optionId);
-        if (opt) return opt.optionText;
+      const ids = parseQcmOptionIds(raw);
+      if (ids.length && opts.length) {
+        return ids
+          .map((id) => opts.find((option) => option.optionId === id)?.optionText ?? String(id))
+          .join(', ');
       }
     }
 
     return raw;
+  }
+
+  correctAnswersOf(questionId: number): string[] | null {
+    const labels = (lookupById(this.options(), questionId) ?? [])
+      .filter((option) => option.isCorrect)
+      .map((option) => option.optionText.trim())
+      .filter(Boolean);
+    return labels.length ? labels : null;
   }
 }

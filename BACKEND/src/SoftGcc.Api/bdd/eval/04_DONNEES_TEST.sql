@@ -618,7 +618,33 @@ VALUES
     (3, 4, 16, 'Dans quelle mesure les tests fonctionnels ont-ils couvert les exigences du projet ?', 1),
     (3, 4, 17, 'Comment �valuez-vous la qualit� et la maintenabilit� des tests automatis�s d�velopp�s pour ce projet ?', 1);
 
-	SELECT Question_id, question, CompetenceLineId FROM Evaluation_questions;
+----------------------------
+-- Rattachement des questions au référentiel de compétences
+-- Une question appartient à une compétence (Skill) ; le domaine et la famille
+-- sont déduits via Skill_family. La compétence est résolue depuis la matrice
+-- emploi-compétences (Competence_Lines → Skill_position → Skill).
+----------------------------
+UPDATE eq
+SET eq.SkillId = sp.Skill_id
+FROM Evaluation_questions eq
+JOIN Competence_Lines cl ON cl.CompetenceLineId = eq.CompetenceLineId
+JOIN Skill_position sp   ON sp.Skill_position_id = cl.SkillPositionId
+WHERE eq.SkillId IS NULL;
+
+-- Les questions sans ligne de compétence retombent sur la première compétence
+-- active de la matrice de leur poste, afin de rester évaluables en jeu de test.
+UPDATE eq
+SET eq.SkillId = x.Skill_id
+FROM Evaluation_questions eq
+CROSS APPLY (
+    SELECT TOP 1 sp.Skill_id
+    FROM Skill_position sp
+    WHERE sp.Position_id = eq.positionId AND sp.State > 0
+    ORDER BY sp.Skill_position_id
+) x
+WHERE eq.SkillId IS NULL AND eq.positionId IS NOT NULL;
+
+	SELECT Question_id, question, SkillId, CompetenceLineId FROM Evaluation_questions;
 
 
 	INSERT INTO Training_suggestions (evaluationTypeId, questionId, CompetenceLineId, TrainingId, training, details, scoreThreshold, state)

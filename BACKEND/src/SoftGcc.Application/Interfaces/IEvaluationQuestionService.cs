@@ -13,6 +13,10 @@ public interface IEvaluationQuestionService
 
     Task DeleteQuestionAsync(int questionId);
 
+    Task<IReadOnlyList<EvaluationQuestionOptionDto>> GetQuestionOptionsAsync(int questionId);
+
+    Task<IReadOnlyList<object>> GetQuestionOptionSummariesAsync();
+
     /// <summary>Lève <see cref="SoftGcc.Domain.Exceptions.NotFoundException"/> si la question n'existe pas.</summary>
     Task<EvaluationQuestion> GetRequiredQuestionAsync(int questionId);
 

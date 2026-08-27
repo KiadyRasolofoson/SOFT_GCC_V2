@@ -55,14 +55,37 @@ public sealed class EvaluationQuestionsController : ControllerBase
         return Ok(await _questionService.GetRequiredQuestionAsync(id));
     }
 
+    [HttpGet("questions/{id}/options")]
+    [ProducesResponseType(typeof(IEnumerable<EvaluationQuestionOptionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<EvaluationQuestionOptionDto>>> GetQuestionOptionsAsync(int id)
+    {
+        return Ok(await _questionService.GetQuestionOptionsAsync(id));
+    }
+
+    [HttpGet("question-option-summaries")]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<object>>> GetQuestionOptionSummariesAsync()
+    {
+        return Ok(await _questionService.GetQuestionOptionSummariesAsync());
+    }
+
+    /// <summary>
+    /// Recherche dans la banque de questions. L'axe principal est le référentiel de
+    /// compétences (domaine, famille, compétence) ; le poste n'est qu'un filtre facultatif.
+    /// </summary>
     [HttpGet("questions")]
     [ProducesResponseType(typeof(IEnumerable<EvaluationQuestion>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<EvaluationQuestion>>> GetQuestionsAsync(
         [FromQuery] int evaluationTypeId,
-        [FromQuery] int positionId,
-        [FromQuery] int? competenceLineId = null)
+        [FromQuery] int? positionId = null,
+        [FromQuery] int? competenceLineId = null,
+        [FromQuery] int? skillId = null,
+        [FromQuery] int? familyId = null,
+        [FromQuery] int? domainId = null)
     {
-        var filter = new EvaluationQuestionFilterDto(evaluationTypeId, positionId, competenceLineId);
+        var filter = new EvaluationQuestionFilterDto(
+            evaluationTypeId, positionId, competenceLineId, skillId, familyId, domainId);
 
         return Ok(await _questionService.FindQuestionsAsync(filter));
     }

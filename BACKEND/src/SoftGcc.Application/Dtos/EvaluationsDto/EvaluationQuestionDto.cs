@@ -12,9 +12,15 @@ namespace SoftGcc.Application.Dtos.EvaluationsDto
         
         [Required(ErrorMessage = "Le type d'évaluation est requis.")]
         public int EvaluationTypeId { get; set; }
-        
-        [Required(ErrorMessage = "La position est requise.")]
-        public int PositionId { get; set; }
+
+        /// <summary>
+        /// Compétence évaluée (référentiel). Le domaine et la famille en découlent.
+        /// </summary>
+        [Required(ErrorMessage = "La compétence est requise.")]
+        public int SkillId { get; set; }
+
+        /// <summary>Poste facultatif : null ou 0 signifie « tous les postes ».</summary>
+        public int? PositionId { get; set; }
         
         // CompetenceLineId est optionnel
         public int? CompetenceLineId { get; set; }
@@ -23,5 +29,8 @@ namespace SoftGcc.Application.Dtos.EvaluationsDto
         public int ResponseTypeId { get; set; }
         
         public int State { get; set; } = 1;  // Valeur par défaut
+
+        /// <summary>Choix et bonnes réponses, requis lorsque le type est QCM.</summary>
+        public List<EvaluationQuestionOptionDto> Options { get; set; } = [];
     }
 } 

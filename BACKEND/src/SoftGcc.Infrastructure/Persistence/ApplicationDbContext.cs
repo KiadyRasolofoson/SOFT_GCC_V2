@@ -258,7 +258,15 @@ namespace SoftGcc.Infrastructure.Persistence
 
 
 			//------------------EVALUATIONS-----------------------------------------//
-			modelBuilder.Entity<VEmployeeDetails>().HasNoKey().ToView("VEmployeeDetails");
+			modelBuilder.Entity<VEmployeeDetails>(entity =>
+			{
+				entity.HasNoKey();
+				entity.ToView("VEmployeeDetails");
+				entity.Property(e => e.FirstName).IsRequired(false);
+				entity.Property(e => e.LastName).IsRequired(false);
+				entity.Property(e => e.Position).IsRequired(false);
+				entity.Property(e => e.Department).IsRequired(false);
+			});
 			modelBuilder.Entity<VEmployeeWithoutEvaluation>().HasNoKey().ToView("VEmployeesWithoutEvaluation");
 			modelBuilder.Entity<VEmployeesFinishedEvaluation>().HasNoKey().ToView("VEmployeesFinishedEvaluation");
 			modelBuilder.Entity<VEvaluationHistory>().HasNoKey().ToView("VEvaluationHistory");
@@ -292,6 +300,34 @@ namespace SoftGcc.Infrastructure.Persistence
 
 			ConfigureAiAgent(modelBuilder);
 			ConfigureSkillReferential(modelBuilder);
+			ConfigureEvaluationQuestions(modelBuilder);
+		}
+
+		/// <summary>
+		/// Une question d'évaluation appartient à une compétence du référentiel ; le poste
+		/// n'est qu'un filtre facultatif.
+		/// </summary>
+		private static void ConfigureEvaluationQuestions(ModelBuilder modelBuilder)
+		{
+			modelBuilder.Entity<EvaluationQuestion>(entity =>
+			{
+				entity.HasIndex(e => e.SkillId);
+
+				entity.HasOne(e => e.Skill)
+					.WithMany()
+					.HasForeignKey(e => e.SkillId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasOne(e => e.Position)
+					.WithMany()
+					.HasForeignKey(e => e.positionId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasOne(e => e.CompetenceLine)
+					.WithMany(cl => cl.EvaluationQuestions)
+					.HasForeignKey(e => e.CompetenceLineId)
+					.OnDelete(DeleteBehavior.Restrict);
+			});
 		}
 
 		private static void ConfigureSkillReferential(ModelBuilder modelBuilder)

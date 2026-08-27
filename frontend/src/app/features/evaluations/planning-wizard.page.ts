@@ -554,30 +554,54 @@ export class PlanningWizardPage implements OnInit {
     for (const employee of this.employees()) {
       const pack = byPosition.get(employee.positionId ?? -1);
       const questions = pack?.questions ?? [];
-      let competences = [...(pack?.competences ?? [])];
-
-      if (!competences.length) {
-        const taggedIds = [
-          ...new Set(
-            questions.map((question) => question.competenceLineId).filter((id): id is number => !!id && id > 0),
-          ),
-        ];
-        competences = taggedIds.map((id) => ({
-          competenceLineId: id,
-          skillName: `Compétence #${id}`,
-          description: null,
-          positionId: employee.positionId ?? 0,
-        }));
+      const byLine = new Map<number, PlanningQuestion[]>();
+      for (const question of questions) {
+        const lineId = Number(question.competenceLineId) > 0 ? Number(question.competenceLineId) : 0;
+        const list = byLine.get(lineId) ?? [];
+        list.push(question);
+        byLine.set(lineId, list);
       }
 
-      const unassigned = questions.filter((question) => !question.competenceLineId);
+      const fromPack = pack?.competences ?? [];
+      const competences: CompetenceLineOption[] = [];
+      const seen = new Set<number>();
+
+      for (const competence of fromPack) {
+        const sample = (byLine.get(competence.competenceLineId) ?? [])[0];
+        seen.add(competence.competenceLineId);
+        competences.push({
+          ...competence,
+          skillName: sample?.skillName || competence.skillName,
+          skillId: sample?.skillId ?? competence.skillId ?? null,
+          domainId: sample?.domainId ?? competence.domainId ?? null,
+          domainName: sample?.domainName ?? competence.domainName ?? null,
+          familyId: sample?.familyId ?? competence.familyId ?? null,
+          familyName: sample?.familyName ?? competence.familyName ?? null,
+        });
+      }
+
+      for (const [lineId, list] of byLine) {
+        if (lineId <= 0 || seen.has(lineId)) continue;
+        const sample = list[0];
+        competences.push({
+          competenceLineId: lineId,
+          skillName: sample.skillName || `Compétence #${lineId}`,
+          description: null,
+          positionId: employee.positionId ?? 0,
+          skillId: sample.skillId,
+          domainId: sample.domainId,
+          domainName: sample.domainName,
+          familyId: sample.familyId,
+          familyName: sample.familyName,
+        });
+      }
+
+      const unassigned = byLine.get(0) ?? [];
       competenceMap[employee.employeeId] = competences;
       questionMap[employee.employeeId] = {};
       for (const competence of competences) {
-        const tagged = questions.filter(
-          (question) => Number(question.competenceLineId) === Number(competence.competenceLineId),
-        );
-        questionMap[employee.employeeId][competence.competenceLineId] = tagged;
+        questionMap[employee.employeeId][competence.competenceLineId] =
+          byLine.get(competence.competenceLineId) ?? [];
       }
       if (unassigned.length && competences.length) {
         const firstId = competences[0].competenceLineId;

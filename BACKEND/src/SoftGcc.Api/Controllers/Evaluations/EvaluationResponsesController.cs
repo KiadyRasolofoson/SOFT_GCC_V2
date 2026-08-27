@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using SoftGcc.Application.Authorization;
 using SoftGcc.Application.Common;
 using SoftGcc.Application.Dtos.EvaluationsDto;
 using SoftGcc.Application.Interfaces;
@@ -73,11 +75,37 @@ public sealed class EvaluationResponsesController : ControllerBase
     }
 
     [HttpGet("{evaluationId}/options")]
-    [ProducesResponseType(typeof(Dictionary<int, List<EvaluationQuestionOptions>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<Dictionary<int, List<EvaluationQuestionOptions>>>> GetQuestionOptionsAsync(
+    [ProducesResponseType(typeof(Dictionary<int, List<PortalQuestionOptionDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Dictionary<int, List<PortalQuestionOptionDto>>>> GetQuestionOptionsAsync(
         int evaluationId)
     {
-        return Ok(await _responseService.GetAllQuestionOptionsAsync(evaluationId));
+        var options = await _responseService.GetAllQuestionOptionsAsync(evaluationId);
+        return Ok(options.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value
+                .Select(option => new PortalQuestionOptionDto(option.OptionId, option.QuestionId, option.OptionText))
+                .ToList()));
+    }
+
+    [HttpGet("{evaluationId}/options/key")]
+    [Authorize]
+    [RequirePermission("VIEW_EVALUATIONS", "MANAGE_EVALUATIONS", "EVALUATION_SETTINGS")]
+    [ProducesResponseType(typeof(Dictionary<int, List<EvaluationQuestionOptionDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<Dictionary<int, List<EvaluationQuestionOptionDto>>>> GetQuestionOptionsWithAnswerKeyAsync(
+        int evaluationId)
+    {
+        var options = await _responseService.GetAllQuestionOptionsAsync(evaluationId);
+        return Ok(options.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value
+                .Select(option => new EvaluationQuestionOptionDto
+                {
+                    OptionId = option.OptionId,
+                    OptionText = option.OptionText,
+                    IsCorrect = option.IsCorrect,
+                    SortOrder = option.SortOrder
+                })
+                .ToList()));
     }
 
     [HttpPost("{evaluationId}/save-progress")]

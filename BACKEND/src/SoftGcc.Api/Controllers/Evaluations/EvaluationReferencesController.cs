@@ -3,8 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using SoftGcc.Application.Common;
 using SoftGcc.Application.Dtos.EvaluationsDto;
 using SoftGcc.Application.Interfaces;
+using SoftGcc.Application.SkillReferential;
+using SoftGcc.Application.SkillReferential.Dtos;
 using SoftGcc.Domain.Entities.crud_career;
 using SoftGcc.Domain.Entities.Evaluations;
+using SoftGcc.Domain.SkillReferential;
 
 using SoftGcc.Application.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -24,15 +27,18 @@ public sealed class EvaluationReferencesController : ControllerBase
     private readonly IEvaluationService _evaluationService;
     private readonly ICompetenceLineService _competenceLineService;
     private readonly IResponseTypeService _responseTypeService;
+    private readonly ISkillReferentialService _skillReferentialService;
 
     public EvaluationReferencesController(
         IEvaluationService evaluationService,
         ICompetenceLineService competenceLineService,
-        IResponseTypeService responseTypeService)
+        IResponseTypeService responseTypeService,
+        ISkillReferentialService skillReferentialService)
     {
         _evaluationService = evaluationService;
         _competenceLineService = competenceLineService;
         _responseTypeService = responseTypeService;
+        _skillReferentialService = skillReferentialService;
     }
 
     [HttpGet("types")]
@@ -71,6 +77,45 @@ public sealed class EvaluationReferencesController : ControllerBase
     public async Task<ActionResult<IEnumerable<CompetenceLineSummaryDto>>> GetCompetenceLinesAsync()
     {
         return Ok(await _competenceLineService.GetSummariesAsync());
+    }
+
+    /// <summary>
+    /// Arbre du référentiel de compétences (domaine → famille → compétence publiée) : c'est
+    /// l'axe sur lequel les questions d'évaluation sont désormais définies et filtrées.
+    /// Exposé ici pour que les RH y accèdent sans les droits du module référentiel.
+    /// </summary>
+    [HttpGet("competence-domains")]
+    [ProducesResponseType(typeof(IEnumerable<CompetenceDomainNodeDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<CompetenceDomainNodeDto>>> GetCompetenceDomainsAsync(
+        CancellationToken cancellationToken)
+    {
+        var catalog = await _skillReferentialService.GetCatalogAsync(
+            new SkillCatalogQuery { State = SkillLifecycle.Active },
+            cancellationToken);
+
+        var domains = catalog
+            .Select(domain => new CompetenceDomainNodeDto(
+                domain.DomainId,
+                domain.DomainCode,
+                domain.DomainName,
+                domain.Families
+                    .Select(family => new CompetenceFamilyNodeDto(
+                        family.FamilyId,
+                        family.Code,
+                        family.Name,
+                        family.Skills
+                            .Select(skill => new CompetenceSkillNodeDto(
+                                skill.SkillId,
+                                skill.Code,
+                                skill.Name,
+                                skill.Category))
+                            .ToList()))
+                    .Where(family => family.Skills.Count > 0)
+                    .ToList()))
+            .Where(domain => domain.Families.Count > 0)
+            .ToList();
+
+        return Ok(domains);
     }
 
     [HttpGet("response-types")]
