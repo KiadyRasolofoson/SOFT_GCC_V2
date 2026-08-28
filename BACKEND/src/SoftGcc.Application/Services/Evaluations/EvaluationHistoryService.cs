@@ -80,8 +80,8 @@ namespace SoftGcc.Application.Services.Evaluations
                 OverallScore = e.OverallScore,
                 Status = e.status,
                 Recommendations = e.Recommendations ?? "",
-                FirstName = e.FirstName,
-                LastName = e.LastName,
+                FirstName = e.FirstName ?? "",
+                LastName = e.LastName ?? "",
                 Position = e.Position
             }).ToList();
         }
@@ -130,10 +130,11 @@ namespace SoftGcc.Application.Services.Evaluations
                     OverallScore = e.OverallScore,
                     Status = e.status,
                     Recommendations = e.Recommendations ?? "",
-                    FirstName = e.FirstName,
-                    LastName = e.LastName,
+                    FirstName = e.FirstName ?? "",
+                    LastName = e.LastName ?? "",
                     Position = e.Position
                 })
+                .OrderBy(e => e.EvaluationId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();

@@ -70,6 +70,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
 
             var wishEvolutions = await _context.VWishEvolution
                 .FromSqlRaw("SELECT * FROM v_wish_evolution")
+                .OrderBy(w => w.WishEvolutionCareerId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -172,10 +173,16 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
                 parameters.Add(new SqlParameter("@State", state));
             }
 
-            var filteredQuery = _context.VWishEvolution
-                .FromSqlRaw(sql.ToString(), parameters.ToArray());
+            // Snapshot filtré SANS ORDER BY pour le COUNT (interdit dans une table dérivée)
+            var countSql = sql.ToString();
 
-            var totalRecords = await filteredQuery.CountAsync();
+            var filteredQuery = _context.VWishEvolution
+                .FromSqlRaw(sql.ToString(), parameters.ToArray())
+                .OrderBy(w => w.WishEvolutionCareerId);
+
+            var totalRecords = await _context.Database
+                .SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM (" + countSql + ") AS [s]", parameters.ToArray())
+                .FirstOrDefaultAsync();
 
             var wishesEvolution = await filteredQuery
                 .Skip((page - 1) * pageSize)

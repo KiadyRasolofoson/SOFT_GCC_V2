@@ -32,7 +32,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             int pageSize = 10)
         {
             var sql = new StringBuilder("SELECT * FROM v_employee WHERE 1=1");
-            var countSql = new StringBuilder("SELECT COUNT(*) AS count FROM v_employee WHERE 1=1");
+            var countSql = new StringBuilder("SELECT COUNT(*) AS Value FROM v_employee WHERE 1=1");
             var parameters = new List<SqlParameter>();
 
             if (!string.IsNullOrWhiteSpace(keyWord))
@@ -58,9 +58,13 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             }
 
             var filteredQuery = _context.VEmployee
-                .FromSqlRaw(sql.ToString(), parameters.ToArray());
+                .FromSqlRaw(sql.ToString(), parameters.ToArray())
+                .OrderBy(e => e.RegistrationNumber);
 
-            var totalRecords = await filteredQuery.CountAsync();
+            // Total : compté sur une sous-requête SANS ORDER BY (interdit dans une table dérivée)
+            var totalRecords = await _context.Database
+                .SqlQueryRaw<int>(countSql.ToString(), parameters.ToArray())
+                .FirstOrDefaultAsync();
 
             var employee = await filteredQuery
                 .Skip((page - 1) * pageSize)
@@ -160,10 +164,17 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
 
         public async Task<object> GetAllSkillsFilter(string keyWord, int pageNumber = 1, int pageSize = 10)
         {
-            var filteredQuery = _context.VSkills
-                .FromSqlRaw("SELECT * FROM v_skills WHERE Registration_number LIKE @p0 OR name LIKE @p0 OR firstname LIKE @p0", $"%{keyWord}%");
+            const string countSql =
+                "SELECT COUNT(*) AS Value FROM v_skills WHERE Registration_number LIKE @p0 OR name LIKE @p0 OR firstname LIKE @p0";
 
-            var totalRecords = await filteredQuery.CountAsync();
+            var filteredQuery = _context.VSkills
+                .FromSqlRaw("SELECT * FROM v_skills WHERE Registration_number LIKE @p0 OR name LIKE @p0 OR firstname LIKE @p0", $"%{keyWord}%")
+                .OrderBy(s => s.RegistrationNumber);
+
+            // Total : compté sur une sous-requête SANS ORDER BY (interdit dans une table dérivée)
+            var totalRecords = await _context.Database
+                .SqlQueryRaw<int>(countSql, $"%{keyWord}%")
+                .FirstOrDefaultAsync();
 
             var skills = await filteredQuery
                 .Skip((pageNumber - 1) * pageSize)

@@ -34,7 +34,7 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             int pageSize = 10)
         {
             var sql = new StringBuilder("SELECT * FROM v_retirement WHERE 1=1");
-            var countSql = new StringBuilder("SELECT COUNT(*) AS count FROM v_retirement WHERE 1=1");
+            var countSql = new StringBuilder("SELECT COUNT(*) AS Value FROM v_retirement WHERE 1=1");
             var parameters = new List<SqlParameter>();
 
             if (!string.IsNullOrWhiteSpace(keyWord))
@@ -102,9 +102,13 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
             }
 
             var filteredQuery = _context.VRetirement
-                .FromSqlRaw(sql.ToString(), parameters.ToArray());
+                .FromSqlRaw(sql.ToString(), parameters.ToArray())
+                .OrderBy(r => r.RegistrationNumber);
 
-            var totalCount = await filteredQuery.CountAsync();
+            // Total : compté sur une sous-requête SANS ORDER BY (interdit dans une table dérivée)
+            var totalCount = await _context.Database
+                .SqlQueryRaw<int>(countSql.ToString(), parameters.ToArray())
+                .FirstOrDefaultAsync();
 
             var data = await filteredQuery
                 .Skip((page - 1) * pageSize)

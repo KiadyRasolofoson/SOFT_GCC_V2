@@ -455,7 +455,7 @@ export class ObjectivesListPage implements OnInit {
   readonly employee = signal<string | null>('all');
   readonly status = signal<string>('all');
   readonly pageIndex = signal(0);
-  readonly pageSize = signal(20);
+  readonly pageSize = signal(10);
   readonly totalItems = signal(0);
   readonly loading = signal(false);
   readonly saving = signal(false);

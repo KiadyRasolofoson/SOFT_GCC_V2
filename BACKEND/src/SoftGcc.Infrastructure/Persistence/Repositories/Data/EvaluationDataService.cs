@@ -889,7 +889,8 @@ namespace SoftGcc.Infrastructure.Persistence.Repositories.Data
         public async Task<(List<EvaluationQuestion> Items, int TotalCount)> GetPaginatedQuestionsByTypeAsync(int evaluationTypeId, int pageNumber, int pageSize)
         {
             var query = _context.evaluationQuestions
-                .Where(q => q.evaluationTypeId == evaluationTypeId);
+                .Where(q => q.evaluationTypeId == evaluationTypeId)
+                .OrderByDescending(q => q.questionId);
 
             var totalCount = await query.CountAsync();
 
